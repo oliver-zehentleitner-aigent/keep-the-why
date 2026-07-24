@@ -15,6 +15,7 @@ The skill has just been installed in a project. There's no `AGENTS.md`, no `cont
     > - Where should the why-knowledge live? [`context/`]
     > - Start fresh, work through existing history now, or both? [fresh]
     > - Add the Keep the Why badge to README.md? [yes]
+    > - How much confirmation before something gets written to `context/`: automatic, always ask, or only when unclear? [only when unclear]
 
 3. User replies: "defaults."
 4. Adds the badge to `README.md`, as the last badge after the existing ones:
@@ -38,12 +39,14 @@ The skill has just been installed in a project. There's no `AGENTS.md`, no `cont
     Not usage docs — see `docs/` for that. Start with `index.md`.
     ```
 
-6. Creates `AGENTS.md` with a short pointer section and the project config block:
+6. Creates `AGENTS.md` with a short pointer section and the project config block, including `context-schema` set to the currently installed skill version — freshly created, nothing to migrate:
 
     ```markdown
     <!-- keep-the-why:config -->
     - context: `context/`
     - init: complete
+    - context-schema: 0.4.0
+    - capture-confirmation: confirm-when-unsure
     <!-- /keep-the-why:config -->
     ```
 
@@ -51,6 +54,7 @@ The skill has just been installed in a project. There's no `AGENTS.md`, no `cont
 
     > And a couple of preferences just for you (not committed):
     > - Capture proactively during conversation, or only when asked? [proactive]
+    > - When there's more than one thing to confirm at once, one at a time or as a list? [one at a time]
     > - Check for skill updates? [yes, every 14 days]
     > - Check `context/` for staleness? [yes, every 30 days]
 
@@ -60,6 +64,7 @@ The skill has just been installed in a project. There's no `AGENTS.md`, no `cont
     ```markdown
     <!-- keep-the-why:local -->
     - capture-mode: explicit-only
+    - confirmation-flow: sequential
     - update-check: every 14 days — last: 2026-07-21
     - consistency-check: every 30 days — last: 2026-07-21
     <!-- /keep-the-why:local -->
@@ -69,7 +74,7 @@ The skill has just been installed in a project. There's no `AGENTS.md`, no `cont
 
 ## A second developer opens the same project later
 
-The project config block already says `init: complete` — that part isn't re-asked, it's a project fact, not a per-developer one. But this developer has no `AGENTS.local.md` yet, so the personal preferences wizard (step 7 above) runs for them individually. Their answers might differ from the first developer's, and that's fine — capture mode and check intervals are exactly the kind of thing that should vary per person.
+The project config block already says `init: complete` — that part isn't re-asked, it's a project fact, not a per-developer one. `capture-confirmation` is part of that same project fact: it stays `confirm-when-unsure` for everyone, this developer included, regardless of their own personal preferences. But this developer has no `AGENTS.local.md` yet, so the personal preferences wizard (step 7 above) runs for them individually. Their answers might differ from the first developer's, and that's fine — capture mode, `confirmation-flow`, and check intervals are exactly the kind of thing that should vary per person.
 
 ## A later session, after a few weeks of no web access
 
