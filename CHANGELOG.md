@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Fixed
+
+- `examples/first-time-setup.md` predated `capture-confirmation`/`confirmation-flow` entirely — found while reviewing the freshly reinstalled 0.4.0 skill end to end. Wizard questions, both config block snippets, and the second-developer section now reflect the current fields; also added the previously-missing `context-schema` line to the project config block example.
+
 ## [0.4.0] - 2026-07-24
 
 ### Added
