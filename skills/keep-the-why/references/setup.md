@@ -36,7 +36,7 @@ Where the why-knowledge lives, whether the project has been set up at all, and h
 
 `capture-mode` says `proactive` rather than `autostart` deliberately — a Skill has no session-level autostart hook to promise (see "What this skill is not" in `SKILL.md`); what's actually configurable is whether the skill, once active in a conversation, looks for capture opportunities on its own or waits to be asked. `proactive` describes that behavior honestly; `explicit-only` is the alternative. This is a different question from `capture-confirmation` — `capture-mode` decides whether the skill goes looking in the first place, `capture-confirmation` decides what happens once it's found something.
 
-`confirmation-flow` governs how *multiple* pending confirmations get presented when more than one accumulates at once (typical in retrospective recovery or after an interview session) — `sequential` (one at a time, wait for an answer before the next) or `batch` (a numbered list, confirm or reject individually or all at once). It doesn't change *whether* confirmation is needed — that's still `capture-confirmation` — only how it's presented when there's more than one.
+`confirmation-flow` governs how *multiple* things needing a response get presented, whenever more than one comes up at once — `sequential` (one at a time, wait for an answer before the next) or `batch` (a numbered list, confirm or reject individually or all at once). This isn't limited to candidate `context/` entries (typical in retrospective recovery or after an interview session) — the exact same question applies to both wizards' own questions, which is why they read this same setting instead of hardcoding one presentation style for everyone. It doesn't change *whether* confirmation is needed — that's still `capture-confirmation` — only how it's presented when there's more than one thing at once.
 
 ## Detection and the two independent wizards
 
@@ -48,7 +48,7 @@ Where the why-knowledge lives, whether the project has been set up at all, and h
 
 ## Project init wizard (once per project)
 
-1. Ask, in one pass:
+1. Ask the following, presented according to the developer's `confirmation-flow` if it's already known from a previous session (`sequential`: one question, wait for the answer, then the next; `batch`: all of them together) — default to `sequential` if this developer has no stored preference yet, since that's `confirmation-flow`'s own default and there's nothing else to go on:
    - Where should the why-knowledge live? Default `context/`; anything else is fine.
    - How do you want to start: capture from now on only, work through existing history now (retrospective recovery), sit down for an interview now, or some combination?
    - Add the Keep the Why badge to this project's `README.md`? If yes, insert `[![Keep the Why](https://keepthewhy.com/assets/badge.svg)](https://keepthewhy.com)` as the *last* badge in the existing badge row — same snippet for every project, see `keepthewhy.com/badge/`. If there's no existing badge row yet, it's the only one, at the top.
@@ -77,15 +77,15 @@ Where the why-knowledge lives, whether the project has been set up at all, and h
 
 ## Personal preferences wizard (once per developer)
 
-1. Ask, in one pass:
+1. Ask the following one at a time, waiting for an answer before the next — this is the developer's very first activation, so `confirmation-flow` (one of the things being asked here) isn't known yet, and `sequential` is its own documented default:
    - Capture proactively during normal conversation, or only when explicitly asked? Default: proactive.
-   - When there's more than one thing to confirm at once, do you want them one at a time or as a list you can review together? Default: one at a time.
+   - When there's more than one thing to confirm at once — including these wizard questions themselves, from here on — do you want them one at a time or as a list you can review together? Default: one at a time.
    - Check for skill updates automatically? If yes, what interval (default: 14 days).
    - Check `context/` for staleness automatically? If yes, what interval (default: 30 days).
 2. If `AGENTS.local.md` doesn't exist yet: before creating it, check whether the project's `.gitignore` already excludes it. If not, add an `AGENTS.local.md` entry to `.gitignore` (creating the file if it doesn't exist) — this file is meant to hold personal, sometimes sensitive preferences, and "not committed" only means something if it's actually enforced, not just stated in prose. Then create `AGENTS.local.md` and make sure the entry-point file points to it (see `methodology.md`).
 3. Write the answers to the `AGENTS.local.md` personal block.
 
-Both wizards: offer the defaults as a fast path ("just use the defaults" should be a one-word answer), but leave room for different choices, and record any deviation explicitly rather than leaving it implied.
+Both wizards: offer the defaults as a fast path ("just use the defaults" should be a one-word answer, either for a single question or for everything remaining), but leave room for different choices, and record any deviation explicitly rather than leaving it implied. Bundling every question into one message is itself a `confirmation-flow: batch`-style presentation — it's a legitimate choice once that preference is actually known, not the default way of running either wizard.
 
 ## The confirmation model
 
@@ -95,7 +95,7 @@ Three independent settings, two different files (see rule 11 in `SKILL.md` for t
 |---|---|---|---|
 | `capture-mode` | When does the skill look for capture opportunities? | `proactive` \| `explicit-only` | `AGENTS.local.md` (personal) |
 | `capture-confirmation` | Once something's found, does writing it need permission first? | `automatic` \| `confirm-always` \| `confirm-when-unsure` | `AGENTS.md` (project) |
-| `confirmation-flow` | When more than one thing needs confirming at once, how is that presented? | `sequential` \| `batch` | `AGENTS.local.md` (personal) |
+| `confirmation-flow` | When more than one thing needs a response at once — pending entry confirmations, or a wizard's own questions — how is that presented? | `sequential` \| `batch` | `AGENTS.local.md` (personal) |
 
 They're orthogonal. Proactive search plus always-ask is a valid, if chattier, combination; explicit-only plus automatic writing is equally valid — searching only on request, then not interrupting once asked.
 
@@ -149,6 +149,8 @@ A personal override for `capture-confirmation` isn't part of this release — it
     ```
 
 Only confirmed items get written either way. `confirmation-flow` changes nothing about *whether* confirmation is needed — that's `capture-confirmation` — only how it looks once more than one confirmation is pending at the same time.
+
+The same two shapes apply to a wizard's own questions, not just candidate `context/` entries — `sequential` means one question, an answer, then the next; `batch` means the whole question list in one message, the way both wizards used to work unconditionally before this setting existed.
 
 ### Scope: all four modes
 
