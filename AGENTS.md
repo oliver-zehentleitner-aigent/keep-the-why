@@ -12,6 +12,6 @@ there before re-litigating or accidentally reverting a decision.
 <!-- keep-the-why:config -->
 - context: `context/`
 - init: complete
-- context-schema: 0.4.0
+- context-schema: 0.4.1
 - capture-confirmation: confirm-when-unsure
 <!-- /keep-the-why:config -->

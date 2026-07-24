@@ -4,6 +4,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-07-24
+
 ### Fixed
 
 - `examples/first-time-setup.md` predated `capture-confirmation`/`confirmation-flow` entirely — found while reviewing the freshly reinstalled 0.4.0 skill end to end. Wizard questions, both config block snippets, and the second-developer section now reflect the current fields; also added the previously-missing `context-schema` line to the project config block example.
@@ -112,7 +114,8 @@ Initial release.
 - Logo, wordmark, and favicon.
 - `context/repo-conventions.md`, dogfooding the skill on its own repository from day one.
 
-[Unreleased]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.2.0...v0.3.0
