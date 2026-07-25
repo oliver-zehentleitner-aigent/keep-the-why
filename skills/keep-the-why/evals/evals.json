@@ -62,7 +62,7 @@
   {
     "id": "init-wizard-first-activation",
     "prompt": "First activation of the skill in a fresh project. No AGENTS.md, no context/, no CLAUDE.md, no AGENTS.local.md.",
-    "expected_behavior": "Does not silently create context/ or start capturing without asking. Detects the absence of both the project config block and the personal config block, and runs both wizards separately: project wizard asks where why-knowledge should live, how to start (fresh / retrospective / interview), whether to add the README badge, and how much confirmation is needed before writing to context/ (capture-confirmation); personal wizard asks capture-mode preference, how multiple pending confirmations should be presented (confirmation-flow: sequential or batch), and update-check/consistency-check intervals. Offers defaults as a fast path in each rather than demanding an answer to every question individually. Writes the project block (including capture-confirmation) to the entry-point file and the personal block (including confirmation-flow) to AGENTS.local.md, not mixed into one block. Since context/ is being created fresh (not adopted), also adds a short README.md inside it explaining what the folder is."
+    "expected_behavior": "Does not silently create context/ or start capturing without asking. Detects the absence of both the project config block and the personal config block, and runs both wizards separately: project wizard asks where why-knowledge should live, how to start (fresh / retrospective / interview), whether to add the README badge, and how much confirmation is needed before writing to context/ (capture-confirmation); personal wizard asks capture-mode preference, how multiple pending confirmations and wizard questions should be presented (confirmation-flow: sequential or batch), and update-check/consistency-check intervals. Since this developer has no stored confirmation-flow yet, both wizards present their own questions one at a time (sequential, confirmation-flow's own default) rather than bundling them into one message - it waits for an answer before asking the next question. Offers defaults as a fast path (a single word can cover one question or everything remaining) rather than demanding a fully custom answer to each. Writes the project block (including capture-confirmation) to the entry-point file and the personal block (including confirmation-flow) to AGENTS.local.md, not mixed into one block. Since context/ is being created fresh (not adopted), also adds a short README.md inside it explaining what the folder is."
   },
   {
     "id": "init-already-complete-new-developer-still-asked-personal",
@@ -258,5 +258,15 @@
     "id": "capture-confirmation-missing-vs-invalid-distinction-holds",
     "prompt": "An older project's AGENTS.md config block predates the capture-confirmation field entirely - the field is absent, not set to an unusual value.",
     "expected_behavior": "Backfills capture-confirmation to confirm-when-unsure silently, without asking - this is the documented, legitimate default-for-missing-field case, explicitly not the same situation as a present-but-unrecognized value. Doesn't second-guess or hedge with a clarifying question just because other cases in the confirmation model do ask - a genuinely missing field with a defined default is not ambiguous."
+  },
+  {
+    "id": "wizard-respects-known-confirmation-flow-batch",
+    "prompt": "A developer with an established personal config elsewhere - confirmation-flow: batch - activates the skill for the first time in a brand-new project with no AGENTS.md yet.",
+    "expected_behavior": "The project init wizard presents its questions as a single bundled message (batch), not one at a time - confirmation-flow is a personal, developer-level preference that travels with the developer across projects, not something reset per project. Does not default to sequential just because this particular project is new to them."
+  },
+  {
+    "id": "wizard-bundling-is-not-the-silent-default",
+    "prompt": "A developer with no AGENTS.local.md anywhere yet (truly first-ever activation) triggers the project init wizard.",
+    "expected_behavior": "Presents the wizard's questions one at a time, waiting for an answer before the next, rather than bundling all of them into one message. Bundling (batch-style presentation) is only appropriate once a developer's confirmation-flow is actually known to prefer it - it is not the default behavior for someone with no stored preference, even though earlier versions of the skill always bundled wizard questions unconditionally."
   }
 ]

@@ -104,11 +104,13 @@ Two more settings decide how writing itself gets confirmed, independent of when 
 looks for something worth capturing (`capture-mode`) or whether an entry is warranted at all
 (the proportionality gate): `capture-confirmation` (project-wide) is `automatic`,
 `confirm-always`, or `confirm-when-unsure` (default, and today's existing implicit behavior);
-`confirmation-flow` (personal) is `sequential` or `batch`, for when more than one confirmation
-is pending at once. A permission question ("should I write this?") is governed by these
-settings; a substantive clarifying question about the facts themselves is not, and stays
-independent even in `automatic` mode. Applies across all four modes, including maintenance,
-where `automatic` never permits silently overwriting already-confirmed historical information.
+`confirmation-flow` (personal) is `sequential` or `batch`, for when more than one thing needs a
+response at once — not just pending entry confirmations, but the setup wizards' own questions
+too, which read this same setting instead of always bundling everything into one message. A
+permission question ("should I write this?") is governed by these settings; a substantive
+clarifying question about the facts themselves is not, and stays independent even in
+`automatic` mode. Applies across all four modes, including maintenance, where `automatic`
+never permits silently overwriting already-confirmed historical information.
 
 A genuinely missing field can fall back to a documented default (e.g. `capture-confirmation`
 absent means `confirm-when-unsure`, since that's already the project's real behavior) — but a
