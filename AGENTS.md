@@ -4,6 +4,7 @@ This project uses Keep the Why (itself) to preserve the reasoning behind its own
 
 - Usage docs: see `docs/` (or https://keepthewhy.com)
 - Why things are the way they are: see `context/index.md`
+- If `AGENTS.local.md` exists in this checkout, read that too — personal/local notes, not committed.
 
 Read `context/index.md` before making non-trivial changes — naming, docs
 tooling, and repo structure have already been argued through once; check
