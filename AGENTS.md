@@ -13,6 +13,6 @@ there before re-litigating or accidentally reverting a decision.
 <!-- keep-the-why:config -->
 - context: `context/`
 - init: complete
-- context-schema: 0.4.1
+- context-schema: 0.4.2
 - capture-confirmation: confirm-always
 <!-- /keep-the-why:config -->
