@@ -4,11 +4,19 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-07-25
+
 ### Changed
 
 - **`confirmation-flow`'s scope broadened**: it now governs how *both wizards' own questions* get presented, not just multiple pending `context/` entry confirmations. `sequential` (default, and the only behavior a developer with no stored preference yet gets) asks one question, waits for the answer, then asks the next. `batch` bundles them into one message, the way both wizards used to work unconditionally before this setting existed — now a legitimate choice once a developer's preference is actually known, not the default. Caught in practice: bundling every wizard question together contradicted a developer's own already-stated `confirmation-flow: sequential` preference.
 - `examples/first-time-setup.md` rewritten to actually demonstrate sequential, turn-by-turn wizard presentation instead of the old bundled-question block.
 - 2 new eval cases: a first-ever activation defaults to sequential wizard presentation; a developer with an established `confirmation-flow: batch` preference gets bundled questions even in a brand-new project, since the preference travels with the developer, not the project.
+
+### Fixed
+
+- This repo's own `AGENTS.md` never pointed to `AGENTS.local.md`, unlike the skill's own `repository-structure.md` example — caught by actually running the personal-preferences wizard against this working copy instead of just inspecting the files.
+- `mkdocs.yml`'s `site_description` still had the pre-rework hero text from before README/llms.txt's hook sentence was reworked in `0.4.0`'s cycle — fed the docs site's SEO/social-preview meta description with stale copy.
+- Release checklist gained a step for `examples/first-time-setup.md`'s illustrative `context-schema` value, which otherwise goes stale on every release that doesn't touch the `context/` format — same situation this repo's own `AGENTS.md` would be in without the existing `context-schema` catch-up step.
 
 ## [0.4.1] - 2026-07-24
 
@@ -120,7 +128,8 @@ Initial release.
 - Logo, wordmark, and favicon.
 - `context/repo-conventions.md`, dogfooding the skill on its own repository from day one.
 
-[Unreleased]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.3.0...v0.3.1

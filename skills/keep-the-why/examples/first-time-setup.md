@@ -47,7 +47,7 @@ The skill has just been installed in a project. There's no `AGENTS.md`, no `cont
     <!-- keep-the-why:config -->
     - context: `context/`
     - init: complete
-    - context-schema: 0.4.1
+    - context-schema: 0.4.2
     - capture-confirmation: confirm-when-unsure
     <!-- /keep-the-why:config -->
     ```
