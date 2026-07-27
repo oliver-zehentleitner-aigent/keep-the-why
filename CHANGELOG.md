@@ -6,6 +6,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Added
 
+- README, `docs/installation.md`, and `llms.txt` now tell installers to explicitly prompt their agent ("initialize Keep the Why in this project") after installing, rather than only saying "start a new session." A Skill activates on a matching conversation, not automatically on session start — without the explicit nudge, the one-time setup wizard would only run whenever something happened to trigger it organically.
+
+### Added
+
 - New docs site page `docs/philosophy.md`: the Unix-philosophy framing (one job, use what's already there), the "why simple" reasoning for no database/daemon/dashboard, and the condensed guideline as a closing statement.
 - README's "What this is not" gained two entries: not session memory or an activity log, and not project management or an agent workflow/orchestration framework — informed by comparing against adjacent tools in that space, without naming or comparing against them publicly.
 - New docs site page `docs/security.md`, a prominent, discoverable entry point separate from "Trust model" — the security posture overview (no external service/telemetry/daemon, no secrets in `context/`, actions still go through the agent's own permission model), pointing to `trust-model.md` for the injection-specific detail and `SECURITY.md` for vulnerability reporting, which are two different questions that were previously only findable separately.
