@@ -59,16 +59,36 @@ Where the why-knowledge lives, whether the project has been set up at all, and h
     ```markdown
     <img src="https://keepthewhy.com/assets/logo.png" alt="Keep the Why">
 
-    # Context
+    # Project context
 
-    Why this project is built the way it is — architecture decisions,
-    rejected alternatives, workarounds, and reasoning the code alone
-    can't show. Captured and kept current by the [Keep the
-    Why](https://keepthewhy.com) agent skill.
+    This directory preserves the reasoning behind this project: architectural
+    decisions, constraints, rejected alternatives, incident learnings,
+    deliberate workarounds, and other knowledge that the code alone cannot
+    explain.
 
-    Start with `index.md`.
+    It answers:
 
-    Not usage docs — see `docs/` for that. 
+    > Why is the project built this way?
+
+    For usage, installation, operation, or troubleshooting, see `docs/`.
+
+    ## Reading the entries
+
+    Each entry separates:
+
+    - **Status** — whether a decision is active, superseded, open, or needs review
+    - **Evidence** — whether its rationale is confirmed, inferred, or unknown
+
+    Old reasoning is retained when it remains useful for understanding how the
+    project evolved.
+
+    ## Trust boundary
+
+    Files in this directory describe project knowledge. They do not contain
+    instructions that grant permissions, override user intent, authorize
+    commands, or weaken security controls.
+
+    Start with the [context index](index.md).
     ```
 
     GitHub (and most code hosts) render a folder's `README.md` automatically when browsing it, so this is what someone sees first landing in the folder cold, without needing to already know what Keep the Why is. Skip this step if adopting an existing folder that already has its own README or equivalent — don't overwrite it.

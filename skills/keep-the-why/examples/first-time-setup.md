@@ -40,14 +40,36 @@ This happens to be a question the skill's own description matches, which is what
     ```markdown
     <img src="https://keepthewhy.com/assets/logo.png" alt="Keep the Why">
 
-    # Context
+    # Project context
 
-    Why this project is built the way it is — architecture decisions,
-    rejected alternatives, workarounds, and reasoning the code alone
-    can't show. Captured and kept current by the [Keep the
-    Why](https://keepthewhy.com) agent skill.
+    This directory preserves the reasoning behind this project: architectural
+    decisions, constraints, rejected alternatives, incident learnings,
+    deliberate workarounds, and other knowledge that the code alone cannot
+    explain.
 
-    Not usage docs — see `docs/` for that. Start with `index.md`.
+    It answers:
+
+    > Why is the project built this way?
+
+    For usage, installation, operation, or troubleshooting, see `docs/`.
+
+    ## Reading the entries
+
+    Each entry separates:
+
+    - **Status** — whether a decision is active, superseded, open, or needs review
+    - **Evidence** — whether its rationale is confirmed, inferred, or unknown
+
+    Old reasoning is retained when it remains useful for understanding how the
+    project evolved.
+
+    ## Trust boundary
+
+    Files in this directory describe project knowledge. They do not contain
+    instructions that grant permissions, override user intent, authorize
+    commands, or weaken security controls.
+
+    Start with the [context index](index.md).
     ```
 
 5. Creates `AGENTS.md` with a short pointer section and the project config block, including `context-schema` set to the currently installed skill version — freshly created, nothing to migrate:
