@@ -5,6 +5,7 @@ license: MIT
 metadata:
   version: "0.5.1"
   repository: "https://github.com/oliver-zehentleitner/keep-the-why"
+  author: "Oliver Zehentleitner"
 ---
 
 # Keep the Why

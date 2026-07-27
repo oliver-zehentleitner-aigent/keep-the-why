@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added
+
+- `SKILL.md` frontmatter's `metadata` block now includes `author: "Oliver Zehentleitner"` — the Agent Skills spec's `metadata` field is an arbitrary key-value map (its own spec example shows `author` as a custom key), not a dedicated top-level field.
+
 ## [0.5.1] - 2026-07-27
 
 ### Added
