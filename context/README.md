@@ -1,4 +1,4 @@
-<img src="https://keepthewhy.com/assets/logo.png" alt="Keep the Why">
+<a href="https://keepthewhy.com"><img src="https://keepthewhy.com/assets/logo.png" alt="Keep the Why"></a>
 
 # Project context
 

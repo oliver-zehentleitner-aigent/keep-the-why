@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Fixed
+
+- The Keep the Why logo image in `README.md`, `context/README.md`, `setup.md`, and `examples/first-time-setup.md` wasn't a link — clicking it opened the raw image instead of navigating to keepthewhy.com. Wrapped in an `<a href="https://keepthewhy.com">`.
+
 ## [0.5.0] - 2026-07-27
 
 ### Changed
