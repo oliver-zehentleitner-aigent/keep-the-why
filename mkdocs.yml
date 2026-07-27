@@ -43,6 +43,7 @@ exclude_docs: |
 
 nav:
   - Overview: index.md
+  - Philosophy: philosophy.md
   - Installation: installation.md
   - Badge: badge.md
   - FAQ: faq.md

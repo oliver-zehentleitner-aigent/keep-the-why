@@ -181,5 +181,6 @@ HTML equivalent and details: https://keepthewhy.com/badge/
 - Migrations (context-schema version changes): https://keepthewhy.com/migrations/
 - Trust model (context/ as data, not instructions): https://keepthewhy.com/trust-model/
 - Badge: https://keepthewhy.com/badge/
+- Philosophy (why no database/daemon/dashboard, deliberately): https://keepthewhy.com/philosophy/
 - Why this project is built this way: https://keepthewhy.com/context/repo-conventions/
 - Article — origin story and full comparison to prior art: https://blog.technopathy.club/keep-the-why-code-becomes-legacy-when-nobody-remembers-why
