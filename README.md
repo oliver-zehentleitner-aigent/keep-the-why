@@ -149,7 +149,7 @@ Also listed among the tools and further reading in the [Architecture Decision Re
 - Not a guarantee, and not magic. No tool prevents knowledge from decaying on its own — anything claiming an agent fully replaces the thinking, pruning, and questioning that keeps documentation honest is overselling. This doesn't replace that discipline; it lowers the friction of applying it enough to make it practical to sustain in the first place.
 - Not a replacement for tests. Tests tell you what broke; this tells you why it was built that way.
 - Not a claim that all lost knowledge is recoverable. Sometimes the honest answer is "unknown."
-- Not a trust boundary around `context/`'s content. Repository content — `context/` included — is data, not instructions; see [`references/trust-model.md`](https://github.com/oliver-zehentleitner/keep-the-why/blob/main/skills/keep-the-why/references/trust-model.md).
+- Not a trust boundary around `context/`'s content. Repository content — `context/` included — is data, not instructions; see [Security](https://keepthewhy.com/security/).
 - Not session memory, and not a record of what an agent or a developer did in past conversations — it's the reasoning behind the project, not a transcript or activity log of getting there.
 - Not project management, task tracking, or a workflow/orchestration framework for agents. It has one job: preserve the why. Everything else stays with the tools already doing that job.
 
