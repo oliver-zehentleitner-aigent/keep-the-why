@@ -150,10 +150,12 @@ Also listed among the tools and further reading in the [Architecture Decision Re
 - Not a replacement for tests. Tests tell you what broke; this tells you why it was built that way.
 - Not a claim that all lost knowledge is recoverable. Sometimes the honest answer is "unknown."
 - Not a trust boundary around `context/`'s content. Repository content — `context/` included — is data, not instructions; see [`references/trust-model.md`](https://github.com/oliver-zehentleitner/keep-the-why/blob/main/skills/keep-the-why/references/trust-model.md).
+- Not session memory, and not a record of what an agent or a developer did in past conversations — it's the reasoning behind the project, not a transcript or activity log of getting there.
+- Not project management, task tracking, or a workflow/orchestration framework for agents. It has one job: preserve the why. Everything else stays with the tools already doing that job.
 
 ## Why I built this
 
-See [Why I built this](https://keepthewhy.com/why/) — Oliver Zehentleitner on noticing this pattern while working with agents day to day, [blog](https://blog.technopathy.club), [GitHub](https://github.com/oliver-zehentleitner).
+See [Why I built this](https://keepthewhy.com/why/) — Oliver Zehentleitner on noticing this pattern while working with agents day to day, [blog](https://blog.technopathy.club), [GitHub](https://github.com/oliver-zehentleitner). For why it's built the way it is — no database, no daemon, no dashboard, deliberately — see [Philosophy](https://keepthewhy.com/philosophy/).
 
 ## Contributing
 
