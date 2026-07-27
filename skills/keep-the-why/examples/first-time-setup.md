@@ -6,6 +6,8 @@ The skill has just been installed in a project. There's no `AGENTS.md`, no `cont
 
 **User:** "Why does this retry logic look so defensive?"
 
+This happens to be a question the skill's own description matches, which is what activates it here — a Skill doesn't turn on just because a session starts. Saying so directly ("initialize Keep the Why in this project") works the same way and doesn't require a relevant question to come up first; see [Installation](https://keepthewhy.com/installation/).
+
 ## What the skill does
 
 1. Before answering, checks for a project config block (in `AGENTS.md` or an equivalent entry-point file) and a personal config block (in `AGENTS.local.md`). Finds neither — this is a first activation, not a missing-context case.
