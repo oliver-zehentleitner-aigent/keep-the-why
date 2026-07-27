@@ -55,6 +55,7 @@ nav:
       - Continuous capture: continuous-capture.md
       - Retrospective analysis: retrospective-analysis.md
       - Interview playbook: interview-playbook.md
+      - Trust model: trust-model.md
   - Examples:
       - First-time setup: examples/first-time-setup.md
       - Continuous development: examples/continuous-development.md
