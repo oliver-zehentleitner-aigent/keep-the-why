@@ -45,6 +45,7 @@ nav:
   - Overview: index.md
   - Philosophy: philosophy.md
   - Installation: installation.md
+  - Security: security.md
   - Badge: badge.md
   - FAQ: faq.md
   - Why I built this: why.md
