@@ -38,7 +38,7 @@ This happens to be a question the skill's own description matches, which is what
 4. `context/` doesn't exist yet, so creates it with a short `README.md` inside (GitHub renders this automatically when someone browses the folder):
 
     ```markdown
-    <img src="https://keepthewhy.com/assets/logo.png" alt="Keep the Why">
+    <a href="https://keepthewhy.com"><img src="https://keepthewhy.com/assets/logo.png" alt="Keep the Why"></a>
 
     # Project context
 

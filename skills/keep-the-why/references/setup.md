@@ -57,7 +57,7 @@ Where the why-knowledge lives, whether the project has been set up at all, and h
 3. If the why-knowledge folder is being created fresh (not an existing folder being adopted), add a short `README.md` inside it:
 
     ```markdown
-    <img src="https://keepthewhy.com/assets/logo.png" alt="Keep the Why">
+    <a href="https://keepthewhy.com"><img src="https://keepthewhy.com/assets/logo.png" alt="Keep the Why"></a>
 
     # Project context
 
