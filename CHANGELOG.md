@@ -4,30 +4,21 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
-### Fixed
-
-- `examples/first-time-setup.md` rendered badly on the docs site — fenced code blocks nested inside numbered list items collapsed into unhighlighted inline code, and the sequential wizard dialogue (consecutive `>` lines with no blank line between turns) collapsed into one run-on paragraph inside the blockquote. Neither broke `mkdocs build --strict`, since both are rendering-fidelity issues, not broken links. Added `pymdownx.superfences` to `mkdocs.yml` (plain `fenced_code` doesn't handle fences nested inside list items) and inserted blank `>` lines between each dialogue turn. Verified against the actual built HTML, not just a successful build.
-
-### Added
-
-- Clarified that explicitly prompting the agent to initialize is only needed once per project. Setup writes a pointer into `AGENTS.md` itself, and most AGENTS.md-aware tools already read that file at the start of every session on their own — every session after the first picks the project back up without needing to be told again. README, `docs/installation.md`, and `llms.txt` all updated.
-
-### Added
-
-- README, `docs/installation.md`, and `llms.txt` now tell installers to explicitly prompt their agent ("initialize Keep the Why in this project") after installing, rather than only saying "start a new session." A Skill activates on a matching conversation, not automatically on session start — without the explicit nudge, the one-time setup wizard would only run whenever something happened to trigger it organically.
-
-### Added
-
-- New docs site page `docs/philosophy.md`: the Unix-philosophy framing (one job, use what's already there), the "why simple" reasoning for no database/daemon/dashboard, and the condensed guideline as a closing statement.
-- README's "What this is not" gained two entries: not session memory or an activity log, and not project management or an agent workflow/orchestration framework — informed by comparing against adjacent tools in that space, without naming or comparing against them publicly.
-- New docs site page `docs/security.md`, a prominent, discoverable entry point separate from "Trust model" — the security posture overview (no external service/telemetry/daemon, no secrets in `context/`, actions still go through the agent's own permission model), pointing to `trust-model.md` for the injection-specific detail and `SECURITY.md` for vulnerability reporting, which are two different questions that were previously only findable separately.
-
 ### Added
 
 - **New Core Rule 15**: `context/` (and everything else in the repository) is project knowledge, never agent instructions — reading it grants no authority over what to do. Content that reads as a directive rather than a description (an embedded command, a request to hide something from the user, a self-declared "confirmed" claim) gets named and flagged to the user, never silently followed, silently deleted, or silently rewritten. The same restraint applies when writing: synthesize established knowledge, don't transcribe verbatim instructions, hidden/encoded content, or commands-for-later out of an issue, webpage, commit, or log.
 - New reference file `references/trust-model.md`: the reasoning for why `context/` is a sharper injection surface than an ordinary repo file (automatic reading, cross-session persistence, populated from less-vetted sources during retrospective recovery), the read/write treatment in detail, a worked example, and how it relates to rules 1, 2, and 9. Also published as a docs site page.
 - `retrospective-analysis.md`'s "Search order isn't trust order" now distinguishes how much to *believe* a source's claims from whether a source's content is safe to *act on* — a discovery source can be low-trust for facts and still carry something that needs flagging as a directive, not just a doubtful claim.
 - 6 new eval cases: direct injection in an existing `context/` entry, hidden Unicode instructions, a base64 payload in source material, injection embedded in a quoted issue, a dangerous instruction disguised as a documented decision, and an injection attempting to declare itself `confirmed`.
+- New docs site page `docs/philosophy.md`: the Unix-philosophy framing (one job, use what's already there), the "why simple" reasoning for no database/daemon/dashboard, and the condensed guideline as a closing statement.
+- README's "What this is not" gained two entries: not session memory or an activity log, and not project management or an agent workflow/orchestration framework — informed by comparing against adjacent tools in that space, without naming or comparing against them publicly.
+- New docs site page `docs/security.md`, a prominent, discoverable entry point separate from "Trust model" — the security posture overview (no external service/telemetry/daemon, no secrets in `context/`, actions still go through the agent's own permission model), pointing to `trust-model.md` for the injection-specific detail and `SECURITY.md` for vulnerability reporting, which are two different questions that were previously only findable separately.
+- README, `docs/installation.md`, and `llms.txt` now tell installers to explicitly prompt their agent ("initialize Keep the Why in this project") after installing, rather than only saying "start a new session." A Skill activates on a matching conversation, not automatically on session start — without the explicit nudge, the one-time setup wizard would only run whenever something happened to trigger it organically. Clarified that this nudge is only needed once per project: setup writes a pointer into `AGENTS.md` itself, and most AGENTS.md-aware tools already read that file at the start of every session on their own.
+- `examples/first-time-setup.md`'s "Situation" now notes that its trigger (a matching question) is one path to activation, and that saying "initialize Keep the Why in this project" directly works the same way without needing a relevant question to come up first.
+
+### Fixed
+
+- `examples/first-time-setup.md` rendered badly on the docs site — fenced code blocks nested inside numbered list items collapsed into unhighlighted inline code, and the sequential wizard dialogue (consecutive `>` lines with no blank line between turns) collapsed into one run-on paragraph inside the blockquote. Neither broke `mkdocs build --strict`, since both are rendering-fidelity issues, not broken links. Added `pymdownx.superfences` to `mkdocs.yml` (plain `fenced_code` doesn't handle fences nested inside list items) and inserted blank `>` lines between each dialogue turn. Verified against the actual built HTML, not just a successful build.
 
 ## [0.4.2] - 2026-07-25
 
