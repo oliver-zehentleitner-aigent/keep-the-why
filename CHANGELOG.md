@@ -4,6 +4,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-07-27
+
 ### Added
 
 - The generated `context/README.md` template (`setup.md`, `examples/first-time-setup.md`, this repo's own `context/README.md`) now names and links Keep the Why in the body text, not just the logo image — explaining that the folder follows a schema shared across projects, so an agent or person who recognizes it already knows how to work with it.
