@@ -7,6 +7,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 ### Changed
 
 - README and `llms.txt`'s "Related work" no longer name-compare against specific competing tools (`git-why`, Agent Decision Records, Addy Osmani's `documentation-and-adrs` skill) — that started as a fix for a broken link to Agent Decision Records (which pointed at a generic personal homepage), but any such list is incomplete the moment it's written and stale soon after. Kept: Architecture Decision Records and the AGENTS.md standard, both genuine open standards/conventions rather than competing tools. The distinguishing description now points to `docs/philosophy.md` and "What this is not" instead of a per-project comparison table.
+- Rewrote the generated `context/README.md` template (in `setup.md`, `examples/first-time-setup.md`, and this repo's own `context/README.md`): now explicitly names Status/Evidence, states the trust boundary in the folder itself (content is project knowledge, never permission-granting instructions — reinforcing rule 15 right where a reader first lands), and links to the context index instead of the bare filename `index.md`.
 
 ### Added
 
