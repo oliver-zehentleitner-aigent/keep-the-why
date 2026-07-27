@@ -4,9 +4,9 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
-### Fixed
+### Changed
 
-- README's "Related work" linked "Agent Decision Records" to a generic personal homepage instead of the actual project (`github.com/me2resh/agent-decision-record`) — verified against the real repo and corrected the characterization too: it's an open, cross-agent standard with agent-authored, automatically-timestamped records, not a Claude-Code-specific, human-driven one as previously described. Addy Osmani's `documentation-and-adrs` skill entry, the only one in the list without a link, now points to its exact path in the `agent-skills` repo.
+- README and `llms.txt`'s "Related work" no longer name-compare against specific competing tools (`git-why`, Agent Decision Records, Addy Osmani's `documentation-and-adrs` skill) — that started as a fix for a broken link to Agent Decision Records (which pointed at a generic personal homepage), but any such list is incomplete the moment it's written and stale soon after. Kept: Architecture Decision Records and the AGENTS.md standard, both genuine open standards/conventions rather than competing tools. The distinguishing description now points to `docs/philosophy.md` and "What this is not" instead of a per-project comparison table.
 
 ### Added
 

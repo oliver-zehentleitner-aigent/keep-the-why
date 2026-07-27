@@ -132,15 +132,12 @@ This isn't a new pattern, either. Docs and changelogs are already commonly kept 
 
 ## Related work
 
-The idea of capturing AI-agent rationale isn't new, and this project doesn't claim otherwise. Related work:
+The idea of capturing AI-agent rationale isn't new, and this project doesn't claim otherwise. Related standards and conventions:
 
 - [Architecture Decision Records](https://adr.github.io/) — the established standard for major, discrete architectural decisions. Still the right tool for that specific job; Keep the Why's topic files handle the larger, messier volume of smaller rationale that doesn't fit a one-decision-per-file model well.
 - [AGENTS.md](https://agents.md/) — the open convention for pointing any agent at how to work in a repo. Keep the Why treats it as the lean entry point rather than competing with it.
-- [git-why](https://github.com/hexapode/git-why) — the closest prior art: auto-captures rationale from AI sessions into a `.why/` tree mirroring the source tree. Strong for per-file granularity; Keep the Why organizes by topic instead, so one decision that touches several files doesn't fragment across several rationale files.
-- [Agent Decision Records](https://github.com/me2resh/agent-decision-record) — an open, cross-agent standard (not tied to one tool) where the agent authors a timestamped decision record automatically during a session, approved by a human in review. Closer in spirit to continuous capture than to ADRs' deliberate process; Keep the Why organizes by topic instead of one file per decision, and adds retrospective recovery and interviews as separate modes.
-- [Addy Osmani's `documentation-and-adrs` skill](https://github.com/addyosmani/agent-skills/tree/main/skills/documentation-and-adrs) — a related Claude Code skill for capturing decisions and ADRs alongside API and inline documentation practices.
 
-Keep the Why's specific combination — continuous capture *and* retrospective recovery *and* code-guided interviews, organized as topic-indexed living docs rather than a shadow tree or one-file-per-decision, with no required external service — is the part that's different. Nothing here rules out combining approaches; several of these solve real, adjacent problems well. See [the article](https://blog.technopathy.club/keep-the-why-code-becomes-legacy-when-nobody-remembers-why) for the full comparison and the story behind why this exists.
+Several other tools and skills solve adjacent parts of this problem well — capturing agent session activity, structured per-decision records, and more. Rather than a name-by-name comparison that's incomplete the moment it's written and stale soon after, see [Philosophy](https://keepthewhy.com/philosophy/) and "What this is not" above for how Keep the Why draws its own boundaries: continuous capture *and* retrospective recovery *and* code-guided interviews, organized as topic-indexed living docs rather than a shadow tree or one-file-per-decision, with no required external service. See [the article](https://blog.technopathy.club/keep-the-why-code-becomes-legacy-when-nobody-remembers-why) for the story behind why this exists.
 
 Also listed among the tools and further reading in the [Architecture Decision Record](https://github.com/architecture-decision-record/architecture-decision-record) community project's resources (not to be confused with the ADR standard linked above).
 
