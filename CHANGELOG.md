@@ -6,6 +6,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Added
 
+- Clarified that explicitly prompting the agent to initialize is only needed once per project. Setup writes a pointer into `AGENTS.md` itself, and most AGENTS.md-aware tools already read that file at the start of every session on their own — every session after the first picks the project back up without needing to be told again. README, `docs/installation.md`, and `llms.txt` all updated.
+
+### Added
+
 - README, `docs/installation.md`, and `llms.txt` now tell installers to explicitly prompt their agent ("initialize Keep the Why in this project") after installing, rather than only saying "start a new session." A Skill activates on a matching conversation, not automatically on session start — without the explicit nudge, the one-time setup wizard would only run whenever something happened to trigger it organically.
 
 ### Added
