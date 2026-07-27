@@ -4,6 +4,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-27
+
 ### Changed
 
 - README and `llms.txt`'s "Related work" no longer name-compare against specific competing tools (`git-why`, Agent Decision Records, Addy Osmani's `documentation-and-adrs` skill) — that started as a fix for a broken link to Agent Decision Records (which pointed at a generic personal homepage), but any such list is incomplete the moment it's written and stale soon after. Kept: Architecture Decision Records and the AGENTS.md standard, both genuine open standards/conventions rather than competing tools. The distinguishing description now points to `docs/philosophy.md` and "What this is not" instead of a per-project comparison table.
