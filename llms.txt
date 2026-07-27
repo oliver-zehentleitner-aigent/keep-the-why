@@ -135,11 +135,13 @@ Produces, inside the project using the skill:
 
 ## Related Work
 
-Related prior art: Architecture Decision Records, the AGENTS.md standard, git-why, Agent
-Decision Records, Addy Osmani's `documentation-and-adrs` skill. Keep the Why's distinguishing
-combination: continuous capture *and* retrospective recovery *and* code-guided interviews,
-organized as topic-indexed living docs rather than a shadow tree or one-file-per-decision, with
-no required external service (no database, no MCP server).
+Related standards and conventions: Architecture Decision Records, the AGENTS.md standard.
+Several other tools and skills solve adjacent parts of this problem well (agent session
+activity, structured per-decision records); rather than naming and comparing against specific
+ones, see Philosophy (https://keepthewhy.com/philosophy/) for how Keep the Why draws its own
+boundaries. Its distinguishing combination: continuous capture *and* retrospective recovery
+*and* code-guided interviews, organized as topic-indexed living docs rather than a shadow tree
+or one-file-per-decision, with no required external service (no database, no MCP server).
 
 ## Common Mistakes
 
