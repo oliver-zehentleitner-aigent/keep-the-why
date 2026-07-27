@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Fixed
+
+- `examples/first-time-setup.md` rendered badly on the docs site — fenced code blocks nested inside numbered list items collapsed into unhighlighted inline code, and the sequential wizard dialogue (consecutive `>` lines with no blank line between turns) collapsed into one run-on paragraph inside the blockquote. Neither broke `mkdocs build --strict`, since both are rendering-fidelity issues, not broken links. Added `pymdownx.superfences` to `mkdocs.yml` (plain `fenced_code` doesn't handle fences nested inside list items) and inserted blank `>` lines between each dialogue turn. Verified against the actual built HTML, not just a successful build.
+
 ### Added
 
 - Clarified that explicitly prompting the agent to initialize is only needed once per project. Setup writes a pointer into `AGENTS.md` itself, and most AGENTS.md-aware tools already read that file at the start of every session on their own — every session after the first picks the project back up without needing to be told again. README, `docs/installation.md`, and `llms.txt` all updated.
