@@ -98,7 +98,18 @@ Weeks later, a new maintainer — human or agent — can just ask:
 You: Why does the retry mechanism track state instead of just retrying?
 ```
 
-and get the real answer instead of reverse-engineering it from the diff. See [`examples/`](https://github.com/oliver-zehentleitner/keep-the-why/tree/main/skills/keep-the-why/examples) for continuous, retrospective, and interview-mode walkthroughs.
+and get the real answer instead of reverse-engineering it from the diff.
+
+**What if nothing gets changed at all?**
+
+```text
+You: This retry wrapper looks over-engineered — a plain retry loop
+     would do the same thing. Let's simplify it.
+```
+
+Working through *why* it could be simplified surfaces a real constraint (the gateway's rate limiter needs that backoff behavior) — the change gets abandoned before it happens. No commit, no diff, no PR ever results, so normally nothing would capture that reasoning at all. Keep the Why records it anyway, so the next person with the same instinct doesn't rediscover it the hard way — see [`examples/abandoned-change.md`](https://github.com/oliver-zehentleitner/keep-the-why/blob/main/skills/keep-the-why/examples/abandoned-change.md) for the full walkthrough.
+
+See [`examples/`](https://github.com/oliver-zehentleitner/keep-the-why/tree/main/skills/keep-the-why/examples) for continuous, retrospective, and interview-mode walkthroughs.
 
 ## The problem
 
