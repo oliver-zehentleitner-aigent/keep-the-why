@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Fixed
+
+- `examples/first-time-setup.md` rendered badly on the docs site — fenced code blocks nested inside numbered list items collapsed into unhighlighted inline code, and the sequential wizard dialogue (consecutive `>` lines with no blank line between turns) collapsed into one run-on paragraph inside the blockquote. Neither broke `mkdocs build --strict`, since both are rendering-fidelity issues, not broken links. Added `pymdownx.superfences` to `mkdocs.yml` (plain `fenced_code` doesn't handle fences nested inside list items) and inserted blank `>` lines between each dialogue turn. Verified against the actual built HTML, not just a successful build.
+
 ### Added
 
 - README, `docs/installation.md`, and `llms.txt` now tell installers to explicitly prompt their agent ("initialize Keep the Why in this project") after installing, rather than only saying "start a new session." A Skill activates on a matching conversation, not automatically on session start — without the explicit nudge, the one-time setup wizard would only run whenever something happened to trigger it organically.

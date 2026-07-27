@@ -12,12 +12,19 @@ The skill has just been installed in a project. There's no `AGENTS.md`, no `cont
 2. Runs the project init wizard, one question at a time. This developer has no stored `confirmation-flow` yet (nothing to read it from — it's itself one of the questions the personal wizard hasn't asked yet), so the wizard defaults to `sequential`, not a bundled block:
 
     > **Agent:** This project isn't set up with Keep the Why yet. Quick setup, one question at a time — say "defaults" any time to take the rest as-is. First: where should the why-knowledge live? [`context/`]
+    >
     > **User:** defaults.
+    >
     > **Agent:** Got it, `context/`. Next: how do you want to start — capture from now on only, work through existing history now, sit down for an interview, or some combination? [fresh]
+    >
     > **User:** defaults.
+    >
     > **Agent:** Add the Keep the Why badge to README.md? [yes]
+    >
     > **User:** yes.
+    >
     > **Agent:** Last one: how much confirmation before something gets written to `context/` — automatic, always ask, or only when unclear? [only when unclear]
+    >
     > **User:** defaults.
 
 3. Adds the badge to `README.md`, as the last badge after the existing ones:
@@ -55,12 +62,19 @@ The skill has just been installed in a project. There's no `AGENTS.md`, no `cont
 6. Runs the personal preferences wizard, separately, also one question at a time for the same reason:
 
     > **Agent:** And a couple of preferences just for you (not committed). Capture proactively during conversation, or only when asked? [proactive]
+    >
     > **User:** explicit-only.
+    >
     > **Agent:** When there's more than one thing to confirm at once — including questions like these — one at a time, or as a list you can review together? [one at a time]
+    >
     > **User:** defaults.
+    >
     > **Agent:** Check for skill updates? [yes, every 14 days]
+    >
     > **User:** defaults.
+    >
     > **Agent:** Check `context/` for staleness? [yes, every 30 days]
+    >
     > **User:** defaults on the rest.
 
 7. `AGENTS.local.md` doesn't exist yet. Checks `.gitignore` first — it already has an `AGENTS.local.md` entry (from an earlier project convention), so nothing to add there. Creates `AGENTS.local.md`, referenced from `AGENTS.md`, with the personal config block:
