@@ -110,3 +110,20 @@ The `GH Release` workflow's `checkout` step explicitly sets `ref: ${{ github.eve
 **Reason:** Oliver's call: test the setting project-wide first and see how it behaves in practice before deciding whether individual developers should be able to override it. The resolution order (session instruction → personal setting → project setting → default) is deliberately structured so a personal override slots in later without restructuring anything — same pattern as `migration-prompt: <version> declined` — but adding it now, before there's any real usage to learn from, would be guessing at a need rather than confirming one.
 
 **Rejected alternative:** ship a personal override immediately, symmetric with `capture-mode` and `confirmation-flow`. Rejected for now — not because it's wrong in principle, but because whether developers actually want to diverge from the project's confirmation bar is an open question this release is meant to help answer, not one to presume the answer to upfront.
+
+## skills.sh rides the moving `latest` tag; awesome-copilot needs a pinned release instead
+
+**Status:** active
+**Evidence:** confirmed
+
+skills.sh resolves this repo's skill via the moving `latest` tag `release.yml` force-updates on every release (see "`release.yml`'s checkout pins the actual release tag" above) — no separate registration step needed per release. GitHub's Copilot plugin marketplace (`awesome-copilot`) was initially assumed to work the same way, registering this repo as a remote plugin source with `ref: latest`. That assumption was wrong: `awesome-copilot`'s external-plugin intake explicitly requires an immutable locator (a release tag or full 40-character commit SHA) — its issue submission template has a required checkbox stating the provided ref/sha "is immutable ... not a branch," and a force-moved tag like `latest` would make that confirmation false even though it isn't a branch. A first attempt at this (PR github/awesome-copilot#2469) also used the wrong contribution path entirely — hand-editing `.github/plugin/marketplace.json`, which is a generated file (`eng/generate-marketplace.mjs`); external plugins go through a GitHub Issue using the `external-plugin.yml` form instead, which their `.github/plugin/plugin.json` explicitly forbids doing via direct PR. Closed and corrected.
+
+**Reason:** immutability is a real security property their intake process wants for external, third-party-hosted plugins — a reviewed submission shouldn't be able to change what it points to after approval. `latest` is deliberately mutable (that's the whole point for skills.sh), so it can't honestly satisfy that checkbox for `awesome-copilot`, even though nothing in the string-based ref validator would catch it mechanically.
+
+**Rejected alternative:** submit `ref: latest` anyway, since the validator doesn't reject the literal string. Rejected — passing an automated check by exploiting what it doesn't verify isn't the same as meeting the stated requirement, and this project doesn't want to misrepresent a submission's immutability to get a marketplace listing.
+
+**Consequence:** for `awesome-copilot` specifically, each meaningful release needs a fresh immutable ref (a version tag, e.g. `v0.5.1`) submitted via their Issue form — unlike skills.sh, this one doesn't ride `latest` for free. Whether that's a new issue per update or an update to the existing one is still to be confirmed against their process.
+
+**Known consumers of this repo's tags** (keep current — a reason `release.yml`'s tag-move step, and future release tags generally, can't be dropped or changed casually):
+- skills.sh — via the moving `latest` tag
+- GitHub Copilot plugin marketplace (`awesome-copilot`), planned — via a pinned release tag, submitted through their external-plugin Issue form
