@@ -21,6 +21,12 @@ Website: [https://keepthewhy.com](https://keepthewhy.com/) · [llms.txt](https:/
 
 ## How it works
 
+<p align="center">
+  <img src="docs/assets/keep-the-why-readme.gif"
+       alt="Keep the Why captures the reason an attempted retry-wrapper simplification was abandoned, stores it as versioned Markdown in context/retries.md, and lets a later agent session retrieve that reasoning instead of repeating the mistake."
+       width="900">
+</p>
+
 Keep the Why is a `SKILL.md`-based agent skill — an open, cross-agent format (Claude Code, Codex CLI, Gemini CLI, Cursor, and others). It operates in four modes:
 
 1. **Continuous capture** — during normal development, the agent notices rationale worth keeping and records it alongside the code as it happens.
