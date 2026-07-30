@@ -4,26 +4,28 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
-### Fixed
-
-- Full project-wide consistency audit after the positioning sweep. Found and fixed two stragglers the sweep missed: `mkdocs.yml`'s `site_description` (feeds keepthewhy.com's meta description and social preview cards via `overrides/main.html`) still had the old "is a repo-native agent skill" wording; `CONTRIBUTING.md` still referred to a "prior-art comparison in the README" — stale since the README's "Related work" section deliberately dropped name-by-name comparisons. Everything else checked clean: version numbers (`SKILL.md`, `llms.txt`, both `plugin.json` files, `context-schema`) match at 0.6.0 everywhere; "Also listed on" tables are identical across `README.md`, `docs/installation.md`, and `llms.txt`, and all four tracked external submissions were re-verified live; `mkdocs build --strict`, Link Check, and Validate Skill all pass on `main`.
-
-### Changed
-
-- Repositioned Keep the Why as "a repo-native convention and agent skill," not just "an agent skill" — the previous framing throughout (README hero, `llms.txt`'s blockquote, README's "How it works", `docs/philosophy.md`'s closing summary, `docs/installation.md`'s opener, and the generated `context/README.md` template embedded in `setup.md`, `examples/first-time-setup.md`, and this repo's own `context/README.md`) defined it as the skill itself, undermining the point that the skill is one half of an open convention, not the whole thing. Standardized on "repo-native" over "repository-native" (the existing majority spelling) while at it.
-- Sharpened the ADR FAQ entry (`docs/faq.md`): ADRs' real-world weakness was never the format, it's that writing one depends entirely on a human remembering to do it under exactly the deadline pressure that makes people skip it. Keep the Why's agent-authored capture removes that dependency — it's a byproduct of the conversation, not a separate disciplined act.
-
 ### Added
 
+- Added a "Working conventions" section to `AGENTS.md`, separate from the keep-the-why config block, for plain rules that need no rationale (currently: CHANGELOG heading/ordering).
+- Added routing guidance to `references/repository-structure.md`: an embedded procedure, or a rule with no rationale behind it, isn't why-content even when discovered alongside a real decision — route it separately instead of forcing a Decision/Reason/Rejected structure onto it. New eval case.
 - Explained why this can't run as a CI/CD check: by the time code is pushed, the reasoning that mattered has usually already happened and isn't recoverable from the diff — CI can verify a `context/` entry exists, not invent one. Extended "No daemon" in `docs/philosophy.md`, and added a new `docs/faq.md` entry, "Could this run as a CI/CD check instead of during development?"
+- Sharpened Core Rule 6: a correction (a stale value, a regressed bug, wording fixed back in line with what's already established elsewhere) is not a decision, no matter how significant the fix or how it was surfaced — nothing was chosen between real alternatives. Significance and decision-worthiness are different questions; rule 13 tests the former, this rule the latter. New eval case.
 
 ### Changed
 
 - Moved README's Claude Code plugin manifest mention out of "How it works" and into "Install", next to the other install methods, where it actually belongs. Removed the "How it works" pointer at the FAQ's Superpowers-composition entry entirely — the FAQ already stands on its own without a teaser sentence duplicating it.
-
-### Changed
-
+- Repositioned Keep the Why as "a repo-native convention and agent skill," not just "an agent skill" — the previous framing throughout (README hero, `llms.txt`'s blockquote, README's "How it works", `docs/philosophy.md`'s closing summary, `docs/installation.md`'s opener, and the generated `context/README.md` template embedded in `setup.md`, `examples/first-time-setup.md`, and this repo's own `context/README.md`) defined it as the skill itself, undermining the point that the skill is one half of an open convention, not the whole thing. Standardized on "repo-native" over "repository-native" (the existing majority spelling) while at it.
+- Sharpened the ADR FAQ entry (`docs/faq.md`): ADRs' real-world weakness was never the format, it's that writing one depends entirely on a human remembering to do it under exactly the deadline pressure that makes people skip it. Keep the Why's agent-authored capture removes that dependency — it's a byproduct of the conversation, not a separate disciplined act.
 - Shortened README's "Composition with other skills" paragraph to a pointer at the FAQ entry, instead of restating the explanation inline.
+- Trimmed `context/repo-conventions.md`: moved the OAuth-scope workaround procedure to `CONTRIBUTING.md` (kept only the "why" in `context/`), and removed the external-review entry entirely — on a second pass, even the CI-check part it was reduced to wasn't a real decision (no genuine alternative was ever in contention; automating a check right after a manual one just missed something isn't something a reader would ask "why" about). Already documented here and in `CONTRIBUTING.md`'s note on the checklist.
+
+### Fixed
+
+- `.claude-plugin/plugin.json`'s description was missing "or recovers" — retrospective recovery is one of the four modes, and both `SKILL.md` and the root `plugin.json` name it explicitly. Fixed to match.
+- `docs/installation.md`'s opener never used the "repo-native convention and agent skill" formula established elsewhere in the positioning sweep. Fixed to state it explicitly, then note the page installs the agent-skill half specifically.
+- Full project-wide consistency audit after the positioning sweep. Found and fixed two stragglers the sweep missed: `mkdocs.yml`'s `site_description` (feeds keepthewhy.com's meta description and social preview cards via `overrides/main.html`) still had the old "is a repo-native agent skill" wording; `CONTRIBUTING.md` still referred to a "prior-art comparison in the README" — stale since the README's "Related work" section deliberately dropped name-by-name comparisons. Everything else checked clean: version numbers (`SKILL.md`, `llms.txt`, both `plugin.json` files, `context-schema`) match at 0.6.0 everywhere; "Also listed on" tables are identical across `README.md`, `docs/installation.md`, and `llms.txt`, and all four tracked external submissions were re-verified live; `mkdocs build --strict`, Link Check, and Validate Skill all pass on `main`.
+- `llms.txt` wrongly restricted **Source** to confirmed entries only, contradicting `SKILL.md` rule 2 — and a regression of the exact bug this project's own `CHANGELOG` already documents as fixed in `0.3.1`. Fixed to match rule 2's actual scope (useful at any Evidence level).
+- Three separate `### Changed`/`### Added` headings had accumulated under `[Unreleased]`, added independently by separate PRs instead of reusing an existing heading for the same category. Consolidated to one heading per category, with entries ordered alphabetically by first word within a category — now a documented convention, see `CONTRIBUTING.md` checklist item 8.
 
 ## [0.6.0] - 2026-07-29
 

@@ -21,6 +21,8 @@ The installable skill package lives under `skills/keep-the-why/` (SKILL.md, refe
 
 Open an issue or a PR — for anything beyond a small fix, an issue first is appreciated so the direction can be discussed before the work is done.
 
+**Pushing a change that touches `.github/workflows/*.yml`?** GitHub rejects that push unless your credential has the `workflow` OAuth scope, independently of `repo` — this hits any token or bot/automation account missing it, not just this repo (see `context/repo-conventions.md` for why). If yours lacks it: commit the workflow file's content separately, push everything else normally, and have someone with the right scope add the workflow file itself (GitHub UI or their own credentials).
+
 ## Before opening a PR
 
 For any change to the skill's rules, workflow, or reference docs, check whether it also needs updating in:
@@ -32,11 +34,13 @@ For any change to the skill's rules, workflow, or reference docs, check whether 
 5. `docs/*.md` — include-wrapper pages and `mkdocs.yml` nav, if a reference file is new
 6. `README.md` — if the change affects something described or promised there
 7. `llms.txt` — if the change affects the Core Concept or payoff, not just implementation detail
-8. `CHANGELOG.md` — add a line under `[Unreleased]`
+8. `CHANGELOG.md` — add a line under `[Unreleased]`. Reuse the existing `### Added` / `### Changed` / `### Fixed` heading for that category if one's already there in this `[Unreleased]` block — don't open a second one. Within a category, keep entries alphabetically ordered by their first word, not insertion order.
 9. `context/repo-conventions.md` — if the change itself was a non-obvious decision worth dogfooding
 10. `mkdocs build --strict` before committing — catches broken links and nav mistakes
 
 ## Release checklist (maintainer)
+
+Steps 1–3 and 6–7 below are also checked automatically by the "Check version consistency across the repo" step in `validate-skill.yml`, on every push and PR — it fails loudly if any of these drift apart, rather than relying on the manual steps alone catching it.
 
 1. Bump `metadata.version` in `skills/keep-the-why/SKILL.md` frontmatter
 2. Update the `Version:` line in `llms.txt` to match

@@ -7,7 +7,7 @@
 
 An operational constraint, not a design choice: any push that touches `.github/workflows/*.yml` is rejected by GitHub unless the pushing credential has the `workflow` OAuth scope — this is independent of the `repo` scope and applies to any token or bot/automation account that lacks it, not specific to this repo.
 
-**Workaround:** if the pushing credential lacks the `workflow` scope, prepare the workflow file's content separately and have someone with appropriate access add it manually (via the GitHub UI or their own credentials), while pushing everything else in the same change normally by excluding just the workflow file from that commit.
+The workaround (split the workflow file into its own commit, have someone with the right scope add it separately) is a procedure, not a reason — see `CONTRIBUTING.md`.
 
 ## The installable skill lives under `skills/keep-the-why/`, not at the repo root
 
