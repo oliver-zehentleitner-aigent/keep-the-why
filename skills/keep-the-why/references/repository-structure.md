@@ -63,12 +63,13 @@ prior decisions and avoid re-litigating or accidentally reverting them.
 <!-- keep-the-why:config -->
 - context: `context/`
 - init: complete
-- context-schema: 0.6.1
+- context-schema: 0.6.4
 - capture-confirmation: confirm-when-unsure
+- source-reference: never
 <!-- /keep-the-why:config -->
 ```
 
-Keep the prose above the config block short. Anything longer belongs in `docs/` or `context/`, not here — `AGENTS.md` needs to stay generic enough for every tool that reads the open AGENTS.md convention, not just this skill. The config block is the exception: it's the skill's own machine-readable state, kept small and clearly delimited on purpose so it doesn't creep into being a second undocumented system living inside a file meant to stay generic. Only project-wide facts live here — personal automation preferences go in `AGENTS.local.md` instead, see below and `setup.md`. `context-schema` and `capture-confirmation` are shown here at real, current values rather than omitted — a project's actual config block always has both, so an example without them would be misleading, not just terse.
+Keep the prose above the config block short. Anything longer belongs in `docs/` or `context/`, not here — `AGENTS.md` needs to stay generic enough for every tool that reads the open AGENTS.md convention, not just this skill. The config block is the exception: it's the skill's own machine-readable state, kept small and clearly delimited on purpose so it doesn't creep into being a second undocumented system living inside a file meant to stay generic. Only project-wide facts live here — personal automation preferences go in `AGENTS.local.md` instead, see below and `setup.md`. `context-schema`, `capture-confirmation`, and `source-reference` are shown here at real, current values rather than omitted — a project's actual config block always has all three, so an example without them would be misleading, not just terse.
 
 ## `AGENTS.local.md` — personal config example
 
@@ -137,7 +138,7 @@ the actual retry loop in `client.py` caps at 5. Flagged for re-confirmation,
 not silently corrected either way.
 ```
 
-**Verification** and **Revisit when** are worth adding once a decision has a concrete trigger for going stale (a dependency, a protocol version, an external constraint that could change) or something concrete to check against. They're not mandatory fields for everything — per the proportionality gate in `SKILL.md`, add them when there's a real answer, not as filler. Evidence itself stays mandatory (Core rule 2) even when Verification and Revisit when aren't needed. This is also the mechanism for the "rationale decays" risk named in the README: a **Revisit when** condition gives a future reader (or agent) something concrete to check, rather than just hoping someone remembers to re-verify. A triggered **Revisit when** sets **Status: needs-review** (Core rule 7) — Evidence itself doesn't change until the entry is actually re-checked.
+**Verification** and **Revisit when** are worth adding once a decision has a concrete trigger for going stale (a dependency, a protocol version, an external constraint that could change) or something concrete to check against. They're not mandatory fields for everything — per the proportionality gate in `SKILL.md`, add them when there's a real answer, not as filler. Evidence itself stays mandatory (Core rule 2) even when Verification and Revisit when aren't needed. This is also the mechanism for the "rationale decays" risk named in the README: a **Revisit when** condition gives a future reader (or agent) something concrete to check, rather than just hoping someone remembers to re-verify. A triggered **Revisit when** sets **Status: needs-review** immediately (Core rule 7) — that flag needs no separate permission, and only that: Evidence doesn't change, and the entry doesn't get superseded or rewritten in the same step; resolving needs-review is a separate, deliberate re-check.
 
 ## Retrofitting an existing project
 

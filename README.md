@@ -36,9 +36,13 @@ Keep the Why's agent skill is `SKILL.md`-based — an open, cross-agent format (
 3. **Knowledge-transfer interview** — before a maintainer's knowledge becomes unavailable (leaving, retiring, changing teams), the agent analyzes the codebase first, then either asks targeted questions about exactly what the code couldn't explain, or — for someone whose knowledge is broad and tacit after many years on one system — just listens while they narrate freely and extracts the rationale from that instead.
 4. **Maintenance** — existing rationale docs get kept current: contradictions resolved, superseded entries marked, oversized files split.
 
-First activation in a project runs a short one-time setup instead of guessing at defaults — where the why-knowledge should live, how to start, proactive or explicit-only capture, how much confirmation is needed before something gets written, whether to actively ask for a related issue or ticket, and whether to periodically check for skill updates or `context/` staleness. See [`docs/setup.md`](docs/setup.md).
+First activation in a project runs a short one-time setup instead of guessing at defaults — where the why-knowledge should live, how to start, proactive or explicit-only capture, how much confirmation is needed before something gets written, whether to actively ask for a related issue or ticket, whether to periodically check for skill updates or `context/` staleness, and whether to set up something stronger for activation reliability. See [`references/setup.md`](https://keepthewhy.com/setup/).
+
+**Current state on activation reliability:** a Skill loads when the conversation matches its description — nothing guarantees it loads every session, and there's no cross-tool "autostart" mechanism in the open Agent Skills spec (even Claude Code's own team tracks this as an open gap). The setup wizard now asks about this and has the current agent check what its own platform actually offers, but there's no standardized, tested solution across tools yet — right now it's solved individually, per developer and per project. See [this tracking issue](https://github.com/oliver-zehentleitner/keep-the-why/issues/138) for where things stand and to contribute an idea.
 
 Because it's just Markdown in the repo, a `context/` update ships in the same commit or PR as the code change it explains — reviewed the same way, versioned the same way, no separate system to trust or keep in sync.
+
+The skill's behavior is exercised by a suite of eval cases, executed for real — a fixture project per case, a fresh agent session, LLM-judged verdicts, tested with Claude Code. Current case count, results, an honest failure analysis, the stated caveats, and how to reproduce or run the suite against other agents: [Evals](https://keepthewhy.com/evals/). Ongoing work — what's currently being improved, what's working, how to help: [tracking issue](https://github.com/oliver-zehentleitner/keep-the-why/issues/131).
 
 Where the captured knowledge actually lives, and how it relates to everything else a project already has, is one coherent picture — see "Where this fits" below.
 
@@ -97,7 +101,7 @@ Full install detail for every method, including tools without a skill runtime at
 | Name | Status | Info |
 |---|---|---|
 | [skills.sh](https://skills.sh/oliver-zehentleitner/keep-the-why/keep-the-why) | Live | Backs the `npx skills add` install method above |
-| [SkillsLLM](https://skillsllm.com/skill/keep-the-why) | Live | Verified, passed SkillsLLM's security scan |
+| [SkillsLLM](https://skillsllm.com/skill/keep-the-why) | Live | Verified, passed [SkillsLLM's security scan](https://skillsllm.com/security-check/IPmNycVdbOyq) |
 | [ASM Registry](https://github.com/luongnv89/asm-registry) | Pending — [PR #5](https://github.com/luongnv89/asm-registry/pull/5) | Manifest pinned to `v0.5.2`; installable via `asm install keep-the-why` once merged |
 | [awesome-agent-skills](https://github.com/VoltAgent/awesome-agent-skills) | Pending — [PR #850](https://github.com/VoltAgent/awesome-agent-skills/pull/850) | Requires "real community usage"; may be declined |
 | [GitHub Copilot plugin marketplace](https://github.com/github/awesome-copilot) | Ready for review — [Issue #2470](https://github.com/github/awesome-copilot/issues/2470) | External plugin submission, pinned to `v0.5.2` |
@@ -184,7 +188,7 @@ The idea of capturing AI-agent rationale isn't new, and this project doesn't cla
 - [Architecture Decision Records](https://adr.github.io/) — the established standard for major, discrete architectural decisions. Still the right tool for that specific job; Keep the Why's topic files handle the larger, messier volume of smaller rationale that doesn't fit a one-decision-per-file model well.
 - [AGENTS.md](https://agents.md/) — the open convention for pointing any agent at how to work in a repo. Keep the Why treats it as the lean entry point rather than competing with it.
 
-Several other tools and skills solve adjacent parts of this problem well — capturing agent session activity, structured per-decision records, and more. Rather than a name-by-name comparison that's incomplete the moment it's written and stale soon after, see [Philosophy](https://keepthewhy.com/philosophy/) and "What this is not" above for how Keep the Why draws its own boundaries: continuous capture, retrospective recovery, and knowledge-transfer interviews, plus ongoing maintenance of what's already there — organized as topic-indexed living docs rather than a shadow tree or one-file-per-decision, with no required external service. See the [original article](https://blog.technopathy.club/keep-the-why-code-becomes-legacy-when-nobody-remembers-why) for the story behind Keep the Why, and the [follow-up article](https://blog.technopathy.club/keep-the-why-project-memory-for-humans-and-ai-agents) for how it evolved into project memory for humans and AI agents.
+Several other tools and skills solve adjacent parts of this problem well — capturing agent session activity, structured per-decision records, and more. Rather than a name-by-name comparison that's incomplete the moment it's written and stale soon after, see [Philosophy](https://keepthewhy.com/philosophy/) and "What this is not" below for how Keep the Why draws its own boundaries: continuous capture, retrospective recovery, and knowledge-transfer interviews, plus ongoing maintenance of what's already there — organized as topic-indexed living docs rather than a shadow tree or one-file-per-decision, with no required external service. See the [original article](https://blog.technopathy.club/keep-the-why-code-becomes-legacy-when-nobody-remembers-why) for the story behind Keep the Why, and the [follow-up article](https://blog.technopathy.club/keep-the-why-project-memory-for-humans-and-ai-agents) for how it evolved into project memory for humans and AI agents.
 
 
 Also listed among the tools and further reading in the [Architecture Decision Record](https://github.com/architecture-decision-record/architecture-decision-record) community project's resources (not to be confused with the ADR standard linked above).
@@ -201,6 +205,10 @@ Also listed among the tools and further reading in the [Architecture Decision Re
 ## Why I built this
 
 See [Why I built this](https://keepthewhy.com/why/) — Oliver Zehentleitner on noticing this pattern while working with agents day to day, [blog](https://blog.technopathy.club), [GitHub](https://github.com/oliver-zehentleitner). For why it's built the way it is — no database, no daemon, no dashboard, deliberately — see [Philosophy](https://keepthewhy.com/philosophy/).
+
+## Feedback
+
+Something not working as described, docs that confused you, or the skill's actual behavior not matching what it claims? [Open an issue](https://github.com/oliver-zehentleitner/keep-the-why/issues/new/choose) — that's exactly what it's for.
 
 ## Contributing
 

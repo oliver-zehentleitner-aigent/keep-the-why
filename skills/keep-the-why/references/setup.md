@@ -12,7 +12,7 @@ Setup state splits across two files, matching the existing `AGENTS.md`/`AGENTS.l
 <!-- keep-the-why:config -->
 - context: `context/`
 - init: complete
-- context-schema: 0.6.1
+- context-schema: 0.6.4
 - capture-confirmation: confirm-when-unsure
 - source-reference: never
 <!-- /keep-the-why:config -->
@@ -51,14 +51,16 @@ Where the why-knowledge lives, whether the project has been set up at all, and h
 
 ## Project init wizard (once per project)
 
-1. Ask the following, presented according to the developer's `confirmation-flow` if it's already known from a previous session (`sequential`: one question, wait for the answer, then the next; `batch`: all of them together) — default to `sequential` if this developer has no stored preference yet, since that's `confirmation-flow`'s own default and there's nothing else to go on:
+1. Ask the following, presented according to the developer's `confirmation-flow` if it's already known from a previous session in this checkout's `AGENTS.local.md` — the setting is stored per checkout, so a preference set on some other project isn't visible here (`sequential`: one question, wait for the answer, then the next; `batch`: all of them together) — default to `sequential` if this developer has no stored preference yet, since that's `confirmation-flow`'s own default and there's nothing else to go on:
    - Where should the why-knowledge live? Default `context/`; anything else is fine.
    - How do you want to start: capture from now on only, work through existing history now (retrospective recovery), sit down for an interview now, or some combination?
    - Add the Keep the Why badge to this project's `README.md`? If yes, insert `[![Keep the Why](https://keepthewhy.com/assets/badge.svg)](https://keepthewhy.com)` as the *last* badge in the existing badge row — same snippet for every project, see `keepthewhy.com/badge/`. If there's no existing badge row yet, it's the only one, at the top.
    - How much confirmation before something gets written to `context/`: automatic (no interruption), always ask, or only ask when it's genuinely unclear? Default: only ask when unclear.
    - Should the agent actively ask whether a related issue, ticket, or post-mortem exists when recording something: always, never, or only when a filter criterion you define matches? Default: never.
-2. Create or update the entry-point file with the project config block, including `context-schema` set to the currently installed skill's `metadata.version` (frontmatter in `SKILL.md`) — a freshly created or newly adopted `context/` is up to date with the current format by definition, nothing to migrate.
-3. If the why-knowledge folder is being created fresh (not an existing folder being adopted), add a short `README.md` inside it:
+   - **Activation isn't guaranteed by the Skill mechanism itself** (see "Activation reliability is left to each agent tool" in `context/compatibility.md`) — want to set up something stronger for this project, if the current agent's own platform supports it? Default: no.
+2. If the previous question was answered yes: check what the *current* agent's own platform actually offers for stronger activation (session-start context injection, forced tool invocation, or similar) and set it up scoped to this project — e.g., for Claude Code, a `SessionStart` hook that checks this project's `keep-the-why:config` marker before injecting a reminder, rather than firing unconditionally on every session regardless of project. This is deliberately left generic here rather than naming one tool's mechanism as the instruction: don't invent or fake a mechanism for a platform that doesn't actually have one — if genuinely unsure what the current platform supports, say so plainly and ask rather than guessing (rule 14). No such setup exists yet as a standardized, tested recommendation across tools — see the tracking issue for where this stands.
+3. Create or update the entry-point file with the project config block, including `context-schema` set to the currently installed skill's `metadata.version` (frontmatter in `SKILL.md`) — a freshly created or newly adopted `context/` is up to date with the current format by definition, nothing to migrate.
+4. If the why-knowledge folder is being created fresh (not an existing folder being adopted), add a short `README.md` inside it:
 
     ```markdown
     <a href="https://keepthewhy.com"><img src="https://keepthewhy.com/assets/logo.png" alt="Keep the Why"></a>
@@ -103,8 +105,8 @@ Where the why-knowledge lives, whether the project has been set up at all, and h
     ```
 
     GitHub (and most code hosts) render a folder's `README.md` automatically when browsing it, so this is what someone sees first landing in the folder cold, without needing to already know what Keep the Why is. Skip this step if adopting an existing folder that already has its own README or equivalent — don't overwrite it.
-4. Run whichever starting mode was chosen.
-5. If declined entirely, write `init: declined` and stop — no further project-level questions, ever, unless asked again. (The personal wizard below is independent and can still run.)
+5. Run whichever starting mode was chosen.
+6. If declined entirely, write `init: declined` and stop — no further project-level questions, ever, unless asked again. (The personal wizard below is independent and can still run.)
 
 ## Personal preferences wizard (once per developer)
 
@@ -113,7 +115,7 @@ Where the why-knowledge lives, whether the project has been set up at all, and h
    - When there's more than one thing to confirm at once — including these wizard questions themselves, from here on — do you want them one at a time or as a list you can review together? Default: one at a time.
    - Check for skill updates automatically? If yes, what interval (default: 14 days).
    - Check `context/` for staleness automatically? If yes, what interval (default: 30 days).
-2. If `AGENTS.local.md` doesn't exist yet: before creating it, check whether the project's `.gitignore` already excludes it. If not, add an `AGENTS.local.md` entry to `.gitignore` (creating the file if it doesn't exist) — this file is meant to hold personal, sometimes sensitive preferences, and "not committed" only means something if it's actually enforced, not just stated in prose. Then create `AGENTS.local.md` and make sure the entry-point file points to it (see `methodology.md`).
+2. If `AGENTS.local.md` doesn't exist yet: **MUST, before creating it** — check whether the project's `.gitignore` already excludes it; if not, edit `.gitignore` yourself right now and add the line `AGENTS.local.md` (creating `.gitignore` first if the project has none). Do this edit immediately, in the same turn, no permission needed — this file is meant to hold personal, sometimes sensitive preferences, and "not committed" only means something if it's actually enforced, not just promised in prose or deferred to later. Only after that edit exists on disk: create `AGENTS.local.md` and make sure the entry-point file points to it (see `methodology.md`).
 3. Write the answers to the `AGENTS.local.md` personal block.
 
 Both wizards: offer the defaults as a fast path ("just use the defaults" should be a one-word answer, either for a single question or for everything remaining), but leave room for different choices, and record any deviation explicitly rather than leaving it implied. Bundling every question into one message is itself a `confirmation-flow: batch`-style presentation — it's a legitimate choice once that preference is actually known, not the default way of running either wizard.
@@ -154,7 +156,7 @@ A third kind sits alongside these two: a **source-lookup question** — "Is ther
 
 Whatever the setting, asking is never the same as requiring one to exist. "No, there's nothing tracking this" is a complete, valid answer — recording it as `**Source:** none — no tracked issue or ticket` (or simply omitting Source, since it was never mandatory per rule 2) is correct. Inventing a plausible-sounding ticket reference to satisfy `always` or a matched `filtered` criterion would violate rule 1 exactly the same way inventing rationale would.
 
-`source-reference` doesn't have a personal override in this release, same reasoning and same "test one setting before adding a second axis" precedent as `capture-confirmation` — see `context/repo-conventions.md`.
+`source-reference` doesn't have a personal override in this release, same reasoning and same "test one setting before adding a second axis" precedent as `capture-confirmation` — see `context/config-format.md`.
 
 ### Resolution order
 
@@ -166,7 +168,7 @@ session instruction → personal setting (AGENTS.local.md) → project setting (
 
 Examples of session overrides: "just write everything down directly this session," "ask me before every entry today," "show me everything you found as one list," "only make suggestions, don't touch any files yet." A session override doesn't change the stored config unless the user explicitly says to update it — it's scoped to that conversation, not a silent edit to `AGENTS.md` or `AGENTS.local.md`.
 
-A personal override for `capture-confirmation` isn't part of this release — it's project-wide only for now, deliberately, to see how it behaves in practice first (see `context/repo-conventions.md` for why). The resolution order above already leaves room for one later: a personal `capture-confirmation` field in `AGENTS.local.md` would simply slot in between session instruction and the project setting, same pattern as `migration-prompt: <version> declined`.
+A personal override for `capture-confirmation` isn't part of this release — it's project-wide only for now, deliberately, to see how it behaves in practice first (see `context/config-format.md` for why). The resolution order above already leaves room for one later: a personal `capture-confirmation` field in `AGENTS.local.md` would simply slot in between session instruction and the project setting, same pattern as `migration-prompt: <version> declined`.
 
 ### `confirmation-flow` values
 

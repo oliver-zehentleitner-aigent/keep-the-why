@@ -39,15 +39,13 @@ markdown_extensions:
 extra_css:
   - assets/extra.css
 
-exclude_docs: |
-  context/naming.md
-
 nav:
   - Overview: index.md
   - Philosophy: philosophy.md
   - Installation: installation.md
   - Repository structure: repository-structure.md
   - Security: security.md
+  - Evals: evals.md
   - Badge: badge.md
   - FAQ: faq.md
   - Why I built this: why.md
@@ -66,4 +64,7 @@ nav:
       - Legacy project: examples/legacy-project.md
       - Developer handover: examples/developer-handover.md
   - "Why this project is built this way":
-      - Repo conventions: context/repo-conventions.md
+      - Release and distribution: context/release-and-distribution.md
+      - Skill configuration format: context/config-format.md
+      - Positioning: context/positioning.md
+      - Compatibility: context/compatibility.md

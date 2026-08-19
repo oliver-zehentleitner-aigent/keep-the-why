@@ -30,7 +30,7 @@ get thrown away, not creating separate documentation effort. It isn't magic, tho
 prevents knowledge from decaying on its own. This lowers the friction of the discipline that
 keeps documentation honest; it doesn't replace it.
 
-Version: 0.6.1.
+Version: 0.6.4.
 
 ## Authorship & License
 
@@ -163,6 +163,14 @@ Produces, inside the project using the skill:
 - `context/` — why the project is the way it is, organized by topic, with its own `README.md`
 - `AGENTS.local.md` — personal preferences and notes, not committed
 
+## Testing / Evals
+
+A suite of eval cases ships with the skill, executed for real by a local runner in the
+repo (fixture project per case, fresh non-interactive agent session, LLM-judged
+verdicts), tested with Claude Code and Claude Sonnet. Current case count and numbers
+live in one place only, so they can't drift: https://keepthewhy.com/evals/ — including
+the failure analysis, stated caveats, and reproduction instructions.
+
 ## Related Work
 
 Related standards and conventions: Architecture Decision Records, the AGENTS.md standard.
@@ -217,9 +225,9 @@ HTML equivalent and details: https://keepthewhy.com/badge/
 ## Docs
 
 - Repo: https://github.com/oliver-zehentleitner/keep-the-why
-- AGENTS.md (for AI agents working on this repo): https://github.com/oliver-zehentleitner/keep-the-why/blob/main/AGENTS.md
-- SKILL.md: https://github.com/oliver-zehentleitner/keep-the-why/blob/main/skills/keep-the-why/SKILL.md
-- CHANGELOG: https://github.com/oliver-zehentleitner/keep-the-why/blob/main/CHANGELOG.md
+- AGENTS.md (for AI agents working on this repo): https://github.com/oliver-zehentleitner/keep-the-why/blob/latest/AGENTS.md
+- SKILL.md: https://github.com/oliver-zehentleitner/keep-the-why/blob/latest/skills/keep-the-why/SKILL.md
+- CHANGELOG: https://github.com/oliver-zehentleitner/keep-the-why/blob/latest/CHANGELOG.md
 - Docs: https://keepthewhy.com
 - Setup (project + personal wizards, timer checks): https://keepthewhy.com/setup/
 - Migrations (context-schema version changes): https://keepthewhy.com/migrations/
@@ -227,5 +235,5 @@ HTML equivalent and details: https://keepthewhy.com/badge/
 - Trust model (context/ as data, not instructions): https://keepthewhy.com/trust-model/
 - Badge: https://keepthewhy.com/badge/
 - Philosophy (why no database/daemon/dashboard, deliberately): https://keepthewhy.com/philosophy/
-- Why this project is built this way: https://keepthewhy.com/context/repo-conventions/
+- Why this project is built this way (release/distribution, config format, positioning, compatibility): https://keepthewhy.com/context/release-and-distribution/, https://keepthewhy.com/context/config-format/, https://keepthewhy.com/context/positioning/, https://keepthewhy.com/context/compatibility/
 - Article — origin story and full comparison to prior art: https://blog.technopathy.club/keep-the-why-code-becomes-legacy-when-nobody-remembers-why

@@ -4,6 +4,80 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+## [0.6.4] - 2026-08-01
+
+### Added
+
+- The project init wizard (`references/setup.md`) now asks, as its last setup question, whether to set up something stronger for activation reliability if the current agent's own platform supports it — and if yes, has the *current* agent (not `SKILL.md` itself) check what its own platform actually offers and configure it scoped to the project, rather than hardcoding one vendor's mechanism (e.g. a Claude Code `SessionStart` hook) as universal instruction. Not yet a standardized, tested-across-tools solution — right now this is solved individually, per developer; tracked in the new dedicated issue [#138](https://github.com/oliver-zehentleitner/keep-the-why/issues/138). `context/compatibility.md`'s prior "left entirely to each tool, we do nothing" entry marked superseded by this more active stance; `examples/first-time-setup.md`'s wizard dialogue updated to show the new question; `README.md` and `docs/faq.md` updated with the current state and a link to #138.
+
+- New `context/compatibility.md` entry: activation reliability (the Skill mechanism's known limitation — no cross-tool "autostart" field exists, confirmed by checking the open Agent Skills spec directly, and even Claude Code tracks reliable auto-invocation as an open upstream gap, [anthropics/claude-code#65371](https://github.com/anthropics/claude-code/issues/65371)) is deliberately left to each agent tool's own capabilities, not solved with a project-specific mechanism. Rejected alternative: document/recommend a specific tool's hook script (e.g. Claude Code's `SessionStart`) as official guidance — rejected for the same cross-agent-neutrality reason already established in `positioning.md`, applied here to mechanisms rather than marketing copy. New `docs/faq.md` entry states the same position plainly for end users.
+
+## [0.6.3] - 2026-08-01
+
+### Added
+
+- New "Feedback" section at the end of `SKILL.md`: if the person working with the agent expresses frustration with the skill or reports it's not doing what it should, mention `https://github.com/oliver-zehentleitner/keep-the-why/issues/new/choose` directly — a single natural mention, not a pitch or a repeated nag. Also added "or when the user expresses frustration with, or reports a problem with, this skill itself" to the frontmatter `description` (877/1024 chars) — the instruction initially lived only in the body, and a first eval attempt showed the Skill never loaded for a complaint prompt (no activation trigger matched, so the body's instruction was never read); the description is what actually governs activation. New eval case `user-frustration-surfaces-feedback-link`: failed before the description change (skill never invoked), passed 2/2 fresh trials after.
+- New "Feedback" section in `README.md`, pointing at [`issues/new/choose`](https://github.com/oliver-zehentleitner/keep-the-why/issues/new/choose) — a bug report, confusing docs, or the skill not matching what it claims, kept visually separate from "Contributing" (which is about submitting code). `CONTRIBUTING.md`'s Process section links the same URL for consistency.
+- Marked `docs/evals.md`'s published numbers (59/67, skill 0.6.2) as a stale, superseded snapshot rather than silently leaving them looking current — two rounds of `SKILL.md` changes landed since (Core Rules tightening, then the MUST-emphasis fix) without a fresh full 67-case run to re-baseline against. Points to the new status issue ([#131](https://github.com/oliver-zehentleitner/keep-the-why/issues/131)) for the current picture; the page itself gets replaced with fresh numbers once the next full run completes, planned as part of the next release cycle.
+
+- `tools/evals/run.py` is now resilient to the runner's own account hitting its session or monthly spend limit mid-run — a real scenario hit twice overnight while producing the results below. The CLI reports this as a normal, successful response whose text just says so ("You've hit your session limit...", "You've hit your monthly spend limit."), not an error exit code, so it's detected by content (a regex anchored on "hit your ... limit", not a bare "rate limit"/"usage limit" substring, to avoid false-positiving on fixture content that legitimately discusses a gateway's own rate limiter). On detection: no judge call is wasted grading a limit message, every other queued case in that pass is skipped immediately without an API call, and re-running the same command against the same `--results-dir` only retries what's still unresolved — a stored pass/fail is skipped outright unless its transcript turns out to actually be a limit-message artifact, in which case it's treated as unresolved rather than trusted. New `--retry-until-complete` (with `--retry-interval`, `--max-wait-hours`) sleeps and retries only the unresolved cases across account-limit reset windows instead of requiring babysitting; observed working end-to-end overnight (one case pair spent ~4 hours / 24 retry cycles rate-limited before the account's own reset cleared it, and resumed automatically with no intervention). `tools/evals/README.md` documents this.
+
+- A full 67-case eval run against the tightened `SKILL.md` (55/67, 0 errors) surfaced a recurring pattern across three cases: the agent correctly recognized what should happen, then asked or deferred instead of doing a low-risk mechanical step the rules already say needs no permission (flipping Status to needs-review, adding a `.gitignore` entry, starting the personal wizard). In each spot, the imperative was bundled in the same sentence as an adjacent caveat about a *different*, genuinely judgment-requiring action — plausibly diluting it. Rewrote all three as: an explicit MUST, a concrete before/after example instead of an abstract description, and a hard sentence break separating "do this now, no question needed" from "this other, related thing is a real judgment call" (rule 7 in `SKILL.md`; the personal-wizard trigger in `SKILL.md` Workflow step 0; the `.gitignore`-before-`AGENTS.local.md` step in `references/setup.md`). Verified with the eval runner: all three cases had failed 1-of-3 to 2-of-3 times pre-fix across two rounds of trials; post-fix, 2 fresh trials each came back 6/6 pass, including confirming a real `.gitignore` diff on disk, not just a claimed one.
+
+### Changed
+
+- Tightened Core Rules 2, 6, 7, 11, 13, 14, and 15 in `SKILL.md` toward stating each as a compact invariant rather than prose with nested caveats — mechanism-level detail already covered by `references/setup.md`, `references/repository-structure.md`, and `references/trust-model.md` was cut from the core rules rather than duplicated. Every eval-tested clause (Evidence/Status/Verification values, the two-sources-disagree handling, the needs-review "immediately, and nothing more" behavior, missing-vs-invalid-vs-contradictory config handling, the trust-model enumerable list) was checked against `skills/keep-the-why/evals/evals.json` and kept; only padding and restated cross-rule hedging was removed. Core Rules section: 1669 → 1327 words (-20.5%).
+- Also tightened "Composition with other skills" (same padding-removal treatment, the recheck-after-other-skill eval's tested clause kept intact) and removed one clause in Workflow step 0 that restated rule 14 almost verbatim, replaced with a one-line cross-reference. The rest of Workflow step 0 (setup/timer/schema mechanics) was deliberately left alone — it's settings-system mechanism already reviewed and confirmed reasonable, not rule-density bloat, and carries the highest eval density in the file (~15 cases). `SKILL.md` total: 3721 → 3293 words (-11.5%). `python -m skills_ref.cli validate` still passes; the eval suite itself gets re-run once this pass (and the settings review, already done — no changes needed there) is fully complete, not per-commit.
+
+### Added
+
+- Local eval runner in `tools/evals/`: materializes a per-case fixture project (shared `_base` plus per-case overlays, optional extra git commits and tool restrictions via `case.json`), runs a real non-interactive Claude Code session against it with the skill installed, captures transcript plus working-tree changes, and grades both with an LLM judge into per-case JSON results and a summary. Deliberately outside `skills/keep-the-why/`, which stays instructions-only. Results directory is gitignored; findings get communicated in the docs instead.
+
+- `docs/evals.md` — new docs page publishing the first full eval run (59/67 with Claude Code + Claude Sonnet 5 on skill 0.6.2) with an analysis of the 8 failures (5 quantify the documented skill-activation limitation, 3 are judgment misses with the skill active), stated caveats (single run, same-vendor judge, one agent), and reproduction instructions. Linked from `README.md`, `llms.txt`, and the mkdocs nav.
+- `overrides/README.md` — explains what the theme-override directory is for (mkdocs-material `custom_dir`, currently the Open Graph/Twitter-card meta tags in `main.html`) and why it sits at the repo root instead of inside `docs/`.
+- Linked a new living status/chronicle issue ([#131](https://github.com/oliver-zehentleitner/keep-the-why/issues/131)) from `README.md`, `tools/evals/README.md`, and `CONTRIBUTING.md`'s cross-agent bullet — current focus, what's working, what isn't yet, and how to help, kept up to date as a top-post with dated log entries below it. Numbers there are historical snapshots only; current pass-rate numbers still live exclusively at `docs/evals.md`, not restated in the issue.
+
+### Changed
+
+- `CONTRIBUTING.md`: the cross-agent bullet now points at the runner and names non-Claude agents as the remaining gap; pre-PR checklist item 4 asks for a matching fixture alongside a new or changed eval case.
+- `evals/README.md`: replaced the "no automated runner, no scoring" status with a pointer to `tools/evals/` (linked to `main` on purpose — the runner is development tooling, not part of any release artifact).
+- `README.md` and `llms.txt` now describe the eval suite generically and point at https://keepthewhy.com/evals/ for numbers — concrete run results live in exactly one place (`docs/evals.md`) instead of going stale in three.
+- `README.md` and `llms.txt` also dropped the hardcoded eval case count ("67 eval cases" → "a suite of eval cases") — the case count changes independently of a release and belongs in `docs/evals.md` alone, same reasoning as the pass/fail numbers.
+- Rewrote 36 eval prompts from third-person scenario narration ("A developer says they don't want…", "capture-confirmation is set to automatic. During the conversation…") into direct user requests and utterances. Against a real materialized project, the narrated form reliably made the agent answer "I don't see an actual task in your message" instead of exercising the behavior under test; expected behaviors are untouched. Three of these also stopped hardcoding an installed-skill version that contradicts the actually installed one, and two stopped referring to files ("this file") that no fresh session has open.
+- Sharpened three rules against failures observed in the first eval runs: rule 2 now states the two-sources-disagree case directly in the core rules — record both, flag the conflict open, never self-resolve by declaring one source authoritative (previously only in `references/retrospective-analysis.md`, which the failing session had never loaded); rule 7 now says a triggered Revisit-when sets needs-review immediately and nothing *more* in the same step — the first sharpening attempt ("nothing more") made a test run defer even the flag itself, so the wording now names the flag as the immediate, permission-free act (`references/repository-structure.md` aligned to match); the setup check now names the silent `context-schema` backfill alongside the other two missing-field backfills (the failing run asked the user instead).
+- Two timer-check eval prompts (`negative-timer-check-age-without-trigger`, `consistency-check-respects-configured-context-path`) now explicitly request a maintenance check instead of posing a generic session-start task: these cases test the mechanism's quietness and scoping, not skill activation — which the two update-check cases continue to measure with deliberately low-signal, organic prompts.
+
+### Fixed
+
+- `examples/first-time-setup.md` still showed the pre-0.6.0 project wizard: the `source-reference` question was missing from the dialogue and the field missing from the generated config block. Also corrected the "second developer" walkthrough (and the `wizard-respects-known-confirmation-flow-batch` eval case, which encoded the same error): `confirmation-flow` is stored per checkout in `AGENTS.local.md` and does not travel with the developer across projects — when it's not stored in the current checkout, the wizard asks and records it there. `references/setup.md` now states the per-checkout scope explicitly.
+- `llms.txt`'s repo links (`AGENTS.md`, `SKILL.md`, `CHANGELOG`) still pointed at `/blob/main/` — changed to `/blob/latest/`, the same convention the 0.6.2 README link fix established.
+- `mkdocs.yml`'s `exclude_docs` still listed `context/naming.md`, a file that no longer exists — removed.
+- `README.md`'s "Related work" pointed at "What this is not" as being *above* when the section sits below it; and the setup pointer linked `docs/setup.md`, which on GitHub is a one-line include stub — now links the rendered https://keepthewhy.com/setup/ page instead, per the 0.6.2 link convention.
+- `references/repository-structure.md`'s example `AGENTS.md` config block was missing `source-reference`, and the prose beneath it still claimed a real config block "always has both" fields when 0.6.0 made it three.
+- `SKILL.md`'s setup check named the silent missing-field backfill only for `capture-confirmation` — it now names `source-reference` alongside it, so an agent that never loads `references/setup.md` handles both fields alike.
+
+## [0.6.2] - 2026-07-31
+
+### Added
+
+- "Format" section in README documenting `context/` entry fields (Status, Evidence, Source, Revisit when, ...) directly — discoverable without installing the skill, matching the "repo-native convention, not just an agent skill" framing.
+- "Independent verification" section in `docs/security.md`, linking to the SkillsLLM security scan report.
+
+### Changed
+
+- `docs/installation.md`'s GitHub-CLI warning about unverified skills now points to `docs/security.md`, which links onward to the SkillsLLM scan; both "Also listed on" tables link "security scan" directly to the scan report.
+- Promoted "Repository structure" from the nested Reference nav group to top-level in `mkdocs.yml`'s nav, since it documents the `context/` format, not skill-usage detail.
+- Replaced "trustworthy background" / "trust by default" wording in `docs/security.md` and `references/trust-model.md` with salience framing — the previous wording collided with the Source/evidence-level model (`confirmed`/`inferred`/`unknown`), implying `context/` is trusted by default when it explicitly isn't.
+- Split `context/repo-conventions.md` (187 lines, five unrelated topics in one file) into `context/release-and-distribution.md`, `context/config-format.md`, `context/positioning.md`, and `context/compatibility.md` — rule 5 (organize by topic) and rule 8 (split large files) applied to this repo's own `context/`, not just advice given to others. All cross-references (`CONTRIBUTING.md`, `references/setup.md`, `docs/faq.md`, `mkdocs.yml` nav, `docs/context/*.md`) updated to match.
+
+### Removed
+
+- The "Launch-readiness pass" entry in `context/repo-conventions.md` (SKILL.md trimmed, negative evals added, README reordered ahead of the initial launch). On review, none of the four bundled changes had a real rejected alternative — all four were corrections made in response to external review feedback, which rule 6 already excludes from `context/` regardless of significance. The "what happened" is already covered by the `[0.1.0]` entry below.
+
+### Fixed
+
+- Internal links in `README.md` and `docs/security.md` hardcoded to `/blob/main/` (so a tagged checkout's README could show newer, unreleased `main` content instead of that tag's own) — changed to `/blob/latest/` (the project's own recommended pin) or, for pages also mirrored on the docs site (`repository-structure.md`, `methodology.md`), to their `keepthewhy.com` URL. An intermediate fix using bare relative paths broke the "Deploy docs" GitHub Action (`mkdocs build --strict` validates `.md` links against its own `docs_dir`, and these point outside it) — caught and corrected before release.
+
 ## [0.6.1] - 2026-07-30
 
 ### Added
@@ -219,7 +293,12 @@ Initial release.
 - Logo, wordmark, and favicon.
 - `context/repo-conventions.md`, dogfooding the skill on its own repository from day one.
 
-[Unreleased]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.6.0...v0.6.1
+[0.6.0]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.5.2...v0.6.0
+[0.5.2]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.5.1...v0.5.2
+[0.5.1]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.5.0...v0.5.1
+[0.5.0]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.4.2...v0.5.0
 [0.4.2]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.3.1...v0.4.0
