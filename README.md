@@ -214,6 +214,11 @@ Something not working as described, docs that confused you, or the skill's actua
 
 See [CONTRIBUTING.md](https://github.com/oliver-zehentleitner/keep-the-why/blob/latest/CONTRIBUTING.md).
 
+## Contributors
+[![Contributors](https://contributors-img.web.app/image?repo=oliver-zehentleitner/keep-the-why)](https://github.com/oliver-zehentleitner/keep-the-why/graphs/contributors)
+
+We ♥️ open source!
+
 ## License
 
 [MIT](https://github.com/oliver-zehentleitner/keep-the-why/blob/latest/LICENSE)
