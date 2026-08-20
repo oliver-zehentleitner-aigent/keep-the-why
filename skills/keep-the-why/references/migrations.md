@@ -4,6 +4,35 @@ What changed in each version that affects the *format* of existing `context/` en
 
 Entries below assume 0.2.0 as the starting point — nothing before it tracked a `context-schema` at all, and 0.2.0 itself introduced no `context/` entry format change.
 
+## Unreleased — `undefined` Type value added
+
+**What changed:** entries where none of the four Type values (`decision` | `workaround` | `incident` | `constraint`) cleanly fit now record `**Type:** undefined — <reason>` instead of leaving the field blank. Supersedes point 3 of the 0.7.0 migration below — that guidance said to leave Type out when nothing fits; the current guidance is to mark it `undefined` with a reason instead, so misfit cases stay filterable rather than indistinguishable from entries that never considered Type at all.
+
+**New value (see `references/repository-structure.md`):**
+
+- **Type:** `undefined` — used only after actively confirming none of the four values fit; always followed by `— <short reason>`.
+
+**Migrating an existing entry:**
+
+1. Not a backfill pass. Entries that currently skip Type because nothing fit don't need a dedicated pass — same "next time touched" rule as the 0.7.0 migration below.
+2. When you do touch one and confirm none of the four values fit, add `**Type:** undefined — <short reason>` rather than leaving the field blank.
+3. Project-wide, once: if `context/README.md`'s "Reading the entries" Type line doesn't mention `undefined`, update it to match `references/setup.md`'s current template.
+
+**Example — before:**
+
+```markdown
+**Status:** active
+**Evidence:** confirmed
+```
+
+**Example — after:**
+
+```markdown
+**Type:** undefined — documents a naming convention, not a decision/workaround/incident/constraint
+**Status:** active
+**Evidence:** confirmed
+```
+
 ## 0.7.0 — Type field added
 
 **What changed:** entries can now carry a **Type** header field (`decision` | `workaround` | `incident` | `constraint`), placed before **Status**. It categorizes what kind of thing an entry is, independent of Status/Evidence, so a tool or agent can filter — "every incident," "every workaround" — without loading full topic files to find out.
@@ -16,7 +45,8 @@ Entries below assume 0.2.0 as the starting point — nothing before it tracked a
 
 1. Not a backfill pass. Add **Type** to an entry the next time it's touched anyway, same as any other maintenance edit — matches "Retrofitting an existing project" in `repository-structure.md`.
 2. If an entry genuinely straddles two values (a workaround adopted because of an incident), pick whichever a future search is more likely to be about. Don't split the entry or leave Type blank just because more than one value would fit.
-3. If nothing fits cleanly, leave it out rather than forcing a wrong-feeling value — Type is there to help filtering, not to gate whether an entry counts.
+3. If nothing fits cleanly, leave it out rather than forcing a wrong-feeling value — Type is there to help filtering, not to gate whether an entry counts. (Superseded by the `undefined` value above — for a project migrating straight to the current version, apply that guidance instead of this step.)
+4. Project-wide, once: if `context/README.md`'s "Reading the entries" section doesn't mention Type at all, add it — same wording as `references/setup.md`'s current template.
 
 **Example — before:**
 
