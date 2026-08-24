@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added
+
+- Hermes's row filled in against the full standard 9-model set (`docs/agent-matrix.md`). 8 of 9 pass — the highest clean rate of any driver tested against this set. GPT-5.2 is the one fail (1/10, also the slowest single run recorded on this case at 770s). Mistral Medium 3.5 is the more notable result: it passes here (9/10) — the only cell in the entire table where Mistral passes — while failing on every other driver.
+
 ## [0.9.2] - 2026-08-24
 
 ### Added
