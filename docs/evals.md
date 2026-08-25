@@ -26,15 +26,16 @@ shifted a lot since the last run:
 
 **1. Activation gaps (11 of 14 failures).** In every one of these, the Skill
 tool itself was never invoked — no `[tool call] Skill` in the transcript at
-all — even though every affected fixture's `SessionStart` hook explicitly
-instructed loading the skill before other work. This is the same activation
-limitation already documented in ["Composition with other
+all. This is the same activation limitation already documented in
+["Composition with other
 skills"](https://github.com/oliver-zehentleitner/keep-the-why/blob/latest/skills/keep-the-why/SKILL.md)
 and tracked in [issue #138](https://github.com/oliver-zehentleitner/keep-the-why/issues/138)
 — a Skill activates when the conversation matches its description, and
-nothing guarantees that for a low-signal prompt. What's new this run: the
-hook instruction alone isn't sufficient either. Some of the 11 did nothing
-skill-related at all (`init-declined-not-reasked`,
+nothing guarantees that for a low-signal prompt; none of these 70 runs had a
+`SessionStart` hook or any other activation aid configured, so this is the
+plain, unmitigated version of that gap, not evidence about hooks one way or
+the other. Some of the 11 did nothing skill-related at all
+(`init-declined-not-reasked`,
 `update-check-cannot-run-surfaced-once`, `update-check-repeat-failure-no-reask`,
 `source-reference-never-does-not-ask`,
 `recheck-after-other-skill-concludes-mid-conversation`) — the model just
@@ -70,6 +71,39 @@ one case but with all three skill-active failures:
   asked the user whether to write it up instead of recording
   `Status: open` / `Evidence: unknown` itself, as the case calls for.
 
+## Activation-gap follow-up: a real SessionStart hook, tested
+
+**Not a new full-suite run — a targeted re-test of the 11 activation-gap
+failures above, done the same day (2026-08-25).** One of those 11
+(`init-declined-not-reasked`) starts from an empty project with no
+`AGENTS.md` at all, so there's no `keep-the-why:config` marker for a hook to
+find — out of scope for this by construction. The other 10 were re-run
+against the same fixtures plus one change: a project-scoped `SessionStart`
+hook, checked into `tools/evals/fixtures/_base/.claude/settings.json` (not
+the machine-level one a developer might have personally) — it greps
+`AGENTS.md` for the `keep-the-why:config` marker and, if found, injects
+"Load the keep-the-why skill now, before other work" as `additionalContext`
+before the first turn.
+
+**Result: 10/10 now invoke the Skill tool (was 0/10). 9/10 pass outright.**
+The one holdout, `update-check-cannot-run-surfaced-once`, turned out to be
+an unrelated fixture bug, not a skill or hook problem: its "simulate no web
+access" setup denies `WebFetch`/`WebSearch` but not `Bash`, so the agent
+reached the real GitHub API with `curl` and the simulated failure never
+actually happened — the same bug affected `update-check-repeat-failure-no-reask`,
+which had happened to still pass by coincidence (a real successful check is
+also valid output for that case's expected behavior). Fixed both fixtures'
+`case.json` to also deny `Bash(curl *)`/`Bash(wget *)`; re-run, both pass
+cleanly for the right reason this time (curl denied, agent reports the
+failure and asks/retries-quietly as expected). **Final: 10/10 pass.**
+
+This hook is now the `_base` fixture's default, so every future full run
+includes it — the 56/70 above remains the last true baseline *without* one.
+The next full `--all` run (not done today) is what turns this from "10 of 11
+formerly-failing cases, re-run in isolation" into a real before/after on the
+whole suite. Writeup and the reusable hook snippet: `docs/autostart.md`
+(planned, not published yet).
+
 ## Caveats, stated plainly
 
 - One run per case: single-run verdicts are subject to normal model variance.
@@ -98,6 +132,22 @@ one case but with all three skill-active failures:
   `subtype=success`) and doc/version-number text, not `SKILL.md` or
   `references/` rule content. These numbers are the current behavioral
   picture even though they're labeled skill 0.9.0.
+- **Correction, added after publishing this page:** the first version of this
+  section claimed the activation-gap failures happened "despite an explicit
+  `SessionStart` hook" telling the agent to load the skill. That was wrong —
+  none of these fixtures configure any hook (the runner deliberately excludes
+  user-level settings via `--setting-sources project,local`, and no fixture
+  defines a project-level one), confirmed by grepping every raw transcript
+  for hook-related content and finding none. The judge's `reasoning` field
+  invented that detail — quoting a specific, plausible-sounding hook message
+  — in 6 of the 14 failing cases, none of which actually appears anywhere in
+  the real transcript it was grading. Since the judge is an LLM grading
+  against a rubric, not a program checking assertions, a claim in its
+  `reasoning` isn't automatically grounded in what it was shown; this is a
+  concrete instance of that, found by cross-checking one specific claim
+  against the raw transcript field rather than trusting the prose. Worth
+  remembering when reading any verdict's reasoning text here or in the raw
+  results.
 
 ## Reproducing
 
