@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Changed
+
+- `SKILL.md` compressed by ~38% (28,588 → 17,637 bytes) with no intended logic change: the 15 core rules merged down to 11 (old 1+14 → 1, 3+4+5 → 3, 9+10 → 7; the rest renumbered), the setup-check and repository-structure sections deduplicated against `references/setup.md` and `references/repository-structure.md` instead of repeating them. Rule-number cross-references remapped across `references/`, `examples/`, `tools/evals/evals.json`, and this repo's own `context/entry-format.md`; `CHANGELOG.md` history deliberately keeps the numbering that was current at the time. See the new `Unreleased` entry in `references/migrations.md` for the full old → new map and the one-pass remap an existing project should do if its own files quote rule numbers. Three clauses the first compression pass dropped were restored after review, since each traced back to a tested or field-observed failure mode rather than padding: the composition section's re-check fallback (asking directly is a legitimate fallback when another framework holds attention), rule 5's same-turn/no-deferral wording for triggered `Revisit when` conditions (targets the known "recognizes but doesn't act" pattern), and rule 11's secrets / self-declared-trustworthiness clauses (eval-covered). Eval suite re-run against the compressed text still pending — tracked in the PR, not silently assumed green.
+
 ## [0.10.1] - 2026-09-01
 
 ### Changed

@@ -4,6 +4,23 @@ What changed in each version that an existing project may need to know about or 
 
 Entries below assume 0.2.0 as the starting point — nothing before it tracked a `context-schema` at all, and 0.2.0 itself introduced no `context/` entry format change.
 
+## Unreleased — Core rules renumbered (15 → 11)
+
+**What changed:** `SKILL.md`'s 15 core rules were merged down to 11 — no rule's logic changed, but most rule *numbers* did. Merges: old 1+14 → 1 (never invent / clarify ambiguity), old 3+4+5 → 3 (adapt to what exists), old 9+10 → 7 (privacy / don't commit unasked). Full old → new map:
+
+| Old | New | | Old | New |
+|-----|-----|-|-----|-----|
+| 1 | 1 | | 9 | 7 |
+| 2 | 2 | | 10 | 7 |
+| 3 | 3 | | 11 | 8 |
+| 4 | 3 | | 12 | 9 |
+| 5 | 3 | | 13 | 10 |
+| 6 | 4 | | 14 | 1 |
+| 7 | 5 | | 15 | 11 |
+| 8 | 6 | | | |
+
+**Migrating an existing project:** informational for most — nothing in `.keep-the-why` or the `context/` entry format changed. But a project whose own files quote rule numbers (a `context/` entry citing "rule 13's proportionality gate", a `CONTRIBUTING.md` pointing at "rule 10") now points at the wrong rule. One mechanical pass, once: grep the project for `rule <number>` references to this skill's core rules and remap them per the table — cheap, complete, and a stale number actively misleads, so don't defer it to "next touched". `CHANGELOG.md`-style historical records keep the numbering that was current at the time; only living documents (context entries, docs, contributor guides) get remapped.
+
 ## 0.10.0 — Project/personal config moves into dedicated `.keep-the-why` files
 
 **What changed:** the project config block (`<!-- keep-the-why:config -->`) moves out of the entry-point file (`AGENTS.md`, or whatever a project already uses) into a dedicated `.keep-the-why` file at the project root. The personal config block (`<!-- keep-the-why:local -->`) moves out of `AGENTS.local.md` into a dedicated, non-project file at `~/.keep-the-why/<id>.md`, keyed by a new `id` field the project file now carries. See "Why dedicated files, not entry-point blocks" in `context/config-format.md` for the reasoning, and `references/setup.md` for the full format and detection logic. Three optional additions ship alongside the relocation, none of which existing projects are required to adopt: a `personal-defaults` block a project can offer new developers (plus a machine-wide `~/.keep-the-why/config` policy governing whether that's asked about or auto-applied), `pinned-version`/`pinned-path` fields for pinning to a vendored skill copy, and `context/AGENTS.md` + `context/CLAUDE.md` guard files. Not a `context/` entry-format change — existing entries are untouched — but it needs real action from an existing project, not a silent backfill.
