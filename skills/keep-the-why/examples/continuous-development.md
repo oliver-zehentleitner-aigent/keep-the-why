@@ -14,6 +14,7 @@ Mid-session, working on a Python service. The retry logic for an external API ca
     ```markdown
     ## Retry mechanism (updated 2026-07-10)
 
+    **Type:** decision
     **Status:** active
     **Evidence:** confirmed
     **Source:** stated directly by the user during the change

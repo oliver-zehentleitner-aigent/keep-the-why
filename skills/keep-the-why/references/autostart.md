@@ -75,7 +75,8 @@ for the config location that project actually has.
 11) activation-gap failures from the 2026-08-25 full run that could have one
 — `init-declined-not-reasked` starts from an empty project with no
 entry-point file to grep, out of scope — went from 0/10 invoking the Skill
-tool to 10/10, and 10/10 passing outright. Full writeup:
+tool to 10/10; 9/10 passed outright, and the one holdout traced to an
+unrelated fixture bug (all 10 pass since that fix). Full writeup:
 [`docs/evals.md`](https://keepthewhy.com/evals/#activation-gap-follow-up-a-real-sessionstart-hook-tested),
 [PR #190](https://github.com/oliver-zehentleitner/keep-the-why/pull/190).
 
