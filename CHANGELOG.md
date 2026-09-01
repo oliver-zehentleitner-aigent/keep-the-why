@@ -4,6 +4,14 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Changed
+
+- `SKILL.md` compressed by ~38% (28,588 → 17,637 bytes) with no intended logic change: the 15 core rules merged down to 11 (old 1+14 → 1, 3+4+5 → 3, 9+10 → 7; the rest renumbered), the setup-check and repository-structure sections deduplicated against `references/setup.md` and `references/repository-structure.md` instead of repeating them. Rule-number cross-references remapped across `references/`, `examples/`, `tools/evals/evals.json`, and this repo's own `context/entry-format.md`; `CHANGELOG.md` history deliberately keeps the numbering that was current at the time. See the new `Unreleased` entry in `references/migrations.md` for the full old → new map and the one-pass remap an existing project should do if its own files quote rule numbers. Three clauses the first compression pass dropped were restored after review, since each traced back to a tested or field-observed failure mode rather than padding: the composition section's re-check fallback (asking directly is a legitimate fallback when another framework holds attention), rule 5's same-turn/no-deferral wording for triggered `Revisit when` conditions (targets the known "recognizes but doesn't act" pattern), and rule 11's secrets / self-declared-trustworthiness clauses (eval-covered). Eval suite re-run against the compressed text still pending as of this entry — not silently assumed green.
+
+### Fixed
+
+- Findings from a full manual read-through of every skill file (no grep shortcuts), done as part of the compression review: `examples/abandoned-change.md`, `examples/continuous-development.md`, and `examples/legacy-project.md` showed `context/` entries without a `**Type:**` line — stale since 0.7.0 introduced the field — and now model the current schema, including one deliberate `undefined — <reason>` showcase. `references/autostart.md` claimed the activation-gap re-test passed 10/10 outright; it was 9/10, with the holdout traced to an unrelated fixture bug (10/10 since that fix) — now stated that way, matching `docs/evals.md`, which in turn no longer calls `docs/autostart.md` "planned, not published yet" (it shipped with 0.10.0). `references/setup.md`: the project-wizard's presentation clause untangled (when `confirmation-flow` can already be known, and why `sequential` is the fallback), the badge question got its missing "Default: yes" (the default `examples/first-time-setup.md` already showed), and wizard step 2's pointer to an unnamed "tracking issue" (closed since) now points at `references/autostart.md` directly.
+
 ## [0.10.1] - 2026-09-01
 
 ### Changed

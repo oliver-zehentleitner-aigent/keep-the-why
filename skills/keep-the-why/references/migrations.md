@@ -4,6 +4,18 @@ What changed in each version that an existing project may need to know about or 
 
 Entries below assume 0.2.0 as the starting point — nothing before it tracked a `context-schema` at all, and 0.2.0 itself introduced no `context/` entry format change.
 
+## Unreleased — Core rules renumbered (15 → 11)
+
+**What changed:** `SKILL.md`'s 15 core rules were merged down to 11 — no rule's logic changed, but most rule *numbers* did. Merges: old 1+14 → 1 (never invent / clarify ambiguity), old 3+4+5 → 3 (adapt to what exists), old 9+10 → 7 (privacy / don't commit unasked). Full old → new map:
+
+```text
+1 → 1    4 → 3    7 → 5    10 → 7    13 → 10
+2 → 2    5 → 3    8 → 6    11 → 8    14 → 1
+3 → 3    6 → 4    9 → 7    12 → 9    15 → 11
+```
+
+**Migrating an existing project:** informational for most — nothing in `.keep-the-why` or the `context/` entry format changed. But a project whose own files quote rule numbers (a `context/` entry citing "rule 13's proportionality gate", a `CONTRIBUTING.md` pointing at "rule 10") now points at the wrong rule. One mechanical pass, once: grep the project for `rule <number>` references to this skill's core rules and remap them per the table — cheap, complete, and a stale number actively misleads, so don't defer it to "next touched". `CHANGELOG.md`-style historical records keep the numbering that was current at the time; only living documents (context entries, docs, contributor guides) get remapped.
+
 ## 0.10.0 — Project/personal config moves into dedicated `.keep-the-why` files
 
 **What changed:** the project config block (`<!-- keep-the-why:config -->`) moves out of the entry-point file (`AGENTS.md`, or whatever a project already uses) into a dedicated `.keep-the-why` file at the project root. The personal config block (`<!-- keep-the-why:local -->`) moves out of `AGENTS.local.md` into a dedicated, non-project file at `~/.keep-the-why/<id>.md`, keyed by a new `id` field the project file now carries. See "Why dedicated files, not entry-point blocks" in `context/config-format.md` for the reasoning, and `references/setup.md` for the full format and detection logic. Three optional additions ship alongside the relocation, none of which existing projects are required to adopt: a `personal-defaults` block a project can offer new developers (plus a machine-wide `~/.keep-the-why/config` policy governing whether that's asked about or auto-applied), `pinned-version`/`pinned-path` fields for pinning to a vendored skill copy, and `context/AGENTS.md` + `context/CLAUDE.md` guard files. Not a `context/` entry-format change — existing entries are untouched — but it needs real action from an existing project, not a silent backfill.
@@ -171,7 +183,7 @@ Keep the Why's config for this project migrated to .keep-the-why on
 
 **What changed:** `context/` entries previously classified evidence as one of confirmed, inferred, unknown, *or* superseded — treating "superseded" as if it were a fourth evidence level. It isn't: whether a decision is still current (Status) and how well it's evidenced (Evidence) are independent questions. A superseded decision can have been thoroughly confirmed when it was still active. Also added: an optional Source/Verification pair for confirmed entries whose claim is worth tracing or could be checked against other evidence.
 
-**New fields (see `SKILL.md` rules 2 and 7):**
+**New fields (see `SKILL.md` rules 2 and 5):**
 
 - **Status:** active | superseded | open | needs-review
 - **Evidence:** confirmed | inferred | unknown *(unchanged values, now its own field)*
@@ -181,7 +193,7 @@ Keep the Why's config for this project migrated to .keep-the-why on
 
 1. If it currently has a single `Confirmed` / `Inferred` / `Unknown` marker with no mention of being superseded → that value becomes **Evidence**. Add **Status: active**.
 2. If it currently says `Superseded` (with or without a separate confirmed/inferred/unknown marker) → **Status: superseded**. If an evidence value was recorded alongside it, keep it as **Evidence**. If not, set **Evidence: unknown** and flag the entry for review — don't guess what the original evidence level was.
-3. Don't add **Source**/**Verification** retroactively just because the fields now exist — only add them where there's a genuine answer (rule 13's proportionality gate applies here too).
+3. Don't add **Source**/**Verification** retroactively just because the fields now exist — only add them where there's a genuine answer (rule 10's proportionality gate applies here too).
 4. `Superseded` annotations already in prose (e.g. `> Superseded 2026-03: see below`) don't need to be rewritten — that's still how supersession gets recorded; **Status: superseded** is the structured counterpart for anything that also carries an Evidence/Status header.
 
 **Example — before:**

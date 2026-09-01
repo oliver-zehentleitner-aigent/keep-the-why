@@ -102,7 +102,7 @@ includes it — the 56/70 above remains the last true baseline *without* one.
 The next full `--all` run (not done today) is what turns this from "10 of 11
 formerly-failing cases, re-run in isolation" into a real before/after on the
 whole suite. Writeup and the reusable hook snippet: `docs/autostart.md`
-(planned, not published yet).
+(published with 0.10.0).
 
 ## Config-relocation regression check (2026-08-31)
 
