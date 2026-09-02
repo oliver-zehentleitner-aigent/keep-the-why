@@ -199,7 +199,7 @@ This isn't a new pattern, either. Docs and changelogs are already commonly kept 
 
 Not every field belongs on every entry — Status, Evidence, and the rejected alternative carry the most weight even in a minimal one. Full spec and a worked example: [`references/repository-structure.md`](https://keepthewhy.com/repository-structure/).
 
-The structural half of this format is CI-checkable: [keep-the-why-lint](https://pypi.org/project/keep-the-why-lint/) (developed in this repository under `lint/`) validates required fields, value sets, index consistency, and `.keep-the-why` integrity — schema-version-aware, so unmigrated projects don't fail on structure their version never defined. Content (whether the rationale is *true*) stays a human judgment; the linter doesn't pretend otherwise. One line in GitHub Actions (`uses: oliver-zehentleitner/keep-the-why@latest`), or `pip install keep-the-why-lint` anywhere else — see [Linting](https://keepthewhy.com/linting/). This repository lints its own `context/` with it in CI.
+The structural half of this format is CI-checkable: [keep-the-why-lint](https://pypi.org/project/keep-the-why-lint/) (developed in this repository under `lint/`) validates required fields, value sets, index consistency, and `.keep-the-why` integrity — schema-version-aware, so unmigrated projects don't fail on structure their version never defined. Content (whether the rationale is *true*) stays a human judgment; the linter doesn't pretend otherwise. One line in GitHub Actions (`uses: oliver-zehentleitner/keep-the-why@lint-latest`), or `pip install keep-the-why-lint` anywhere else — see [Linting](https://keepthewhy.com/linting/). This repository lints its own `context/` with it in CI.
 
 ## Related work
 

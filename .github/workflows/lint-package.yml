@@ -68,8 +68,8 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       # Exercises the action.yml in this PR — ktw-lint.yml uses the released
-      # @latest action, so a change to action.yml would otherwise go untested
-      # until after it is tagged.
+      # @lint-latest action, so a change to action.yml would otherwise go
+      # untested until the next linter publish moves that tag.
       - name: Run the root action against this repository
         uses: ./
         with:
