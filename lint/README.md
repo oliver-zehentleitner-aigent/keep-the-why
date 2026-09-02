@@ -1,21 +1,124 @@
+[![PyPI](https://img.shields.io/pypi/v/keep-the-why-lint.svg?label=pypi)](https://pypi.org/project/keep-the-why-lint/)
+[![Python](https://img.shields.io/pypi/pyversions/keep-the-why-lint.svg)](https://pypi.org/project/keep-the-why-lint/)
+[![Downloads](https://img.shields.io/pypi/dm/keep-the-why-lint.svg)](https://pypi.org/project/keep-the-why-lint/)
+[![License](https://img.shields.io/github/license/oliver-zehentleitner/keep-the-why.svg?color=blue)](https://github.com/oliver-zehentleitner/keep-the-why/blob/latest/LICENSE)
+[![keep-the-why-lint (package)](https://github.com/oliver-zehentleitner/keep-the-why/actions/workflows/lint-package.yml/badge.svg)](https://github.com/oliver-zehentleitner/keep-the-why/actions/workflows/lint-package.yml)
+[![ktw-lint](https://github.com/oliver-zehentleitner/keep-the-why/actions/workflows/ktw-lint.yml/badge.svg)](https://github.com/oliver-zehentleitner/keep-the-why/actions/workflows/ktw-lint.yml)
+[![Read the Docs](https://img.shields.io/badge/read-%20docs-yellow)](https://keepthewhy.com/linting/)
+[![Telegram](https://img.shields.io/badge/community-telegram-41ab8c)](https://t.me/unicorndevs)
+[![X](https://img.shields.io/badge/x-%40keep__the__why-000000?logo=x)](https://x.com/keep_the_why)
+[![Bluesky](https://img.shields.io/badge/bluesky-%40keep--the--why-0285FF?logo=bluesky&logoColor=white)](https://bsky.app/profile/keep-the-why.bsky.social)
+[![Mastodon](https://img.shields.io/badge/mastodon-%40keep__the__why-6364FF?logo=mastodon&logoColor=white)](https://mastodon.social/@keep_the_why)
+[![Keep the Why](https://keepthewhy.com/assets/badge.svg)](https://keepthewhy.com)
+
+<a href="https://keepthewhy.com"><img src="https://keepthewhy.com/assets/logo.png" alt="Keep the Why — because &quot;ask Bob&quot; is not documentation."></a>
+
 # keep-the-why-lint
 
-Structural CI linter for [Keep the Why](https://keepthewhy.com) projects. It validates the machine-checkable half of the schema — required entry fields, valid values, index consistency, `.keep-the-why` integrity, hidden-content red flags — and deliberately stops there: whether the recorded rationale is *true, complete, or honest* is not mechanically checkable, and this tool doesn't pretend otherwise.
+Structural CI linter for [Keep the Why](https://keepthewhy.com) projects — the tests for your `context/`.
 
-Schema-version-aware: it reads the target project's `context-schema` and only enforces what that skill version defines, so an unmigrated project never fails on structure its version didn't have. Python 3.10+, no dependencies beyond the standard library.
+[Keep the Why](https://github.com/oliver-zehentleitner/keep-the-why) is a repo-native convention and agent skill for preserving the reasoning behind a codebase: decisions, rejected alternatives, workarounds, incidents, constraints — the *why* that code alone can't explain, stored as versioned Markdown in `context/`. Nothing in that format is enforced the way a compiler enforces correctness. Part of the gap *is* mechanically closable, though, and that part is this tool's job.
+
+`ktw-lint` validates the machine-checkable half of the schema:
+
+- **Entries** — every entry carries `Status` and `Evidence`, values come from the documented sets, `Type` is valid, `Verification: contradicted` says what contradicts it
+- **`index.md`** — exists, every link resolves, every topic file is listed, sorted alphabetically
+- **`.keep-the-why`** — required fields present, no field recorded twice, no unknown fields, pinned versions consistent, the configured `context/` location exists
+- **Hidden content** — invisible or directional Unicode is an error, base64-looking blobs a warning: the one mechanically checkable slice of the [trust model](https://keepthewhy.com/trust-model/)
+
+And deliberately stops there. Whether the recorded rationale is *true, complete, or honest* is not mechanically checkable, and this tool doesn't pretend otherwise — `Evidence: confirmed` stays a human judgment; the linter only guarantees the field is there and holds a legal value.
+
+**Schema-version-aware:** it reads the target project's `context-schema` and only enforces what that skill version defines — the same "next time touched" philosophy as the skill's own [migrations](https://keepthewhy.com/migrations/). An unmigrated project never fails on structure its version didn't have.
+
+Python 3.10+, no dependencies beyond the standard library.
+
+## Install and run
 
 ```bash
 pip install keep-the-why-lint
-ktw-lint /path/to/project            # exit 0 clean, 1 findings
-ktw-lint /path/to/project --strict   # warnings fail too
+
+ktw-lint .                 # lint the project in the current directory
+ktw-lint /path/to/project  # or any other project root
+ktw-lint . --strict        # warnings fail too
 ```
 
-GitHub Actions (always the latest linter; no consumer-side pinning needed):
+Exit code `0` clean, `1` findings, `2` usage error. Inside GitHub Actions (`GITHUB_ACTIONS` set, or `--github`) findings are emitted as `::error`/`::warning` annotations, so they show up inline on the PR.
+
+What a run looks like on a project with a few problems:
+
+```text
+context/auth.md:3: [E102] 'Token refresh window': entry has no **Evidence:** field
+context/index.md: [E203] topic file 'auth.md' is not listed in index.md
+context/sync.md:11: [W101] 'Retry budget': no **Type:** field — fill it in the next time the entry is touched
+context/sync.md:13: [E103] Status 'actve' is not one of: active, superseded, open, needs-review
+ktw-lint 0.10.1.0: 3 error(s), 1 warning(s) (context-schema 0.10.1, context: context/)
+```
+
+Every finding code, with its meaning and severity: [keepthewhy.com/linting → Finding codes](https://keepthewhy.com/linting/#finding-codes).
+
+## CI setup
+
+The Keep the Why [project init wizard](https://keepthewhy.com/setup/) offers to wire the linter into your CI during setup — detected from the repository, never guessed — and [CI linting setup](https://keepthewhy.com/ci-linting/) has the full detection rules. By hand, these are the same snippets:
+
+**GitHub Actions** — `.github/workflows/ktw-lint.yml`. The root of the `keep-the-why` repository is a composite action that installs the latest linter from PyPI, so there's nothing to pin on your side:
 
 ```yaml
-- uses: oliver-zehentleitner/keep-the-why@latest
+name: ktw-lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ktw-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oliver-zehentleitner/keep-the-why@latest
+        with:
+          path: "."
+          strict: "false"    # "true" turns warnings (e.g. missing Type on old entries) into failures
+          # version: "0.10.1.0"   # optional: pin the linter instead of tracking latest
 ```
 
-Full documentation — GitLab CI and pre-commit snippets, the version scheme, every finding code: **https://keepthewhy.com/linting/**
+**GitLab CI** — job for `.gitlab-ci.yml`:
 
-Part of the [keep-the-why](https://github.com/oliver-zehentleitner/keep-the-why) repository (`lint/`), versioned as `<schema>.<revision>`: the first three segments are the newest skill schema this release knows every structural gate of, the fourth is the linter's own revision. MIT.
+```yaml
+ktw-lint:
+  image: python:3.12
+  script:
+    - pip install keep-the-why-lint
+    - ktw-lint .
+```
+
+**pre-commit** — hook for `.pre-commit-config.yaml` (the skill repository root isn't a Python package, so the hook pulls the linter from PyPI):
+
+```yaml
+repos:
+  - repo: local
+    hooks:
+      - id: ktw-lint
+        name: keep-the-why-lint
+        entry: ktw-lint .
+        language: python
+        additional_dependencies: ["keep-the-why-lint"]
+        pass_filenames: false
+```
+
+`strict: "false"` / no `--strict` is the sensible default: warnings (a missing `Type` on an old entry, a missing guard file) are "next time touched" material per the skill's own rules and shouldn't block a fresh project's CI.
+
+## Version scheme
+
+Versioned as `<schema>.<revision>` — e.g. `0.10.1.0`. The first three segments are the newest skill schema this release knows every structural gate of; the fourth is the linter's own revision, bumped for linter-only changes (`0.10.1.1`). A skill release without structural changes doesn't need a linter release: the gating handles newer `context-schema` values, and `W003` warns when a project's schema is newer than the newest one the linter knows, so you can check [migrations](https://keepthewhy.com/migrations/) for whether an update matters.
+
+PEP 440, not strict SemVer — PyPI rejects the build-metadata spelling SemVer would use for this. Releases are tagged `lint-v<version>` in the repository, created by the publish workflow only after a successful upload.
+
+## Links
+
+- **Documentation:** [Linting](https://keepthewhy.com/linting/) · [CI linting setup](https://keepthewhy.com/ci-linting/) · [Migrations](https://keepthewhy.com/migrations/) · [Trust model](https://keepthewhy.com/trust-model/)
+- **Keep the Why:** [Website](https://keepthewhy.com) · [Repository](https://github.com/oliver-zehentleitner/keep-the-why) · [Skill installation](https://keepthewhy.com/installation/) · [Agent & model matrix](https://keepthewhy.com/agent-matrix/) · [llms.txt](https://keepthewhy.com/llms.txt)
+- **This package:** [Source (`lint/`)](https://github.com/oliver-zehentleitner/keep-the-why/tree/main/lint) · [Changelog](https://github.com/oliver-zehentleitner/keep-the-why/blob/main/CHANGELOG.md) · [Issues](https://github.com/oliver-zehentleitner/keep-the-why/issues) · [Security policy](https://github.com/oliver-zehentleitner/keep-the-why/blob/main/SECURITY.md)
+- **Community:** [Telegram](https://t.me/unicorndevs) · [X](https://x.com/keep_the_why) · [Bluesky](https://bsky.app/profile/keep-the-why.bsky.social) · [Mastodon](https://mastodon.social/@keep_the_why)
+
+Developed in the [keep-the-why](https://github.com/oliver-zehentleitner/keep-the-why) monorepo under `lint/`, released independently of the skill. MIT.
