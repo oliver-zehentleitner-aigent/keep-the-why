@@ -136,7 +136,7 @@ python3 tools/evals/run.py --all --driver opencode --model openrouter/qwen/qwen3
 python3 tools/evals/run.py --all --driver cline --model openrouter/moonshotai/kimi-k3
 python3 tools/evals/run.py --all --driver codex --model openrouter/x-ai/grok-4.6
 python3 tools/evals/run.py --all --driver kimi --model openrouter/z-ai/glm-5.3
-python3 tools/evals/run.py --all --driver hermes --model openrouter/stealth/ox-alpha
+python3 tools/evals/run.py --all --driver hermes --model openrouter/z-ai/glm-5.3-flash
 python3 tools/evals/run.py --all --driver omp --model openrouter/qwen/qwen3.8-27b
 ```
 
