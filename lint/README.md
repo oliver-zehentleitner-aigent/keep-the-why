@@ -111,7 +111,7 @@ context/auth.md:3: [E102] 'Token refresh window': entry has no **Evidence:** fie
 context/index.md: [E203] topic file 'auth.md' is not listed in index.md
 context/sync.md:11: [W101] 'Retry budget': no **Type:** field — fill it in the next time the entry is touched
 context/sync.md:13: [E103] Status 'actve' is not one of: active, superseded, open, needs-review
-ktw-lint 0.10.1.0: 3 error(s), 1 warning(s) (context-schema 0.10.1, context: context/)
+ktw-lint 0.10.1.1: 3 error(s), 1 warning(s) (context-schema 0.10.1, context: context/)
 ```
 
 Every finding code, with its meaning and severity: [Finding codes](https://keepthewhy.com/linting/#finding-codes).
