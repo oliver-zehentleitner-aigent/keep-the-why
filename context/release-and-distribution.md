@@ -127,3 +127,24 @@ Added `.claude-plugin/plugin.json` (the official Claude Code plugin manifest, ve
 **Rejected alternative:** sharing the skill's version number (linter `0.10.1` = skill `0.10.1`). Rejected because a linter-only bugfix would force a skill release and vice versa. The chosen scheme, `<schema>.<revision>` (e.g. `0.10.1.0`, `0.10.1.1`), keeps the readable coupling — the first three segments name the newest schema the linter fully knows — while the fourth segment moves independently. PEP 440-valid; deliberately *not* strict SemVer, since PyPI rejects the SemVer build-metadata spelling (`0.10.1+1`) and a post-release (`0.10.1.post1`, what `0.10.1-1` normalizes to) carries the wrong semantics for a code fix.
 
 **Consequence:** the repository root is not a Python package (`pyproject.toml` lives in `lint/`), so a native pre-commit hook repo (`repo: …/keep-the-why`) is not possible — pre-commit users declare a local hook pulling the package from PyPI instead. Accepted as the price of the separation. PyPI releases are tagged `lint-v<version>` by the publish workflow itself, only after a successful upload, so PyPI stays the source of truth and the tag can't disagree with it; `release.yml`'s `v*.*.*` trigger deliberately doesn't match that pattern, so the releases page stays skill-only.
+
+## The GitHub Action rides its own moving `lint-latest` tag, not the skill's `latest`
+
+**Type:** decision
+**Type:** incident
+**Status:** active
+**Evidence:** confirmed
+**Source:** first run of `ktw-lint.yml` on PR #216, 2026-09-02; maintainer decision the same day
+**Revisit when:** the action moves out of this repository, or skill and linter releases get coupled again
+
+The consumer snippet references the root composite action as `uses: oliver-zehentleitner/keep-the-why@lint-latest`. `lint-latest` is a moving tag that `publish-lint.yml` force-moves to `lint-v<version>` right after a successful PyPI upload — the same mechanism `release.yml` uses for the skill's `latest`, but on the linter's release cadence. A consumer who wants a fixed action revision pins `@lint-v<version>` instead.
+
+**Reason:** the first published snippet used the skill's `latest`. That tag only advances with a skill release, and `action.yml` landed after 0.10.1 was tagged — so for every consumer the documented one-liner failed at job setup (`Can't find 'action.yml', 'action.yaml' or 'Dockerfile'`) until the next skill release, while PyPI already served the linter. Nobody noticed earlier because the in-repo smoke job exercised the action via `uses: ./`, never through the tag a consumer would resolve; splitting the CI by concern (a verbatim consumer workflow next to the from-source jobs) is what surfaced it. The underlying coupling would have come back with every future `action.yml` change: a linter publish alone would never have reached consumers. Tying the action's ref to the linter's publish makes the two things that ship together move together.
+
+**Rejected alternative:** keep `@latest` and wait for the next skill release. Fixes the one incident, not the coupling — the next `action.yml` change would sit unreachable until an unrelated skill release again.
+
+**Rejected alternative:** point the snippet at `@main`. Decouples too, but ships whatever is on `main` — including an `action.yml` change under review — with no release event and nothing to pin against.
+
+**Rejected alternative:** move `latest` by hand to a commit that has `action.yml`. Would silently redefine what "latest skill release" means for every skill installer that resolves the same tag.
+
+**Consequence:** an `action.yml` change reaches consumers only through a linter publish — a revision bump such as `0.10.1.1 → 0.10.1.2` even when no check changed. Accepted: a release is the right unit for that, and the fourth version segment exists for exactly this kind of linter-only change.

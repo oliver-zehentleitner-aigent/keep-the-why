@@ -22,7 +22,7 @@ The linter reads your project's `context-schema` from `.keep-the-why` (or the le
 
 The linter is versioned as `<schema>.<revision>` — e.g. `0.10.1.0`. The first three segments are the newest skill schema this release knows every structural gate of; the fourth is the linter's own revision, bumped for linter-only changes (`0.10.1.1`). A skill release without structural changes doesn't require a linter release — the gating handles newer `context-schema` values, and the linter warns (`W003`) when a project's schema is newer than the newest one it knows, so you can check `migrations.md` for whether an update matters.
 
-PEP 440, not strict SemVer — PyPI rejects the build-metadata spelling SemVer would use for this. The skill itself keeps SemVer tags (`v0.10.1`); the linter's PyPI releases are tagged `lint-v<version>` in this repository, created by the publish workflow itself, never by hand.
+PEP 440, not strict SemVer — PyPI rejects the build-metadata spelling SemVer would use for this. The skill itself keeps SemVer tags (`v0.10.1`); the linter's PyPI releases are tagged `lint-v<version>` in this repository, and the moving `lint-latest` tag follows the newest one — both created by the publish workflow itself, never by hand. The GitHub Action deliberately rides `lint-latest`, not the skill's `latest`: that tag only advances with a skill release, which doesn't carry `action.yml` changes until the next one.
 
 ## Setup snippets
 
@@ -30,7 +30,7 @@ The project init wizard offers to write these for you (GitHub Actions or GitLab 
 
 {% include-markdown "../skills/keep-the-why/references/ci-linting.md" start="<!-- snippets:start -->" end="<!-- snippets:end -->" %}
 
-Inside GitHub Actions, findings show up as file/line annotations on the PR. The action always installs the latest linter from PyPI — nothing to pin on your side unless you want to.
+Inside GitHub Actions, findings show up as file/line annotations on the PR. The action always installs the latest linter from PyPI, and the `lint-latest` tag it's referenced by moves with every linter publish — nothing to pin on your side unless you want to (`@lint-v<version>` pins the action, the `version:` input pins the package).
 
 ## What it checks
 

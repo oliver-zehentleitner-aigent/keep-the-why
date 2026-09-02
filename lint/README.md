@@ -54,7 +54,7 @@ ktw-lint . --strict        # warnings fail too
 
 The Keep the Why [project init wizard](https://keepthewhy.com/setup/) offers to wire the linter into your CI during setup — detected from the repository, never guessed — and [CI linting setup](https://keepthewhy.com/ci-linting/) has the full detection rules. By hand, these are the same snippets:
 
-**GitHub Actions** — `.github/workflows/ktw-lint.yml`. The root of the `keep-the-why` repository is a composite action that installs the latest linter from PyPI, so there's nothing to pin on your side:
+**GitHub Actions** — `.github/workflows/ktw-lint.yml`. The root of the `keep-the-why` repository is a composite action that installs the latest linter from PyPI; the `lint-latest` tag moves with every linter publish, so there's nothing to pin on your side (pin `@lint-v<version>` if you want a fixed action revision):
 
 ```yaml
 name: ktw-lint
@@ -69,7 +69,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: oliver-zehentleitner/keep-the-why@latest
+      - uses: oliver-zehentleitner/keep-the-why@lint-latest   # or @lint-v<version> to pin the action
         with:
           path: "."
           strict: "false"    # "true" turns warnings (e.g. missing Type on old entries) into failures
@@ -111,7 +111,7 @@ context/auth.md:3: [E102] 'Token refresh window': entry has no **Evidence:** fie
 context/index.md: [E203] topic file 'auth.md' is not listed in index.md
 context/sync.md:11: [W101] 'Retry budget': no **Type:** field — fill it in the next time the entry is touched
 context/sync.md:13: [E103] Status 'actve' is not one of: active, superseded, open, needs-review
-ktw-lint 0.10.1.1: 3 error(s), 1 warning(s) (context-schema 0.10.1, context: context/)
+ktw-lint 0.10.1.2: 3 error(s), 1 warning(s) (context-schema 0.10.1, context: context/)
 ```
 
 Every finding code, with its meaning and severity: [Finding codes](https://keepthewhy.com/linting/#finding-codes).
@@ -120,7 +120,7 @@ Every finding code, with its meaning and severity: [Finding codes](https://keept
 
 Versioned as `<schema>.<revision>` — e.g. `0.10.1.0`. The first three segments are the newest skill schema this release knows every structural gate of; the fourth is the linter's own revision, bumped for linter-only changes (`0.10.1.1`). A skill release without structural changes doesn't need a linter release: the gating handles newer `context-schema` values, and `W003` warns when a project's schema is newer than the newest one the linter knows, so you can check [migrations](https://keepthewhy.com/migrations/) for whether an update matters.
 
-PEP 440, not strict SemVer — PyPI rejects the build-metadata spelling SemVer would use for this. Releases are tagged `lint-v<version>` in the repository, created by the publish workflow only after a successful upload.
+PEP 440, not strict SemVer — PyPI rejects the build-metadata spelling SemVer would use for this. Releases are tagged `lint-v<version>` in the repository, and the moving `lint-latest` tag — the ref the GitHub Action snippet uses — follows the newest one; both are created by the publish workflow only after a successful upload, never by hand.
 
 ## What this is not
 

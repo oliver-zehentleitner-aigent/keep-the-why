@@ -10,6 +10,8 @@ Entries below assume 0.2.0 as the starting point — nothing before it tracked a
 
 **Existing projects:** optional. To add it, apply the same detection rules and snippets as the wizard would — `references/ci-linting.md` — by hand or by asking the agent. The workflow file's presence is the only state there is.
 
+**Already wired with `@latest`?** The first published snippet referenced `uses: oliver-zehentleitner/keep-the-why@latest`; that tag follows *skill* releases and didn't carry `action.yml` until the next one, so the job fails at setup ("Can't find 'action.yml'"). Switch the ref to `@lint-latest` (moves with every linter publish) or `@lint-v<version>` — a one-word mechanical fix, do it now rather than next time touched.
+
 ## Unreleased — Core rules renumbered (15 → 11)
 
 **What changed:** `SKILL.md`'s 15 core rules were merged down to 11 — no rule's logic changed, but most rule *numbers* did. Merges: old 1+14 → 1 (never invent / clarify ambiguity), old 3+4+5 → 3 (adapt to what exists), old 9+10 → 7 (privacy / don't commit unasked). Full old → new map:
