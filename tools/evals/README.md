@@ -36,25 +36,33 @@ case plus `summary.json` and `summary.md`.
 | Driver | CLI | Skill discovery |
 |---|---|---|
 | `claude` (default) | [Claude Code](https://claude.com/claude-code) (`claude`) | Native — installed at `.claude/skills/keep-the-why`, the CLI decides for itself from the `SKILL.md` description whether to load it. This is what the activation-reliability cases actually test. |
-| `cline` | [Cline](https://cline.bot) (`cline`) | Explicit — see below |
-| `codex` | [Codex CLI](https://github.com/openai/codex) (`codex`) | Explicit — see below |
-| `hermes` | [Hermes Agent](https://github.com/NousResearch/hermes-agent) (`hermes`) | Explicit — see below, and the important caveat right after |
-| `kimi` | [Kimi Code](https://github.com/MoonshotAI/kimi-code) (`kimi`) | Explicit — see below |
-| `omp` | [oh-my-pi](https://omp.sh) (`omp`, can1357/oh-my-pi) | Explicit — see below |
-| `opencode` | [opencode](https://opencode.ai) (`opencode`) | Explicit — see below |
-| `pi` | [Pi](https://pi.dev) (`pi`) | Explicit — see below |
+| `cline` | [Cline](https://cline.bot) (`cline`) | Explicit — skill handed over in the prompt; see below |
+| `codex` | [Codex CLI](https://github.com/openai/codex) (`codex`) | Explicit — skill handed over in the prompt; see below |
+| `hermes` | [Hermes Agent](https://github.com/NousResearch/hermes-agent) (`hermes`) | Explicit — skill handed over in the prompt; see below, and the important caveat right after |
+| `kimi` | [Kimi Code](https://github.com/MoonshotAI/kimi-code) (`kimi`) | Explicit — skill handed over in the prompt; see below |
+| `omp` | [oh-my-pi](https://omp.sh) (`omp`, can1357/oh-my-pi) | Explicit — skill handed over in the prompt; see below |
+| `opencode` | [opencode](https://opencode.ai) (`opencode`) | Explicit — skill handed over in the prompt; see below |
+| `pi` | [Pi](https://pi.dev) (`pi`) | Explicit — skill handed over in the prompt; see below |
 
-`cline`, `codex`, `hermes`, `kimi`, `omp`, `opencode`, and `pi` don't get
-native-discovery treatment: whether they'd find the skill on their own is a
-Claude-Code-specific question, already covered by the `claude` driver's
-activation cases. Instead the skill is installed at a plain
-`skills/keep-the-why/` path and the case prompt is prefixed with an explicit
-instruction to read its `SKILL.md` and follow it. This is what makes any
-tool-use-capable CLI usable here without needing its own skill-discovery
-convention, and what lets `--model` point at a model that has no notion of
-"skills" at all (a local Ollama model, or any model via OpenRouter). What's
-under test with these drivers is instruction-following given the skill, not
-discovery.
+`cline`, `codex`, `hermes`, `kimi`, `omp`, `opencode`, and `pi` are handed
+the skill explicitly instead: it's installed at a plain `skills/keep-the-why/`
+path and the case prompt is prefixed with an instruction to read that exact
+relative `SKILL.md` and follow it.
+
+Skill autoload is deliberately out of scope. There's no standardized
+discovery mechanism across agents — ensuring the skill gets loaded is the
+agent's job, which is the position `references/autostart.md` takes — so
+grading each vendor's loader here would only put a second, unrelated variable
+in front of the behavior under test. Handing the skill over directly is also
+what lets `--model` point at a model with no notion of "skills" at all (a
+local Ollama model, or any model via OpenRouter), which is what every
+non-`claude` cell actually runs on. What's under test with these drivers is
+the agent's harness and context handling given the skill.
+
+One place this still collides with a CLI's own loader: `omp` is launched with
+`--no-skills` so its native discovery can't resolve an ambiguous "read
+`SKILL.md`" to an unrelated global install instead of the fixture-local copy
+(see below).
 
 **`hermes` means the `hermes` CLI, never the bare `hermes-agent` binary
 installed alongside it.** Verified the hard way: invoked directly with no

@@ -56,17 +56,22 @@ instructions only — no executable code.
             driver) — the same class of bug noted for pi/opencode below,
             headed off here before it could bite.
 
-pi, opencode, kimi, cline, codex, omp, and hermes don't get native-discovery treatment:
-we don't test whether they'd find the skill on their own (that's a
-Claude-Code-specific question, already covered by the claude driver's
-activation cases). Instead the skill is installed at a plain
-skills/keep-the-why/ path and the case prompt is prefixed with an explicit
-instruction to read its SKILL.md and follow it — this is what makes any
-tool-use-capable CLI usable here without needing its own skill-discovery
-convention, and it's what lets --model point at a model that has no notion
-of "skills" at all (a local Ollama model, or any model via OpenRouter).
-What's under test with these drivers is instruction-following given the
-skill, not discovery. Verified live: on a machine that also has a global
+pi, opencode, kimi, cline, codex, omp, and hermes are handed the skill
+explicitly instead: it's installed at a plain skills/keep-the-why/ path and
+the case prompt is prefixed with an instruction to read that exact relative
+SKILL.md and follow it.
+
+Skill autoload is deliberately out of scope. There's no standardized
+discovery mechanism across agents — ensuring the skill gets loaded is the
+agent's job (the position references/autostart.md takes) — so grading each
+vendor's loader here would only put a second, unrelated variable in front of
+the behavior under test. Handing the skill over directly is also what lets
+--model point at a model with no notion of "skills" at all (a local Ollama
+model, or any model via OpenRouter), which is what every non-claude cell
+actually runs on. What's under test with these drivers is the agent's harness
+and context handling given the skill.
+
+Verified live: on a machine that also has a global
 keep-the-why install (e.g. this one, via Claude Code's own skill), both pi
 and opencode initially resolved "read SKILL.md" to that global copy instead
 of the fixture-local one — the prompt wording now says the RELATIVE path
@@ -577,9 +582,9 @@ def build_workdir(case_id, cfg, workdir: Path, driver, home: Path = None):
 def build_prompt(case_prompt, driver):
     """Case prompt as actually sent to the agent for this driver.
 
-    Unchanged for claude (discovery is part of what's under test there). For
-    drivers without native skill discovery, prefix an explicit pointer to the
-    installed SKILL.md — see module docstring "Drivers" section for why.
+    Unchanged for claude (discovery is part of what's under test there). Every
+    other driver is handed the skill explicitly, via a prefixed pointer to the
+    installed SKILL.md — see the module docstring's "Drivers" section for why.
     """
     if not EXPLICIT_LOAD[driver]:
         return case_prompt
