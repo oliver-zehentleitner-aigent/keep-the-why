@@ -26,3 +26,7 @@ Thumbs.db
 
 # Eval runner output (local runs, not committed)
 tools/evals/results/
+
+# keep-the-why-lint build output (lint/)
+lint/dist/
+lint/build/

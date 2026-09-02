@@ -1,0 +1,57 @@
+name: "Keep the Why Lint"
+description: >-
+  Structural linter for Keep the Why projects: validates .keep-the-why and
+  the configured context directory (required fields, valid values, index
+  consistency, hidden-content red flags). Schema-version-aware — reads the
+  project's context-schema and only enforces what that skill version defines.
+  Installs keep-the-why-lint from PyPI (latest by default).
+author: "Oliver Zehentleitner"
+branding:
+  icon: "check-square"
+  color: "purple"
+
+inputs:
+  path:
+    description: "Project root to lint"
+    required: false
+    default: "."
+  strict:
+    description: "Treat warnings as errors (true/false)"
+    required: false
+    default: "false"
+  version:
+    description: "keep-the-why-lint version to install (empty = latest from PyPI)"
+    required: false
+    default: ""
+  python-version:
+    description: "Python version to set up"
+    required: false
+    default: "3.12"
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install keep-the-why-lint
+      shell: bash
+      env:
+        KTW_LINT_VERSION: ${{ inputs.version }}
+      run: |
+        if [ -n "$KTW_LINT_VERSION" ]; then
+          python -m pip install --quiet "keep-the-why-lint==$KTW_LINT_VERSION"
+        else
+          python -m pip install --quiet --upgrade keep-the-why-lint
+        fi
+
+    - name: Run ktw-lint
+      shell: bash
+      env:
+        KTW_LINT_PATH: ${{ inputs.path }}
+        KTW_LINT_STRICT: ${{ inputs.strict }}
+      run: |
+        ARGS=""
+        if [ "$KTW_LINT_STRICT" = "true" ]; then ARGS="--strict"; fi
+        ktw-lint "$KTW_LINT_PATH" $ARGS

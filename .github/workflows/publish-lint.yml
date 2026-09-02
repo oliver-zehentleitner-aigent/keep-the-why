@@ -1,0 +1,87 @@
+name: Build and Publish keep-the-why-lint (PyPI)
+
+# Manual trigger only. Builds the linter package from lint/, publishes it to
+# PyPI via trusted publishing (environment "pypi"), and — only after the
+# upload succeeded — pushes a lightweight tag lint-v<version> so every PyPI
+# release points at exactly one commit. PyPI is the source of truth; the tag
+# is traceability, created by the same run, never by hand.
+#
+# No GitHub Release is created here: the releases page stays skill-only.
+# The lint-v* tag pattern deliberately doesn't match release.yml's v*.*.*.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Read package version
+        id: version
+        working-directory: lint
+        run: |
+          V=$(python -c "import ktw_lint; print(ktw_lint.__version__)")
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "keep-the-why-lint $V"
+
+      - name: Refuse to publish a version that is already tagged
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/lint-v$VERSION" >/dev/null 2>&1; then
+            echo "::error::tag lint-v$VERSION already exists — bump lint/ktw_lint/__init__.py first"
+            exit 1
+          fi
+
+      - name: Run test suite
+        working-directory: lint
+        run: python -m unittest discover -s tests -v
+
+      - name: Build sdist and wheel
+        working-directory: lint
+        run: |
+          python -m pip install --quiet build
+          python -m build
+          ls -l dist/
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: dist
+          path: lint/dist/*
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: dist
+          path: dist
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist
+
+      - name: Tag the published commit
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "lint-v$VERSION" -m "keep-the-why-lint $VERSION (PyPI)"
+          git push origin "lint-v$VERSION"

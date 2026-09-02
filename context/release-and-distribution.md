@@ -109,3 +109,21 @@ Added `.claude-plugin/plugin.json` (the official Claude Code plugin manifest, ve
 **Rejected alternative:** reorder the checklist so tagging happens before the version-bump PR merges. Rejected — the tag is meant to point at the actual released commit on `main`, including whatever the PR itself changed; tagging a pre-merge branch commit instead would tag the wrong tree.
 
 **Consequence:** expected and self-resolving, not a real failure to chase — after tagging (step 8), re-run the specific failed `Link Check` run for that merge commit (`gh run rerun <id>`) rather than treating it as a regression to fix in a follow-up PR.
+
+## The linter lives in this repository under `lint/`, published to PyPI as its own package
+
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** maintainer design discussion, 2026-09-02, reversing the previous day's first draft
+**Revisit when:** the linter grows a release cadence or contributor base that the skill repo's checklist can't serve
+
+`keep-the-why-lint` is developed in this repository (`lint/`, with its own `pyproject.toml`, tests, and a short PyPI-facing README) and released to PyPI as a separate package with its own version. The repository root carries a thin composite `action.yml` that installs the latest package from PyPI; GitLab, pre-commit, and local use go through `pip install`. It is *not* a separate repository — that was the first draft, built and pushed for a day, then reversed before the docs PR merged.
+
+**Reason:** the linter encodes structural gates that come 1:1 from `references/migrations.md`. In a separate repository the two can drift — a skill release changes entry structure, the linter lags until someone remembers. In the monorepo the gate lands in the same PR as the migration entry, and CI enforces the linter against this repository's own `context/`. Publishing to PyPI keeps the separation where it actually matters: the linter's version is independent of the skill's, consumers pin the package (or don't — the action always installs latest), and PyPI download counts are a marketing signal a GitHub subdirectory never gives. `pip` also makes the linter usable from any CI system, not just GitHub Actions.
+
+**Rejected alternative:** a separate `keep-the-why-lint` repository with its own versioning (the first draft, archived at `oliver-zehentleitner-aigent/keep-the-why-lint`). Its strongest stated argument — that `uses:` in a workflow could only reference a repository root cleanly — was simply wrong: GitHub supports `uses: owner/repo/subdir@ref`, and `pip` supports `#subdirectory=`. Without that, what remained was independent release cadence, which PyPI packaging provides inside the monorepo anyway, at the cost of a real drift risk.
+
+**Rejected alternative:** sharing the skill's version number (linter `0.10.1` = skill `0.10.1`). Rejected because a linter-only bugfix would force a skill release and vice versa. The chosen scheme, `<schema>.<revision>` (e.g. `0.10.1.0`, `0.10.1.1`), keeps the readable coupling — the first three segments name the newest schema the linter fully knows — while the fourth segment moves independently. PEP 440-valid; deliberately *not* strict SemVer, since PyPI rejects the SemVer build-metadata spelling (`0.10.1+1`) and a post-release (`0.10.1.post1`, what `0.10.1-1` normalizes to) carries the wrong semantics for a code fix.
+
+**Consequence:** the repository root is not a Python package (`pyproject.toml` lives in `lint/`), so a native pre-commit hook repo (`repo: …/keep-the-why`) is not possible — pre-commit users declare a local hook pulling the package from PyPI instead. Accepted as the price of the separation. PyPI releases are tagged `lint-v<version>` by the publish workflow itself, only after a successful upload, so PyPI stays the source of truth and the tag can't disagree with it; `release.yml`'s `v*.*.*` trigger deliberately doesn't match that pattern, so the releases page stays skill-only.
