@@ -135,7 +135,8 @@ decision settled mid-conversation on its own. Asking directly afterward ("check 
 keep-the-why applies here") is a reasonable fallback, not a workaround for something broken.
 
 First activation in a project runs a one-time setup: a project wizard (where `context/` lives,
-starting mode, README badge, `capture-confirmation`, and `source-reference`) and a separate
+starting mode, README badge, `capture-confirmation`, `source-reference`, and whether to wire
+the structural linter into CI — GitHub Actions or GitLab CI, detected from the repository) and a separate
 personal wizard (proactive vs. explicit-only capture, `confirmation-flow`,
 update-check/consistency-check intervals) — see https://keepthewhy.com/setup/. When a later
 skill update requires action from an existing project — a `context/` entry-format change, a

@@ -57,8 +57,8 @@ nav:
   - Installation: installation.md
   - Repository structure: repository-structure.md
   - Security: security.md
-  - Evals: evals.md
   - Linting: linting.md
+  - Evals: evals.md
   - Agent & model matrix: agent-matrix.md
   - Badge: badge.md
   - FAQ: faq.md
@@ -66,6 +66,7 @@ nav:
   - Reference:
       - Setup: setup.md
       - Autostart examples: autostart.md
+      - CI linting setup: ci-linting.md
       - Migrations: migrations.md
       - Methodology: methodology.md
       - Continuous capture: continuous-capture.md

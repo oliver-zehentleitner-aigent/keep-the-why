@@ -4,6 +4,12 @@ What changed in each version that an existing project may need to know about or 
 
 Entries below assume 0.2.0 as the starting point — nothing before it tracked a `context-schema` at all, and 0.2.0 itself introduced no `context/` entry format change.
 
+## Unreleased — CI linting available (informational, no action required)
+
+**What changed:** the project init wizard now offers to wire `keep-the-why-lint` — a structural linter for `.keep-the-why` and the context directory, gated by the project's `context-schema` — into the project's CI (GitHub Actions or GitLab CI, detected from the repository) and, where pre-commit is already in use, into pre-commit. Purely additive: no config field, no entry-format change, nothing an existing project must do.
+
+**Existing projects:** optional. To add it, apply the same detection rules and snippets as the wizard would — `references/ci-linting.md` — by hand or by asking the agent. The workflow file's presence is the only state there is.
+
 ## Unreleased — Core rules renumbered (15 → 11)
 
 **What changed:** `SKILL.md`'s 15 core rules were merged down to 11 — no rule's logic changed, but most rule *numbers* did. Merges: old 1+14 → 1 (never invent / clarify ambiguity), old 3+4+5 → 3 (adapt to what exists), old 9+10 → 7 (privacy / don't commit unasked). Full old → new map:

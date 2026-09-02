@@ -24,69 +24,13 @@ The linter is versioned as `<schema>.<revision>` — e.g. `0.10.1.0`. The first 
 
 PEP 440, not strict SemVer — PyPI rejects the build-metadata spelling SemVer would use for this. The skill itself keeps SemVer tags (`v0.10.1`); the linter's PyPI releases are tagged `lint-v<version>` in this repository, created by the publish workflow itself, never by hand.
 
-## GitHub Actions
+## Setup snippets
 
-The composite action at this repository's root installs the latest linter from PyPI and runs it — nothing to pin on your side:
+The project init wizard offers to write these for you (GitHub Actions or GitLab CI, detected from the repository; the pre-commit hook only if the project already uses pre-commit) — see [CI linting setup](ci-linting.md). By hand, they're the same files:
 
-```yaml
-name: ktw-lint
+{% include-markdown "../skills/keep-the-why/references/ci-linting.md" start="<!-- snippets:start -->" end="<!-- snippets:end -->" %}
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-
-jobs:
-  ktw-lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oliver-zehentleitner/keep-the-why@latest
-        with:
-          path: "."
-          strict: "false"    # "true" turns warnings (e.g. missing Type on old entries) into failures
-          # version: "0.10.1.0"   # optional: pin the linter instead of tracking latest
-```
-
-Findings show up as file/line annotations on the PR.
-
-## GitLab CI (and everything else)
-
-```yaml
-ktw-lint:
-  image: python:3.12
-  script:
-    - pip install keep-the-why-lint
-    - ktw-lint . --strict
-```
-
-Any CI that can run `pip install` works the same way.
-
-## pre-commit
-
-As a [pre-commit](https://pre-commit.com) hook, installed from PyPI (this repository's root isn't a Python package, so the hook is declared locally):
-
-```yaml
-repos:
-  - repo: local
-    hooks:
-      - id: ktw-lint
-        name: keep-the-why-lint
-        entry: ktw-lint .
-        language: python
-        additional_dependencies: ["keep-the-why-lint"]
-        pass_filenames: false
-```
-
-`pass_filenames: false` because the linter lints the project, not individual files.
-
-## Locally
-
-```bash
-pip install keep-the-why-lint
-ktw-lint .            # exit 0 clean, 1 findings, 2 usage error
-ktw-lint . --strict   # warnings fail too
-```
+Inside GitHub Actions, findings show up as file/line annotations on the PR. The action always installs the latest linter from PyPI — nothing to pin on your side unless you want to.
 
 ## What it checks
 
