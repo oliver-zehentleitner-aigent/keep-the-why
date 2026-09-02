@@ -95,3 +95,18 @@ jobs:
           if [ "$LINT" != "$SKILL" ]; then
             echo "::warning::linter SUPPORTED_SCHEMA ($LINT) differs from the skill version ($SKILL) — fine if this release has no structural change, otherwise add the gate and bump lint/ktw_lint/__init__.py"
           fi
+
+  lint-action-smoke:
+    name: root action.yml (consumer path, latest from PyPI)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      # The consumer path: exactly what `uses: oliver-zehentleitner/keep-the-why@latest`
+      # does in someone else's repo — install the released linter from PyPI and run it.
+      # Complements lint-dogfood (which tests the code in this PR from source).
+      - name: Run the root action against this repository
+        uses: ./
+        with:
+          path: "."
+          strict: "false"
