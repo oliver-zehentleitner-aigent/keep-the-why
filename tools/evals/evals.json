@@ -66,7 +66,7 @@
   },
   {
     "id": "organic-activation-no-config-proposes-nothing",
-    "prompt": "Why does this retry logic look so defensive?",
+    "prompt": "Why does the retry logic in this project look so defensive?",
     "expected_behavior": "This project has no .keep-the-why, no legacy config block, and nothing in this conversation explicitly asks to set up or initialize Keep the Why - only a question that happens to match the skill's own description. Answers the retry-logic question directly (the exponential backoff plus a bounded attempt count exists to survive transient gateway failures without hammering it). Does not propose, mention, or start any project setup - no wizard, no offer to initialize, no .keep-the-why or context/ created, not even a brief mention that this project has no Keep the Why setup. An organic activation on a project that never opted in is not, by itself, grounds to suggest setting anything up."
   },
   {
