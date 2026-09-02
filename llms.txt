@@ -195,6 +195,18 @@ specifically and live in one place only, so they can't drift: https://keepthewhy
 other agents (Pi, opencode, Kimi Code, ...) and models the skill has actually been run
 against, and how: https://keepthewhy.com/agent-matrix/
 
+## Linting
+
+keep-the-why-lint (PyPI: https://pypi.org/project/keep-the-why-lint/, source in this
+repository under lint/) is a CI linter for the structural half of the format: required entry
+fields, valid values, index consistency, and `.keep-the-why` integrity. It reads the target
+project's `context-schema` and only enforces what that skill version defines, so unmigrated
+projects don't fail on structure their version never had. Content-level truth is out of its
+scope by design. Versioned `<schema>.<revision>` (e.g. 0.10.1.0), independently of the skill.
+GitHub Actions: `uses: oliver-zehentleitner/keep-the-why@latest` (installs latest from PyPI);
+anywhere else: `pip install keep-the-why-lint && ktw-lint .`. Usage, GitLab/pre-commit
+snippets, and every finding code: https://keepthewhy.com/linting/
+
 ## Related Work
 
 Related standards and conventions: Architecture Decision Records, the AGENTS.md standard.

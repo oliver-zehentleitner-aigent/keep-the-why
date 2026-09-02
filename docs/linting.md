@@ -1,0 +1,138 @@
+# Linting (CI checks)
+
+Nothing in Keep the Why is enforced the way a compiler enforces correctness — that's stated plainly in "What this skill is not." Part of that gap *is* mechanically closable, though: whether every entry carries its required fields, whether the values are from the documented sets, whether `index.md` is complete and sorted, whether `.keep-the-why` is internally consistent. That part has a linter:
+
+**keep-the-why-lint** — [on PyPI](https://pypi.org/project/keep-the-why-lint/), developed in this repository under [`lint/`](https://github.com/oliver-zehentleitner/keep-the-why/tree/main/lint). Python 3.10+, no dependencies beyond the standard library.
+
+What it deliberately does *not* check: content. Whether recorded rationale is true, complete, or honest isn't mechanically checkable, and the linter doesn't pretend otherwise — Evidence classification stays a judgment call; the linter only guarantees the field is there and holds a legal value.
+
+## Schema-version-aware
+
+The linter reads your project's `context-schema` from `.keep-the-why` (or the legacy `AGENTS.md` block, for projects not yet migrated) and enforces only what that skill version defines — the same "next time touched" philosophy as [migrations](migrations.md). An unmigrated project doesn't fail on structure its schema version never had. Only the location named by your config's `context:` field gets linted, plus the config file itself.
+
+| Enforced from `context-schema` | What |
+|---|---|
+| 0.3.0 | `Status`/`Evidence` mandatory per entry, `Verification` values |
+| 0.7.0 | `Type` field (missing → warning, per the skill's "next time touched" rule) |
+| 0.8.0 | `undefined — <reason>` Type value, exclusive |
+| 0.9.0 | Multiple `Type` lines per entry |
+| 0.10.0 | Dedicated `.keep-the-why` (`id` required), sorted `index.md`, guard files |
+
+## Version scheme
+
+The linter is versioned as `<schema>.<revision>` — e.g. `0.10.1.0`. The first three segments are the newest skill schema this release knows every structural gate of; the fourth is the linter's own revision, bumped for linter-only changes (`0.10.1.1`). A skill release without structural changes doesn't require a linter release — the gating handles newer `context-schema` values, and the linter warns (`W003`) when a project's schema is newer than the newest one it knows, so you can check `migrations.md` for whether an update matters.
+
+PEP 440, not strict SemVer — PyPI rejects the build-metadata spelling SemVer would use for this. The skill itself keeps SemVer tags (`v0.10.1`); the linter's PyPI releases are tagged `lint-v<version>` in this repository, created by the publish workflow itself, never by hand.
+
+## GitHub Actions
+
+The composite action at this repository's root installs the latest linter from PyPI and runs it — nothing to pin on your side:
+
+```yaml
+name: ktw-lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ktw-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oliver-zehentleitner/keep-the-why@latest
+        with:
+          path: "."
+          strict: "false"    # "true" turns warnings (e.g. missing Type on old entries) into failures
+          # version: "0.10.1.0"   # optional: pin the linter instead of tracking latest
+```
+
+Findings show up as file/line annotations on the PR.
+
+## GitLab CI (and everything else)
+
+```yaml
+ktw-lint:
+  image: python:3.12
+  script:
+    - pip install keep-the-why-lint
+    - ktw-lint . --strict
+```
+
+Any CI that can run `pip install` works the same way.
+
+## pre-commit
+
+As a [pre-commit](https://pre-commit.com) hook, installed from PyPI (this repository's root isn't a Python package, so the hook is declared locally):
+
+```yaml
+repos:
+  - repo: local
+    hooks:
+      - id: ktw-lint
+        name: keep-the-why-lint
+        entry: ktw-lint .
+        language: python
+        additional_dependencies: ["keep-the-why-lint"]
+        pass_filenames: false
+```
+
+`pass_filenames: false` because the linter lints the project, not individual files.
+
+## Locally
+
+```bash
+pip install keep-the-why-lint
+ktw-lint .            # exit 0 clean, 1 findings, 2 usage error
+ktw-lint . --strict   # warnings fail too
+```
+
+## What it checks
+
+**`.keep-the-why` / legacy config block** — block present and parseable; required fields (`context`, `init`, `context-schema`, `capture-confirmation`, `source-reference`, plus `id` for dedicated files since 0.10.0); values from the documented sets; `filtered` source-reference carries its criteria; no field recorded twice (conflicting duplicates are exactly the state the skill refuses to guess about); no unknown fields; `context-schema` is plain semver; `pinned-version`/`pinned-path` only as a pair, with the path existing; the configured context location exists; `personal-defaults` blocks carry no `last:` timestamps.
+
+**Entries** (level-2 headings in topic files; fenced code blocks are skipped, so example entries in documentation never get linted as real ones) — `Status` and `Evidence` present, single, and valid; `Type` values valid, `undefined` carries a reason and combines with nothing; no duplicate `Type` values; `Verification` starts with a valid value, and `contradicted` must say what contradicts it; a heading with no schema fields at all is a warning, not an error — it may be a legitimate prose section.
+
+**`index.md`** — exists; every link resolves; every topic file is listed; sorted alphabetically by filename (an error since 0.10.0 — the convention's merge-conflict benefit only exists when the whole list is sorted).
+
+**Guard files** — `README.md`, `AGENTS.md`, `CLAUDE.md` inside the context directory (warnings; an equivalent doing the same job is fine).
+
+**Hidden content** — invisible/directional Unicode (zero-width characters, bidi overrides) is an error; base64-looking blobs are a warning. This is the one mechanically checkable slice of the [trust model](trust-model.md): if it needs decoding to be read, it doesn't belong in an entry meant to be read. This is *not* a secret scanner — pair it with one (e.g. gitleaks) if you need that.
+
+### Finding codes
+
+| Code | Severity | Meaning |
+|---|---|---|
+| E001 | error | no config block found |
+| E002 | error | required config field missing |
+| E003 | error | invalid config value |
+| E004 | error | config field recorded more than once |
+| E005 | error | unknown config field |
+| E006 | error | `pinned-version`/`pinned-path` pair violation, or pinned path missing |
+| E007 | error | configured context location doesn't exist |
+| E008 | error | `last:` timestamp inside `personal-defaults` |
+| E101/E102 | error | entry missing `Status` / `Evidence` |
+| E103/E104 | error | invalid `Status` / `Evidence` value |
+| E105 | error | invalid `Type` value |
+| E106 | error | invalid `Verification` value |
+| E107 | error | `Type: undefined` without a reason |
+| E108 | error | `undefined` combined with another `Type` value |
+| E109 | error | duplicate `Type` value |
+| E110 | error | multiple `Type` lines below schema 0.9.0 |
+| E111 | error | `Verification: contradicted` without explanation |
+| E112 | error | more than one `Status`/`Evidence` line |
+| E201–E204 | error | `index.md` missing / broken link / unlisted topic file / not sorted |
+| E301 | error | invisible or directional Unicode character |
+| W001 | warning | `context-schema` missing (assumed 0.2.0) |
+| W002 | warning | unrecognized check-interval shape in `personal-defaults` |
+| W003 | warning | project `context-schema` newer than the newest schema this linter knows |
+| W101 | warning | entry has no `Type` field |
+| W102 | warning | level-2 heading without any schema fields |
+| W103 | warning | `Type` placed after `Status` |
+| W104 | warning | `Type` present but schema predates 0.7.0 |
+| W105 | warning | empty `Revisit when` condition |
+| W201 | warning | guard file missing |
+| W301 | warning | base64-looking blob |
+
+This repository runs the linter on its own `context/` in CI, from source and in `--strict` mode.
