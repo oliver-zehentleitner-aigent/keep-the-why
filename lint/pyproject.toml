@@ -10,11 +10,29 @@ license = { text = "MIT" }
 authors = [{ name = "Oliver Zehentleitner" }]
 requires-python = ">=3.10"
 dynamic = ["version"]
-keywords = ["keep-the-why", "linter", "documentation", "decision-records", "ci"]
+keywords = [
+    "keep-the-why",
+    "linter",
+    "lint",
+    "ci",
+    "documentation",
+    "decision-records",
+    "adr",
+    "architecture-decision-records",
+    "rationale",
+    "context-engineering",
+    "agent-skills",
+    "ai-agents",
+    "markdown",
+    "github-actions",
+    "pre-commit",
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Natural Language :: English",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
@@ -25,14 +43,26 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Topic :: Software Development :: Documentation",
     "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Text Processing :: Markup :: Markdown",
 ]
 
 [project.urls]
 Homepage = "https://keepthewhy.com"
 Documentation = "https://keepthewhy.com/linting/"
+"CI setup" = "https://keepthewhy.com/ci-linting/"
+"Finding codes" = "https://keepthewhy.com/linting/#finding-codes"
 Repository = "https://github.com/oliver-zehentleitner/keep-the-why"
+Source = "https://github.com/oliver-zehentleitner/keep-the-why/tree/main/lint"
 Changelog = "https://github.com/oliver-zehentleitner/keep-the-why/blob/main/CHANGELOG.md"
 Issues = "https://github.com/oliver-zehentleitner/keep-the-why/issues"
+Security = "https://github.com/oliver-zehentleitner/keep-the-why/blob/main/SECURITY.md"
+"Skill (Keep the Why)" = "https://keepthewhy.com/installation/"
+"llms.txt" = "https://keepthewhy.com/llms.txt"
+Telegram = "https://t.me/unicorndevs"
+X = "https://x.com/keep_the_why"
+Bluesky = "https://bsky.app/profile/keep-the-why.bsky.social"
+Mastodon = "https://mastodon.social/@keep_the_why"
 
 [project.scripts]
 ktw-lint = "ktw_lint.cli:main"
