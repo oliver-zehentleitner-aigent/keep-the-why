@@ -71,11 +71,6 @@ models alphabetically.
 - The blanks in the Ollama row (Cline, Codex CLI, Kimi Code) aren't untried —
   each hit a blocker specific to that driver, not to the model or the skill.
   Details in [the eval runner's driver docs](https://github.com/oliver-zehentleitner/keep-the-why/blob/latest/tools/evals/README.md#drivers).
-- **Ox Alpha** is a stealth model preview on OpenRouter (`stealth/ox-alpha`),
-  provider identity undisclosed.
-- Cline's cells predate the restraint check and are judge-score only; a
-  re-check of stored transcripts found the file had been touched in runs
-  that scored well, so read that column as provisional until it's re-run.
 
 ## What the table shows
 
