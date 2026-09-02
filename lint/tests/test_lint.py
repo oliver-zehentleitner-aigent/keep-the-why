@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import contextlib
+import io
 import os
 import tempfile
 import unittest
+from unittest import mock
 
 from ktw_lint.checks import Linter
 from ktw_lint.cli import _load_config, main
@@ -45,9 +48,21 @@ class LintProject(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
         self.root = self._tmp.name
+        # Inside GitHub Actions the CLI auto-switches to ::error/::warning
+        # annotations — fixture findings from these tests would then show up
+        # as real annotations on the workflow run. Force plain mode.
+        self._env = mock.patch.dict(os.environ, {"GITHUB_ACTIONS": ""})
+        self._env.start()
 
     def tearDown(self):
+        self._env.stop()
         self._tmp.cleanup()
+
+    @staticmethod
+    def cli(argv):
+        """main() with stdout swallowed — the exit code is what these tests assert."""
+        with contextlib.redirect_stdout(io.StringIO()):
+            return main(argv)
 
     # -- helpers ---------------------------------------------------------
 
@@ -82,14 +97,14 @@ class LintProject(unittest.TestCase):
 
     def test_exit_codes(self):
         self.base_project()
-        self.assertEqual(main([self.root]), 0)
+        self.assertEqual(self.cli([self.root]), 0)
         self.write("context/sync.md", GOOD_ENTRY.replace("**Evidence:** confirmed\n", ""))
-        self.assertEqual(main([self.root]), 1)
+        self.assertEqual(self.cli([self.root]), 1)
 
     def test_strict_turns_warnings_into_failure(self):
         self.base_project(topic=GOOD_ENTRY.replace("**Type:** decision\n", ""))
-        self.assertEqual(main([self.root]), 0)
-        self.assertEqual(main([self.root, "--strict"]), 1)
+        self.assertEqual(self.cli([self.root]), 0)
+        self.assertEqual(self.cli([self.root, "--strict"]), 1)
 
     # -- config ----------------------------------------------------------
 
