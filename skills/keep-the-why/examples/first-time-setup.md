@@ -43,6 +43,10 @@ This names the skill and its purpose directly — not a task that happens to mat
     >
     > **User:** defaults.
     >
+    > **Agent:** Wire `keep-the-why-lint` into CI, so the structure of `context/` gets checked on every push? There's a `.github/` directory here — I'd add `.github/workflows/ktw-lint.yml`. No `.pre-commit-config.yaml`, so no hook offered. [yes]
+    >
+    > **User:** yes.
+    >
     > **Agent:** Last one: activation isn't guaranteed by the Skill mechanism itself — want me to check whether this platform (Claude Code, here) offers something stronger and set it up scoped to this project? [no]
     >
     > **User:** defaults.
@@ -117,7 +121,9 @@ This names the skill and its purpose directly — not a task that happens to mat
 
     Since the previous question about `personal-defaults` was declined, no `personal-defaults` block gets added. `AGENTS.md` itself is left exactly as it already was — nothing about Keep the Why gets written into it; mentioning the skill anywhere a human would read it is this project's own editorial call (the badge question above already covers that), not something setup does on its own.
 
-6. Runs the personal preferences wizard, separately, also one question at a time for the same reason:
+6. Writes `.github/workflows/ktw-lint.yml` — the GitHub Actions snippet from `references/ci-linting.md`, verbatim, after checking no existing workflow already runs the linter. Staged, not committed, like everything else setup writes. Nothing pre-commit-related, since the project doesn't use pre-commit.
+
+7. Runs the personal preferences wizard, separately, also one question at a time for the same reason:
 
     > **Agent:** And a couple of preferences just for you (not committed). Capture proactively during conversation, or only when asked? [proactive]
     >
@@ -135,7 +141,7 @@ This names the skill and its purpose directly — not a task that happens to mat
     >
     > **User:** defaults on the rest.
 
-7. `~/.keep-the-why/<id>.md` doesn't exist yet on this machine — creates `~/.keep-the-why/` if needed, then writes the personal config file, no `.gitignore` entry needed since it lives outside the project entirely:
+8. `~/.keep-the-why/<id>.md` doesn't exist yet on this machine — creates `~/.keep-the-why/` if needed, then writes the personal config file, no `.gitignore` entry needed since it lives outside the project entirely:
 
     ```markdown
     <!-- keep-the-why:personal -->
@@ -146,11 +152,11 @@ This names the skill and its purpose directly — not a task that happens to mat
     <!-- /keep-the-why:personal -->
     ```
 
-8. Confirms setup is done and asks what to work on first — there's no pending question from this explicit-request turn to answer, unlike the earlier organic activation, which had already answered the retry-logic question directly without any of this running.
+9. Confirms setup is done and asks what to work on first — there's no pending question from this explicit-request turn to answer, unlike the earlier organic activation, which had already answered the retry-logic question directly without any of this running.
 
 ## A second developer opens the same project later
 
-The project config already says `init: complete` — that part isn't re-asked, it's a project fact, not a per-developer one. `capture-confirmation` is part of that same project fact: it stays `confirm-when-unsure` for everyone, this developer included, regardless of their own personal preferences. But this developer has no `~/.keep-the-why/<id>.md` yet on their machine, and no legacy `AGENTS.local.md` block to carry over either (this project was set up fresh, under the current scheme), so the personal preferences wizard (step 6 above) runs for them individually, one question at a time again since they have no stored `confirmation-flow` either. Their answers might differ from the first developer's, and that's fine — capture mode, `confirmation-flow`, and check intervals are exactly the kind of thing that should vary per person. Note that `confirmation-flow` is stored per project, in `~/.keep-the-why/<id>.md`, so even if this developer chose `batch` on some other project, that preference isn't visible here — the personal wizard asks its one-line question again and records the answer for this project's own file.
+The project config already says `init: complete` — that part isn't re-asked, it's a project fact, not a per-developer one. `capture-confirmation` is part of that same project fact: it stays `confirm-when-unsure` for everyone, this developer included, regardless of their own personal preferences. But this developer has no `~/.keep-the-why/<id>.md` yet on their machine, and no legacy `AGENTS.local.md` block to carry over either (this project was set up fresh, under the current scheme), so the personal preferences wizard (step 7 above) runs for them individually, one question at a time again since they have no stored `confirmation-flow` either. Their answers might differ from the first developer's, and that's fine — capture mode, `confirmation-flow`, and check intervals are exactly the kind of thing that should vary per person. Note that `confirmation-flow` is stored per project, in `~/.keep-the-why/<id>.md`, so even if this developer chose `batch` on some other project, that preference isn't visible here — the personal wizard asks its one-line question again and records the answer for this project's own file.
 
 ## A later session, after a few weeks of no web access
 
@@ -165,6 +171,7 @@ The update-check interval elapses, but this environment has no web access. The s
 - Doesn't bundle personal preferences into the committed project config, and doesn't skip the personal wizard just because the project is already initialized.
 - Doesn't overwrite an existing `context/README.md`, `AGENTS.md`, or `CLAUDE.md` (or an equivalent) if the folder is being adopted rather than created fresh.
 - Doesn't put personal preferences anywhere inside the project at all — `~/.keep-the-why/<id>.md` lives outside it entirely, so there's no `.gitignore` entry to get wrong.
+- Doesn't write CI config for a platform it can't verify from the repository — a Jenkinsfile-only project gets the generic `pip` snippet shown, not a guessed pipeline file — and doesn't introduce pre-commit into a project that doesn't already use it.
 - Doesn't write anything about itself into `AGENTS.md` — whether and how to mention Keep the Why anywhere a human reads it is this project's own call, not something setup adds unasked.
 - Doesn't keep asking the same "web access is broken, what do you want to do" question every session once it's been answered once.
 - Doesn't propose, mention, or run any project setup from an organic activation on a project with no `.keep-the-why` and no legacy block — not even a low-key "want me to set this up?" offer. Answers the actual question and stops there; setup only starts from an explicit request, in a separate turn if that's when it comes.
