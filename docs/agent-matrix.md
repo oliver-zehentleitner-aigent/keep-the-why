@@ -6,7 +6,7 @@ have actually been tried, and what each one did with it.
 This is the breadth axis, not the depth one. The [Evals](evals.md) page is
 the skill's real test suite — the full case set, Claude Code with Claude
 Sonnet 5 only, because a single run of it is already expensive. Here it's
-one case against many harnesses instead.
+one case against many agents and models instead.
 
 ## The case
 
