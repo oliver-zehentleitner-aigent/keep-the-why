@@ -1,6 +1,6 @@
 [![PyPI](https://img.shields.io/pypi/v/keep-the-why-lint.svg?label=pypi)](https://pypi.org/project/keep-the-why-lint/)
 [![Python](https://img.shields.io/pypi/pyversions/keep-the-why-lint.svg)](https://pypi.org/project/keep-the-why-lint/)
-[![Downloads](https://pepy.tech/badge/unicorn-fy)](https://pepy.tech/project/keep-the-why-lint)
+[![Downloads](https://pepy.tech/badge/keep-the-why-lint)](https://pepy.tech/project/keep-the-why-lint)
 [![License](https://img.shields.io/github/license/oliver-zehentleitner/keep-the-why.svg?color=blue)](https://github.com/oliver-zehentleitner/keep-the-why/blob/latest/LICENSE)
 [![keep-the-why-lint (package)](https://github.com/oliver-zehentleitner/keep-the-why/actions/workflows/lint-package.yml/badge.svg)](https://github.com/oliver-zehentleitner/keep-the-why/actions/workflows/lint-package.yml)
 [![ktw-lint](https://github.com/oliver-zehentleitner/keep-the-why/actions/workflows/ktw-lint.yml/badge.svg)](https://github.com/oliver-zehentleitner/keep-the-why/actions/workflows/ktw-lint.yml)
