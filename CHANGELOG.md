@@ -4,6 +4,14 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added
+
+- `references/autostart.md` restructured around three start paths — every session machine-wide (developer-level, gated on `.keep-the-why`), the project asks (a project-scoped hook and/or a "Keep the Why" section in the project's entry-point file), or only when a developer asks — with per-agent sections stating what is verified how. New: the entry-point section, tool-neutral and the form to pick for a pinned, vendored skill. Verified for Claude Code by eval case `autostart-project-instruction-loads-skill` (hook removed, section in `AGENTS.md`, `CLAUDE.md` importing it, a plain code question: 3/3 invoked the skill first; same-day control without the section: 0/3) and for Hermes Agent by a single live run (reads `AGENTS.md` on its own, loaded `SKILL.md` first). Suite is 74 cases.
+
+### Changed
+
+- Project init wizard: the last question now asks how the skill should get loaded in future sessions, offering the three start paths (default: only when a developer asks); step 2 writes the entry-point section when that path is chosen; step 6's "leave the entry-point file alone" has that one exception.
+
 ### Removed
 
 - The FAQ entry on combining Keep the Why with Superpowers or other methodology-style frameworks. A scripted re-test of the scenario behind [obra/superpowers#2051](https://github.com/obra/superpowers/issues/2051) showed the explanation it gave was wrong: the framework doesn't hold the skill back, and once the skill is in context (the `SessionStart` hook from `references/autostart.md`) the "Composition with other skills" re-check ran in every session. What remains is the ordinary activation question, answered by `references/autostart.md` for everyone alike, so the project no longer tracks compatibility with specific frameworks. The finding is kept in `context/compatibility.md` as a superseded entry; the upstream issue was closed with the measurements.
