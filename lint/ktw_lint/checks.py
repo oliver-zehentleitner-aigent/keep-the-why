@@ -49,7 +49,7 @@ CONFIG_REQUIRED = (
     "source-reference",
 )
 CONFIG_KNOWN = CONFIG_REQUIRED + ("id", "pinned-version", "pinned-path")
-INIT_VALUES = ("complete", "declined")
+INIT_VALUES = ("complete",)
 CAPTURE_CONFIRMATION_VALUES = ("automatic", "confirm-always", "confirm-when-unsure")
 
 DEFAULTS_KNOWN = (
