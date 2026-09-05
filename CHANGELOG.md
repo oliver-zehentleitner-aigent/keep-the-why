@@ -10,6 +10,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Changed
 
+- `references/repository-structure.md`: an **Evidence** paragraph alongside the Status and Type ones, stating what the field measures — how well a claim's *origin* is established, not whether it is true today. `confirmed` is good provenance (a maintainer said so, an authoritative source backs it), not a truth guarantee; whether it still holds is what Verification and Revisit when are for. The field definitions were only in `SKILL.md` rule 2, which names the three levels without saying that.
+
 - The two shell snippets in `references/autostart.md` and `references/ci-linting.md` are fenced as ` ```sh ` instead of ` ```bash `. Same rendering; the reason is agent-skill-manager's install-time check, which labelled the package *High Risk* on the literal word `bash` alone. The remaining *Medium Risk* comes from the package containing links and is the floor for any skill that does. The security page now lists what every scanner that covers the skill reports (SkillsLLM, Socket, Snyk, Gen Agent Trust Hub, asm) and why the Snyk and Trust Hub medium findings — third-party content read during retrospective recovery and interviews — describe the skill's purpose and stay; `SECURITY.md` points there.
 
 - Project init wizard: the last question now asks how the skill should get loaded in future sessions, offering the three start paths (default: only when a developer asks); step 2 writes the entry-point section when that path is chosen; step 6's "leave the entry-point file alone" has that one exception.
