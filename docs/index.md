@@ -1,5 +1,5 @@
 ---
-description: "Keep the Why is a repo-native convention and agent skill that preserves the reasoning behind a codebase as project memory, kept in the repo — so your agent, and every other agent that works in the repository, understands not just the code but everything around it."
+description: "Project memory for your codebase, kept in the repo: an agent skill and convention that preserves the reasoning behind the code — decisions, rejected alternatives, workarounds, constraints."
 hide:
   - toc
 ---
@@ -10,7 +10,7 @@ hide:
 
 <div class="ktw-hero__text" markdown>
 
-<p class="ktw-hero__tagline">Keep a Changelog records what changed.<br>Keep the Why preserves why it changed.</p>
+<h1 class="ktw-hero__tagline">Keep a Changelog records what changed.<br>Keep the Why preserves why it changed.</h1>
 
 {% include-markdown "../README.md" start="<!-- ktw-intro:start -->" end="<!-- ktw-intro:end -->" %}
 
@@ -99,7 +99,7 @@ Everything lives in `context/`, one file per topic, versioned with the code. A l
 
 {% include-markdown "../README.md" start="<!-- ktw-tested-with:start -->" end="<!-- ktw-tested-with:end -->" %}
 
-**Latest full run:** {% include-markdown "evals.md" start="<!-- ktw-latest:start -->" end="<!-- ktw-latest:end -->" %} — with the four numbers a pass count runs together, the per-case verdicts, and the caveats: [Evals →](evals.md)
+**Latest release measurement:** {% include-markdown "evals.md" start="<!-- ktw-latest:start -->" end="<!-- ktw-latest:end -->" %}. The four numbers behind that count — skill loaded, task completed, deterministic checks, judge verdict — plus every case's verdicts and the caveats, stated plainly: [Evals →](evals.md)
 
 <p class="ktw-trust__badges">
 <a href="https://github.com/oliver-zehentleitner/keep-the-why/actions/workflows/validate-skill.yml"><img src="https://github.com/oliver-zehentleitner/keep-the-why/actions/workflows/validate-skill.yml/badge.svg" alt="Validate Skill"></a>
