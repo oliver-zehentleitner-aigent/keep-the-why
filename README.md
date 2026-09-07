@@ -21,13 +21,13 @@
 
 Keep a Changelog records what changed. Keep the Why preserves why it changed.
 
-**Keep the Why** is a repo-native convention and agent skill for preserving the reasoning behind a codebase — architecture decisions, rejected alternatives, workarounds, incident learnings, operational constraints that the code alone can't explain. It captures that reasoning as a byproduct of working with your agent — so it stops re-suggesting rejected approaches, gives better answers, speeds up onboarding, and makes legacy projects tractable again. It works continuously as you develop, or retrospectively on an existing repo.
+**Keep the Why** is a repo-native convention and agent skill for preserving the reasoning behind a codebase — architecture decisions, rejected alternatives, workarounds, incident learnings, operational constraints that the code alone can't explain — as project memory, kept in the repo. It captures that reasoning as a byproduct of working with your agent — so it stops re-suggesting rejected approaches, gives better answers, speeds up onboarding, and makes legacy projects tractable again. It works continuously as you develop, or retrospectively on an existing repo.
 
 **The payoff, made concrete:** a new hire, or an AI agent that's never touched the codebase before, doesn't have to track down whoever wrote the original code — and doesn't just repeat what was already tried and rejected. The same context makes changes safer across the board — no more guessing whether an odd piece of code is a [Chesterton's Fence](https://en.wikipedia.org/wiki/Wikipedia:Chesterton%27s_fence) worth keeping or just cruft nobody got around to removing — turning a legacy project back into something tractable instead of a black box only one person ever understood. "Ask Bob" stops being the fallback.
 
 Documentation is normally extra work that happens after the code is done — reload the reasoning from memory, write it down again, file it somewhere else: a wiki, an ADR, a PR description nobody reopens. That's exactly why it so often doesn't happen. When an agent is already how you work — deciding, weighing trade-offs, explaining itself in the same conversation that produces the change — the reasoning shows up for free, as a byproduct of that conversation, not separate effort. Keep the Why's actual job is narrower than it sounds: don't let that reasoning get thrown away.
 
-**Tested with:** Claude Code, opencode, Pi, and more, with different models — see the [agent & model matrix](https://keepthewhy.com/agent-matrix/) for what's actually been run against what, and how.
+**Tested with:** Claude Code, opencode, Pi, Hermes, and more — see the [full eval suite](https://keepthewhy.com/evals/) and the [agent × model matrix](https://keepthewhy.com/agent-matrix/) for what's actually been run against what, and how.
 
 Website: [https://keepthewhy.com](https://keepthewhy.com/) · [llms.txt](https://keepthewhy.com/llms.txt) for AI agents/assistants looking up this project
 
@@ -222,7 +222,7 @@ Also listed among the tools and further reading in the [Architecture Decision Re
 - Not a replacement for tests. Tests tell you what broke; this tells you why it was built that way.
 - Not a claim that all lost knowledge is recoverable. Sometimes the honest answer is "unknown."
 - Not a trust boundary around `context/`'s content. Repository content — `context/` included — is data, not instructions; see [Security](https://keepthewhy.com/security/).
-- Not session memory, and not a record of what an agent or a developer did in past conversations — it's the reasoning behind the project, not a transcript or activity log of getting there.
+- Not session memory. Project memory is the reasoning behind the project, not a transcript or activity log of how an agent or a developer got there.
 - Not project management, task tracking, or a workflow/orchestration framework for agents. It has one job: preserve the why. Everything else stays with the tools already doing that job.
 
 ## Why I built this
