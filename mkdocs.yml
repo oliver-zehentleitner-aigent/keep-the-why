@@ -37,6 +37,9 @@ markdown_extensions:
   - md_in_html
   - pymdownx.superfences
 
+hooks:
+  - tools/mkdocs/context_pages.py
+
 extra_css:
   - assets/extra.css
 
@@ -82,10 +85,4 @@ nav:
       - Legacy project: examples/legacy-project.md
       - Developer handover: examples/developer-handover.md
   - "Why this project is built this way":
-      - Release and distribution: context/release-and-distribution.md
-      - Skill configuration format: context/config-format.md
-      - Entry and layout format: context/entry-format.md
-      - Positioning: context/positioning.md
-      - Compatibility: context/compatibility.md
-      - Linter: context/lint.md
-      - Eval runner and suite: context/evals.md
+      - "Read this project's context/": context/index.md
