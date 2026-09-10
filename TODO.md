@@ -2,8 +2,8 @@
 
 Open work that is not a bug and not a design question — those go to
 [issues](https://github.com/oliver-zehentleitner/keep-the-why/issues).
-Last reviewed: 2026-09-09 (evening: measurement merged, issue forms and
-`context/issue-triage.md` in, labels `skill-wording` and `evals` created).
+Last reviewed: 2026-09-10 (HOL listing live and owner-verified, in
+"Also listed on" via #366; ai-memory#700 filed; #367/#368 from the same test).
 
 ## In progress
 
@@ -24,14 +24,24 @@ Nothing in flight.
   issue). None of them changes what the skill writes to disk. Release
   order as in `CONTRIBUTING.md`: linter first if a gate changes, then the
   skill tag, then three runs into `docs/evals.md`.
-- [ ] **HOL / awesome-ai-plugins listing**
-  ([hashgraph-online/awesome-ai-plugins#257](https://github.com/hashgraph-online/awesome-ai-plugins/pull/257)).
-  Rebased on their request; all five catalog checks pass, including the
-  source-repository scan. Waits on their merge. Afterwards, two steps: the
-  repository owner claims the listing on hol.org ("Claim this listing" —
-  ownership proof, unlocks managing the registry page: media, first comment,
-  launch day); then add the HOL registry to `llms.txt` under "Also Listed
-  On".
+- [ ] **ai-memory coexistence**
+  ([akitaonrails/ai-memory#700](https://github.com/akitaonrails/ai-memory/issues/700)).
+  Filed 2026-09-10 after a side-by-side test of ai-memory 2.1.1 and this
+  skill: the write path is clean (nine sessions, every decision went to
+  `context/`, no wiki write), the read path is not — a `Read` of
+  `context/architecture.md` is captured with the file body, LLM
+  consolidation compiles it into a `decisions/` wiki page marked active,
+  and `memory_query` ranks that copy first after the repo record moves on.
+  Their `[capture] ignore_paths = ["context/**"]` marker setting stops the
+  capture (verified) but nothing documents it for repo-side records. The
+  issue proposes three doc changes plus a routing-snippet paragraph naming
+  repo-native decision records (ADR directories, Keep the Why) beside the
+  ADR tool they already link. Waits on the maintainer's reaction; then
+  send the docs PR for the accepted parts. Side finding from the same test,
+  a `Source:` line carrying the developer's account e-mail, is #367 with
+  its fix and eval case in #368; the other oddity (one guessed
+  `/root/.keep-the-why/` path before `$HOME` was read) was a harmless
+  detour, not filed.
 - [ ] **awesome-copilot**
   ([github/awesome-copilot#2998](https://github.com/github/awesome-copilot/pull/2998)),
   bump to 0.16.0, waits on their review; #2984 (0.15.0) is merged. Every
