@@ -26,7 +26,7 @@ Nothing in flight.
   `common.fake_home_env` like the others.
 
 ## Ideas
-
+- HOL Badges
 - **ai-memory, consolidation with source path.** Part 4 of
   [akitaonrails/ai-memory#700](https://github.com/akitaonrails/ai-memory/issues/700):
   consolidation carrying a file read's source path and refusing
