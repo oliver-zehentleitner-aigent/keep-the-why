@@ -2,8 +2,7 @@
 
 Open work that is not a bug and not a design question — those go to
 [issues](https://github.com/oliver-zehentleitner/keep-the-why/issues).
-Last reviewed: 2026-09-10 (HOL listing live and owner-verified, in
-"Also listed on" via #366; ai-memory#700 filed; #367/#368 from the same test).
+Last reviewed: 2026-09-10 (evening).
 
 ## In progress
 
@@ -24,24 +23,6 @@ Nothing in flight.
   issue). None of them changes what the skill writes to disk. Release
   order as in `CONTRIBUTING.md`: linter first if a gate changes, then the
   skill tag, then three runs into `docs/evals.md`.
-- [ ] **ai-memory coexistence**
-  ([akitaonrails/ai-memory#700](https://github.com/akitaonrails/ai-memory/issues/700)).
-  Filed 2026-09-10 after a side-by-side test of ai-memory 2.1.1 and this
-  skill: the write path is clean (nine sessions, every decision went to
-  `context/`, no wiki write), the read path is not — a `Read` of
-  `context/architecture.md` is captured with the file body, LLM
-  consolidation compiles it into a `decisions/` wiki page marked active,
-  and `memory_query` ranks that copy first after the repo record moves on.
-  Their `[capture] ignore_paths = ["context/**"]` marker setting stops the
-  capture (verified) but nothing documents it for repo-side records. The
-  issue proposes three doc changes plus a routing-snippet paragraph naming
-  repo-native decision records (ADR directories, Keep the Why) beside the
-  ADR tool they already link. Waits on the maintainer's reaction; then
-  send the docs PR for the accepted parts. Side finding from the same test,
-  a `Source:` line carrying the developer's account e-mail, is #367 with
-  its fix and eval case in #368; the other oddity (one guessed
-  `/root/.keep-the-why/` path before `$HOME` was read) was a harmless
-  detour, not filed.
 - [ ] **awesome-copilot**
   ([github/awesome-copilot#2998](https://github.com/github/awesome-copilot/pull/2998)),
   bump to 0.16.0, waits on their review; #2984 (0.15.0) is merged. Every
@@ -57,6 +38,12 @@ Nothing in flight.
 
 ## Ideas
 
+- **ai-memory, consolidation with source path.** Part 4 of
+  [akitaonrails/ai-memory#700](https://github.com/akitaonrails/ai-memory/issues/700):
+  consolidation carrying a file read's source path and refusing
+  `kind: decision` for pages whose only evidence is a read under a declared
+  record directory. The maintainer wants it as its own issue; only if we
+  want to pursue it — `[capture] ignore_paths` already covers Keep the Why.
 - **Codex plugin install as an eval condition.** The Codex driver hands the
   skill to the agent by path; with the plugin manifest in place, a variant
   that installs through `codex plugin add` would measure the documented
