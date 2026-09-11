@@ -19,6 +19,7 @@ from urllib.parse import parse_qs, urlparse
 
 from .projects import record_open
 from .state import StateBuilder
+from .updates import UpdateChecker
 
 WEB_DIR = os.path.join(os.path.dirname(__file__), "web")
 
@@ -87,7 +88,9 @@ class Projects:
         interval: float,
         anonymize: bool,
         use_history: bool = True,
+        update_check: bool = True,
     ):
+        self.updates = UpdateChecker(enabled=update_check)
         self.projects = projects
         self.selected = selected
         self.interval = interval
@@ -126,6 +129,7 @@ class Projects:
         ).encode("utf-8")
 
     def stop(self):
+        self.updates.stop()
         for ls in self._live.values():
             ls.stop()
 
@@ -159,6 +163,10 @@ def make_handler(projects: Projects):
             if path == "/api/projects":
                 return self._send(
                     200, projects.listing(), "application/json; charset=utf-8"
+                )
+            if path == "/api/updates":
+                return self._send(
+                    200, projects.updates.payload(), "application/json; charset=utf-8"
                 )
             if path == "/api/state.json":
                 live = projects.live(pid)
@@ -217,6 +225,7 @@ class Server(http.server.ThreadingHTTPServer):
 def serve(projects: Projects, host: str, port: int):
     if projects.selected:
         projects.live(projects.selected)  # build the first state before the page asks
+    projects.updates.start()
     httpd = Server((host, port), make_handler(projects))
     try:
         httpd.serve_forever(poll_interval=0.5)
