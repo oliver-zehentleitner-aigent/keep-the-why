@@ -40,6 +40,12 @@ markdown_extensions:
 hooks:
   - tools/mkdocs/context_pages.py
 
+copyright: '<a href="/imprint/">Imprint</a> · <a href="/license/">License</a>'
+
+not_in_nav: |
+  imprint.md
+  license.md
+
 extra_css:
   - assets/extra.css
 
@@ -63,6 +69,7 @@ nav:
   - Repository structure: repository-structure.md
   - Specification: specification.md
   - Linting: linting.md
+  - Dashboard: dashboard.md
   - Security: security.md
   - Evals: evals.md
   - Badge: badge.md
@@ -86,3 +93,4 @@ nav:
       - Developer handover: examples/developer-handover.md
   - "Why this project is built this way":
       - "Read this project's context/": context/index.md
+      - "See it in the dashboard": https://keepthewhy.com/dashboard/live/
