@@ -9,7 +9,13 @@ description: keep-the-why-dashboard — a read-only live view over a project's c
 
 It connects data that is already lying around. It writes nothing into any project, runs no daemon beyond the terminal you start it in, and is never a source of truth: delete it and nothing is lost. The one file it keeps is `~/.keep-the-why/dashboard-history.json` — the projects you opened, with their paths, so the project menu can offer them again. That is what keeps it inside this project's own rule — [no new platform, database, daemon, account, or workflow](philosophy.md) — a lens on Markdown and Git, not a place where anything lives.
 
-**Live example:** [this repository's own `context/`](https://keepthewhy.com/dashboard/live/), exported on every docs build.
+<div class="ktw-shot" markdown>
+
+[![The dashboard on this repository's own context/: graph, entry reader with Git history, queues](assets/dashboard-screenschot.png)](https://keepthewhy.com/dashboard/live/){ target=_blank rel=noopener }
+
+</div>
+
+**Live example:** [this repository's own `context/`](https://keepthewhy.com/dashboard/live/), exported on every docs build — the screenshot above is a click away from the real thing.
 
 ## Run it
 
@@ -32,6 +38,7 @@ ktw-dashboard [PATH] [--host 127.0.0.1] [--port 8765] [--no-browser] [--interval
 | `--anonymize` | Git author names become `author-1`, `author-2`, … — for exports of repositories whose contributors did not ask to be listed on a web page. E-mail addresses are never part of the state |
 | `--scan DIR` | also look for projects under `DIR` (two levels deep) for the project menu; the parent of the start directory is always scanned |
 | `--no-history` | neither read nor update `~/.keep-the-why/dashboard-history.json` |
+| `--no-update-check` | don't ask pypi.org for newer versions of the dashboard and the linter — the check runs at start and once every 24 hours and is the server's only network call; a found update makes the package's entry in the status bar shimmer, with the version and the `pip install -U` line in its tooltip. The exported page never checks |
 | `--host 0.0.0.0` | exposes the page on the network; the CLI warns. Everything shown is the project's `context/` — treat the port like the repository |
 
 ## Several projects

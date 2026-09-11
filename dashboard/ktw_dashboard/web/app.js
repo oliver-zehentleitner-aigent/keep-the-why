@@ -19,6 +19,17 @@ const setKids = (node, ...kids) => node.replaceChildren(...kids.flat(Infinity).f
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const fmtDate = (d) => d || "—";
 const remoteLink = (remote) => el("a", { class: "gh", href: `https://${remote}`, target: "_blank", rel: "noopener" }, remote);
+const onGitHub = (g) => !!g?.remote && /^github\.com\//.test(g.remote);
+const schemaPill = (p) => el("span", { class: "pill" }, el("a", { class: "gh", href: `https://github.com/oliver-zehentleitner/keep-the-why/releases/tag/v${p.schema}`, target: "_blank", rel: "noopener", title: `context-schema ${p.schema} — the Keep the Why release this context/ was last checked against` }, `schema ${p.schema}`));
+const headPill = (g) => {
+  if (!g?.available) return null;
+  const branch = g.branch && g.branch !== "HEAD" ? g.branch : null;
+  if (!onGitHub(g)) return el("span", { class: "pill", title: g.remote || "" }, `${branch || "detached"}@${g.head}`);
+  const base = `https://${g.remote}`;
+  return el("span", { class: "pill", title: "branch and commit on GitHub" },
+    branch ? el("a", { class: "gh", href: `${base}/tree/${encodeURIComponent(branch)}`, target: "_blank", rel: "noopener" }, branch) : "detached", "@",
+    el("a", { class: "gh", href: `${base}/commit/${g.head_full || g.head}`, target: "_blank", rel: "noopener", title: g.head_full || g.head }, g.head));
+};
 const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
 
 // ---------------------------------------------------------------- state
@@ -212,7 +223,7 @@ function viewOverview(main) {
   main.append(
     el("h1", {}, p.id || p.name),
     el("p", { class: "sub" }, `${p.context} · schema ${p.schema} · ${p.config["capture-confirmation"] || "?"} · source-reference ${p.config["source-reference"] || "?"}`,
-      g?.available ? [` · ${g.branch}@${g.head}`, g.remote ? [" · ", remoteLink(g.remote)] : null] : " · no Git"),
+      g?.available ? [" · ", headPill(g), g.remote ? [" · ", remoteLink(g.remote)] : null] : " · no Git"),
     el("div", { class: "grid2" },
       el("div", { class: "card" }, el("h3", {}, "Type"), bars(typeCounts(list), ["decision", "constraint", "workaround", "incident"])),
       el("div", { class: "card" }, el("h3", {}, "Status"), bars(count(list, "status"), STATUS_ORDER)),
@@ -579,16 +590,34 @@ function rerender() { renderSidebar(); renderStrip(); render(); }
 function applyState(state) {
   S = state;
   const p = S.project;
-  setKids($("#project-title"), $("#project-select").hidden ? el("b", {}, p.id || p.name) : null, el("span", { class: "pill" }, `schema ${p.schema}`), p.git?.available ? el("span", { class: "pill", title: p.git.remote }, `${p.git.branch}@${p.git.head}`) : null, p.git?.remote ? el("span", { class: "pill" }, remoteLink(p.git.remote)) : null);
+  setKids($("#project-title"), $("#project-select").hidden ? el("b", {}, p.id || p.name) : null, schemaPill(p), headPill(p.git), p.git?.remote ? el("span", { class: "pill" }, remoteLink(p.git.remote)) : null);
   document.title = `${p.id || p.name} — Keep the Why`;
   setKids($("#statusbar"),
-    el("span", {}, `keep-the-why-dashboard ${S.dashboard}`), el("span", {}, `keep-the-why-lint ${S.linter}`),
+    el("span", { id: "pkg-dashboard" }, el("a", { href: "https://pypi.org/project/keep-the-why-dashboard/", target: "_blank", rel: "noopener", title: "keep-the-why-dashboard on PyPI" }, `keep-the-why-dashboard ${S.dashboard}`)),
+    el("span", { id: "pkg-lint" }, el("a", { href: "https://pypi.org/project/keep-the-why-lint/", target: "_blank", rel: "noopener", title: "keep-the-why-lint on PyPI" }, `keep-the-why-lint ${S.linter}`)),
     el("span", {}, S.exported ? `exported ${S.generated}` : `state ${S.generated}`),
     el("span", {}, `${S.entries.length} entries · ${S.topics.length} topics · ${S.authors.length} authors`),
     el("span", { style: "margin-left:auto" }, el("a", { href: "https://keepthewhy.com", target: "_blank", rel: "noopener" }, "keepthewhy.com")));
   const main = $("#main"); const scroll = main.scrollTop;
   rerender();
   main.scrollTop = scroll;
+  markUpdates();
+}
+let UPDATES = null; // /api/updates result; null until fetched, never in export mode
+function markUpdates() {
+  if (!UPDATES?.packages) return;
+  for (const [name, id] of [["keep-the-why-dashboard", "pkg-dashboard"], ["keep-the-why-lint", "pkg-lint"]]) {
+    const info = UPDATES.packages[name]; const span = $(`#${id}`); if (!info || !span) continue;
+    const a = span.querySelector("a");
+    span.classList.toggle("outdated", !!info.outdated);
+    if (info.outdated) { a.title = `${name} ${info.latest} is on PyPI — installed ${info.installed}. Update: pip install -U ${name}`; a.textContent = `${name} ${info.installed} → ${info.latest}`; }
+    else if (a) a.title = `${name} on PyPI${info.latest ? ` — ${info.latest} is the newest, you are current` : ""}`;
+  }
+}
+window.__ktwApplyUpdates = (u) => { UPDATES = u; markUpdates(); }; // test hook (jsdom smoke), not used by the page
+async function pollUpdates() {
+  if (window.__KTW_STATE__) return;
+  try { UPDATES = await (await fetch("/api/updates", { cache: "no-store" })).json(); markUpdates(); } catch { /* server gone; the live dot says so */ }
 }
 function connectLive() {
   const dot = $("#live");
@@ -641,5 +670,7 @@ async function boot() {
     catch (err) { $("#main").append(el("p", { class: "center" }, PROJECT ? `No state for project "${PROJECT}" — unknown id or unknown location.` : "Could not load the state — is the server running?")); }
   }
   connectLive();
+  pollUpdates(); setTimeout(pollUpdates, 20000); // the server's first check may still be running at boot
+  setInterval(pollUpdates, 60 * 60 * 1000);
 }
 boot();

@@ -19,6 +19,7 @@ Keep the Why is the part that remembers. Repo-native project memory for humans a
 [Install](installation.md){ .md-button .md-button--primary }
 [Read the README](readme.md){ .md-button }
 [Linter](linting.md){ .md-button }
+[Dashboard](dashboard.md){ .md-button }
 [GitHub](https://github.com/oliver-zehentleitner/keep-the-why){ .md-button }
 { .ktw-hero__actions }
 
@@ -56,6 +57,20 @@ The payment gateway's rate limiter returns 429 with a per-request `Retry-After` 
 
 Decisions that shipped, alternatives that lost, workarounds, constraints — Keep the Why keeps the reasoning behind all of them: one entry per topic, plain Markdown, reviewed in the same pull request as the code. This one is the case where it matters most: a change that was started and then dropped, so there is no commit, no diff, no pull request — and without the entry, no trace. Every entry says how well its claim is backed (`Evidence`) and whether it still holds (`Status`); "unknown" is a valid answer. [The full example →](examples/abandoned-change.md) · [Field reference →](repository-structure.md)
 { .ktw-caption }
+
+</div>
+
+<div class="ktw-section" markdown>
+
+## Live Dashboard
+
+<div class="ktw-shot" markdown>
+
+[![keep-the-why-dashboard: the graph of a project's context/, an entry with its Git history, and the queues of what still needs a person](assets/dashboard-screenschot.png)](https://keepthewhy.com/dashboard/live/){ target=_blank rel=noopener }
+
+</div>
+
+The dashboard — a read-only view over `context/` and its Git history: who recorded what, when a status changed, what still needs a person. Run locally, it updates as the project changes; the example behind the screenshot is a static export of this repository's own `context/`, rebuilt with every docs deploy. [Dashboard →](dashboard.md) · [Example →](https://keepthewhy.com/dashboard/live/)
 
 </div>
 
