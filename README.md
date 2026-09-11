@@ -51,7 +51,7 @@ Important project knowledge gets created in conversation — with a teammate, or
 ## How it works
 
 <p align="center">
-  <img src="https://keepthewhy.com/assets/keep-the-why-readme.gif"
+  <img src="https://keepthewhy.com/assets/keep-the-why-readme-project-memory.gif"
        alt="Keep the Why captures the reason an attempted retry-wrapper simplification was abandoned, stores it as versioned Markdown in context/retries.md, and lets a later agent session retrieve that reasoning instead of repeating the mistake."
        width="900">
 </p>
