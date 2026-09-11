@@ -1,5 +1,6 @@
 [![GitHub Release](https://img.shields.io/github/v/release/oliver-zehentleitner/keep-the-why?filter=v*&sort=semver&label=github)](https://github.com/oliver-zehentleitner/keep-the-why/releases)
 [![PyPI](https://img.shields.io/pypi/v/keep-the-why-lint.svg?label=pypi%20keep-the-why-lint)](https://pypi.org/project/keep-the-why-lint/)
+[![PyPI](https://img.shields.io/pypi/v/keep-the-why-dashboard.svg?label=pypi%20keep-the-why-dashboard)](https://pypi.org/project/keep-the-why-dashboard/)
 [![License](https://img.shields.io/github/license/oliver-zehentleitner/keep-the-why.svg?color=blue)](https://keepthewhy.com/license/)
 [![Validate Skill](https://github.com/oliver-zehentleitner/keep-the-why/actions/workflows/validate-skill.yml/badge.svg)](https://github.com/oliver-zehentleitner/keep-the-why/actions/workflows/validate-skill.yml)
 [![ktw-lint](https://github.com/oliver-zehentleitner/keep-the-why/actions/workflows/ktw-lint.yml/badge.svg)](https://github.com/oliver-zehentleitner/keep-the-why/actions/workflows/ktw-lint.yml)
@@ -212,6 +213,8 @@ Not every field belongs on every entry — Status, Evidence, and the rejected al
 
 The structural half of this format is mechanically checkable — in CI, and locally by the agent itself: [keep-the-why-lint](https://pypi.org/project/keep-the-why-lint/) (developed in this repository under `lint/`) validates required fields, value sets, index consistency, and `.keep-the-why` integrity — schema-version-aware, so unmigrated projects don't fail on structure their version never defined. Content (whether the rationale is *true*) stays a human judgment; the linter doesn't pretend otherwise. One line in GitHub Actions (`uses: oliver-zehentleitner/keep-the-why@lint-latest`, published as [keep-the-why-lint on the GitHub Marketplace](https://github.com/marketplace/actions/keep-the-why-lint)), or [`pip install keep-the-why-lint`](https://pypi.org/project/keep-the-why-lint/) anywhere else — see [Linting](https://keepthewhy.com/linting/). The skill runs it itself too, when a developer's personal `local-lint` setting says so (the default asks before installing, never installs unasked): after every entry it writes, and with `--setup` over the developer's own two home files after a settings change — the part a CI runner can't see. This repository lints its own `context/` with it in CI.
 
+Reading it back has a tool too: [keep-the-why-dashboard](https://pypi.org/project/keep-the-why-dashboard/) (developed in this repository under `dashboard/`) is a read-only viewer over `context/`, the config, the linter's findings and the Git history of all of it — who created each entry, who last touched it, when its status changed — with a graph of topics and references, queues of what still needs a person, a timeline and an author view. `ktw-dashboard` serves it locally and keeps it current while you work; `--export` writes one static page. It writes nothing into any project and holds nothing the repository doesn't; see [Dashboard](https://keepthewhy.com/dashboard/).
+
 ## Related work
 
 The idea of capturing AI-agent rationale isn't new, and this project doesn't claim otherwise. Related standards and conventions:
@@ -235,7 +238,7 @@ Also listed among the tools and further reading in the [Architecture Decision Re
 
 ## Why I built this
 
-See [Why I built this](https://keepthewhy.com/why/) — Oliver Zehentleitner on noticing this pattern while working with agents day to day, [blog](https://blog.technopathy.club), [GitHub](https://github.com/oliver-zehentleitner). For why it's built the way it is — no database, no daemon, no dashboard, deliberately — see [Philosophy](https://keepthewhy.com/philosophy/).
+See [Why I built this](https://keepthewhy.com/why/) — Oliver Zehentleitner on noticing this pattern while working with agents day to day, [blog](https://blog.technopathy.club), [GitHub](https://github.com/oliver-zehentleitner). For why it's built the way it is — no database, no daemon, no account, deliberately, and a dashboard that only reads — see [Philosophy](https://keepthewhy.com/philosophy/).
 
 ## Feedback
 
