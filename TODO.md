@@ -2,20 +2,34 @@
 
 Open work that is not a bug and not a design question — those go to
 [issues](https://github.com/oliver-zehentleitner/keep-the-why/issues).
-Last reviewed: 2026-09-10 (evening).
+Last reviewed: 2026-09-16.
 
 ## In progress
 
 ### Active
 
-Nothing in flight.
+Nothing in flight. 0.16.3 (skill + linter 0.16.3.0) and the dashboard 0.1.3
+are released and measured (87/86/86 of 88, `docs/evals.md`).
 
 ### Pending
-- cursor, openclaw, claude marketplace
+
+- [ ] **Marketplace reviews, all external.** Cursor plugin: submitted
+  2026-09-10, every release is reviewed again, so the pending review is now
+  for 0.16.3. Claude Community Marketplace: submitted 2026-09-08. Nothing to
+  do on our side but answer.
 - [ ] **awesome-copilot**
   ([github/awesome-copilot#2998](https://github.com/github/awesome-copilot/pull/2998)),
-  bump to 0.16.0, waits on their review; #2984 (0.15.0) is merged. Every
-  release gets its own bump PR there.
+  bumped to 0.16.3 on 2026-09-14, waits on their review; #2984 (0.15.0) is
+  merged. Every release gets its own bump PR there.
+- [ ] **Next skill wording, measured:**
+  [#414](https://github.com/oliver-zehentleitner/keep-the-why/issues/414)
+  (every candidate listed before the first question under `sequential`,
+  2 of 3 in the 0.16.2 series) and
+  [#424](https://github.com/oliver-zehentleitner/keep-the-why/issues/424)
+  (missing `context-schema` backfilled with the installed version, copied
+  from the example block in `setup.md`; 2 of 3 in 0.16.3, 1 of 3 in 0.16.2).
+  Same procedure as #384: 6 runs before and after on the case, guards, then
+  a full run; both go out with the next release.
 - [ ] **Agent & model matrix rebuild** (`docs/agent-matrix.md`). The tooling
   (`tools/evals/run.py --matrix`) is ready; the matrix was last built against
   0.9.x. Waits on two decisions: whether `chestertons-fence-guard` is still
@@ -26,7 +40,14 @@ Nothing in flight.
   `common.fake_home_env` like the others.
 
 ## Ideas
-- HOL Badges
+
+- **HOL badges** — parked with the other HOL follow-ups until the registry's
+  re-measurement (around 2026-09-14).
+- **Dashboard, next:** diff two states (two commits, or an export against
+  the working tree); a `badge.json` endpoint in the export for a shields.io
+  badge ("42 entries · 3 open"); `Revisit when` triggers grouped by the file
+  they point at; the reference graph with entry-to-entry edges once bodies
+  cite headings, not only files.
 - **ai-memory, consolidation with source path.** Part 4 of
   [akitaonrails/ai-memory#700](https://github.com/akitaonrails/ai-memory/issues/700):
   consolidation carrying a file read's source path and refusing
@@ -37,7 +58,7 @@ Nothing in flight.
   skill to the agent by path; with the plugin manifest in place, a variant
   that installs through `codex plugin add` would measure the documented
   install route rather than the by-hand one.
-- openclaw
+- **openclaw** — listing or plugin, to be looked at.
 - **Topic-file size threshold** — tracked as
   [#256](https://github.com/oliver-zehentleitner/keep-the-why/issues/256):
   learn it from real repositories, don't invent one.
