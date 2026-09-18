@@ -2,14 +2,16 @@
 
 Open work that is not a bug and not a design question — those go to
 [issues](https://github.com/oliver-zehentleitner/keep-the-why/issues).
-Last reviewed: 2026-09-17.
+Last reviewed: 2026-09-18.
 
 ## In progress
 
 ### Active
 
-Nothing in flight. 0.16.3 (skill + linter 0.16.3.0) and the dashboard 0.1.3
-are released and measured (87/86/86 of 88, `docs/evals.md`).
+0.17.0 (skill + linter 0.17.0.0) is prepared and measured (87/88/87 of 88,
+`docs/evals.md`); the release itself follows the checklist in `CONTRIBUTING.md`.
+The skill is considered complete: no wording or eval work is planned, changes
+follow user feedback.
 
 ### Pending
 
