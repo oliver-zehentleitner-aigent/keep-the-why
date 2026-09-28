@@ -2,7 +2,7 @@
    The page knows only the state (see state.py): live from /api/events, or
    embedded as window.__KTW_STATE__ in an export. It renders; it never writes. */
 
-import { esc, plural, UUID_RE, isUuid, rawFileUrl, configLine, normalizeState, slug, hostFileLink, canonicalOf, parseSupersededBy, kindLabel, groupByFamily, searchTerms, searchHit, compareHits, snippetAt, highlight, resolveLocation } from "./lib.js";
+import { esc, plural, UUID_RE, isUuid, rawFileUrl, configLine, normalizeState, slug, hostFileLink, canonicalOf, parseSupersededBy, kindLabel, groupByFamily, searchTerms, searchHit, compareHits, snippetAt, highlight, resolveLocation, linkFamily } from "./lib.js";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const narrow = () => !!window.matchMedia?.("(max-width: 900px)").matches;
@@ -334,11 +334,7 @@ function viewEntry(main, id) {
     el("div", { class: "fields" }, ...entryPills(e), e.source ? pill(`Source: ${e.source}`, "") : null, e.verification ? pill(`Verification: ${e.verification.split(/\s[—-]\s/)[0]}`, "") : null),
     el("div", { class: "body", html: renderMarkdown(e.body.text || "_(no body)_") }),
     e.revisit_when ? el("div", { class: "body" }, el("div", { class: "label", html: `<b>Revisit when</b><p>${inline(e.revisit_when)}</p>` })) : null,
-    (e.see?.length || e.superseded_by || supersedersOf(e).length) ? el("div", { class: "body refs-box" },
-      e.see?.length ? [el("h3", {}, "See"), ...e.see.map((r) => refLine(r))] : null,
-      e.superseded_by ? [el("h3", {}, "Superseded by"), (() => { const sb = parseSupersededBy(e.superseded_by); return sb.none != null ? el("div", { class: "ref" }, el("i", {}, "none"), el("span", { class: "note" }, ` — ${sb.none}`)) : refLine(sb); })()] : null,
-      supersedersOf(e).length ? [el("h3", {}, "Supersedes"), ...supersedersOf(e).map((x) => el("div", { class: "ref" }, el("a", { href: entryHref(x) }, x.title), el("span", { class: "note" }, ` · ${topicOf(x.file)?.title || x.file}`)))] : null,
-    ) : null,
+    refsBox(e),
     el("div", { class: "pager" },
       idx > 0 ? el("a", { href: `#entry/${encodeURIComponent(list[idx - 1].id)}` }, `← ${list[idx - 1].title}`) : el("span"),
       idx < list.length - 1 ? el("a", { href: `#entry/${encodeURIComponent(list[idx + 1].id)}` }, `${list[idx + 1].title} →`) : el("span")),
@@ -374,6 +370,34 @@ function viewAuthors(main) {
 }
 
 const supersedersOf = (e) => e.uuid ? S.entries.filter((x) => x.superseded_by && parseSupersededBy(x.superseded_by)?.uuid === e.uuid) : [];
+const seenFrom = (e, list) => e.uuid ? list.filter((x) => (x.see || []).some((r) => r?.uuid === e.uuid)) : [];
+// See and Superseded by of an entry, and the other way round: what supersedes
+// or points at it — here, and with the family scope anywhere in the tree
+function refsBox(e) {
+  const back = (label, rows) => rows.length ? [el("h3", {}, label), ...rows] : null;
+  const localRow = (x) => el("div", { class: "ref" }, el("a", { href: entryHref(x) }, x.title), el("span", { class: "note" }, ` · ${topicOf(x.file)?.title || x.file}`));
+  const sup = supersedersOf(e), seen = seenFrom(e, S.entries);
+  const box = el("div", { class: "body refs-box" },
+    e.see?.length ? [el("h3", {}, "See"), ...e.see.map((r) => refLine(r))] : null,
+    e.superseded_by ? [el("h3", {}, "Superseded by"), (() => { const sb = parseSupersededBy(e.superseded_by); return sb.none != null ? el("div", { class: "ref" }, el("i", {}, "none"), el("span", { class: "note" }, ` — ${sb.none}`)) : refLine(sb); })()] : null,
+    back("Supersedes", sup.map(localRow)), back("Referenced by (See)", seen.map(localRow)));
+  const family = e.uuid && canFamily();
+  if (family && scope() === "family") {
+    const more = el("div", {}, el("p", { class: "note" }, "Looking for references from the rest of the family…")); box.append(more);
+    searchPool("family").then((pool) => {
+      const sups = [], sees = [];
+      for (const g of pool.groups) {
+        if (g.member.role === "self") continue;
+        const row = (x) => el("div", { class: "ref" }, el("a", { href: g.href(x) }, x.title), el("span", { class: "note" }, ` · ${g.member.name} · ${topicTitle(g.state, x.file)}`));
+        for (const x of g.state.entries || []) { if (x.superseded_by && parseSupersededBy(x.superseded_by)?.uuid === e.uuid) sups.push(row(x)); if ((x.see || []).some((r) => r?.uuid === e.uuid)) sees.push(row(x)); }
+      }
+      setKids(more, back("Supersedes, elsewhere in the family", sups), back("Referenced by (See), elsewhere in the family", sees),
+        pool.missing.length ? el("p", { class: "note" }, `${plural(pool.missing.length, "family member")} not available here — not looked through.`) : null);
+      if (!sups.length && !sees.length && !pool.missing.length) more.replaceChildren(el("p", { class: "note" }, "No references to this entry from the rest of the family."));
+    });
+  } else if (family) box.append(el("p", { class: "note" }, "References from the rest of the family show with the family scope — the switch next to the project menu."));
+  return box.childNodes.length ? box : null;
+}
 
 // ---------------------------------------------------------------- family and projects
 let FAMILY = null; // /api/family result for the current project (live mode only)
@@ -409,17 +433,39 @@ function memberRow(m) {
       el("p", { class: "note" }, "A working tree, writable (the mapping learns it on next start):"), el("pre", {}, el("code", {}, m.fetch.clone)),
       el("p", { class: "note" }, "Or the read-only context cache, shared by every project on this machine:"), el("pre", {}, el("code", {}, m.fetch.cache))) : null);
 }
+// the tree as nested rows: every member under the one whose children block lists it
+function treeRows(members, rowOf) {
+  const ids = new Set(members.map((m) => m.node));
+  const kids = new Map(); const roots = [];
+  for (const m of members) {
+    if (m.up && ids.has(m.up) && m.up !== m.node) { if (!kids.has(m.up)) kids.set(m.up, []); kids.get(m.up).push(m); }
+    else roots.push(m);
+  }
+  const out = []; const seen = new Set();
+  const walk = (m, d) => {
+    if (seen.has(m.node)) return; seen.add(m.node);
+    out.push(el("div", { class: "tree-row", style: `padding-left:${Math.min(d, 6) * 26}px` }, d ? el("span", { class: "tree-mark" }, "└") : null, rowOf(m)));
+    for (const c of (kids.get(m.node) || []).sort((a, b) => familyRank(a) - familyRank(b) || String(a.name).localeCompare(String(b.name)))) walk(c, d + 1);
+  };
+  for (const r of roots) walk(r, 0);
+  for (const m of members) walk(m, 0); // a cycle would otherwise drop rows
+  return out;
+}
 async function viewFamily(main) {
   const p = S.project;
-  main.append(el("h1", {}, "Family"), el("p", { class: "sub" }, "The projects whose context/ is organized together with this one: the parent chain up to the root, siblings, children. Each level's children block is the routing — where an entry about something belongs; what is wider than a level goes one level up. Not a dependency graph."));
+  main.append(el("h1", {}, "Family"), el("p", { class: "sub" }, "The whole tree this project belongs to, from the root down: each project under the one whose children block lists it. That block is the routing — where an entry about something belongs; what is wider than a level goes one level up, to the root at most. Every member can be read; a member checked out here can be written to. Not a dependency graph."));
   if (!p.parent && !(p.children || []).length) return main.append(el("p", { class: "center" }, "This project is not part of a family: no parent line, no children block in .keep-the-why."));
   const box = el("div", { class: "family" }); main.append(box);
   if (MODE === "public") {
-    box.append(memberRow({ role: "self", name: p.id || p.name, location: "", scope: "", canonical: canonicalOf(p), available: "public" }));
-    for (const m of familyDeclared()) {
-      const row = publicMemberRow(m, null); box.append(row);
-      if (m.canonical) fetchPublicState(m.canonical, m.root || "").then((r) => row.replaceWith(publicMemberRow(m, r)));
-    }
+    box.append(el("p", { class: "center" }, "Reading the family's published exports…"));
+    const t = await publicTree();
+    const members = [...t.groups.map((g) => g.member), ...t.missing.map((x) => x.member)];
+    const results = await Promise.all(members.map((m) => (m.role === "self" || !m.canonical ? null : fetchPublicState(m.canonical, m.root || ""))));
+    const byNode = new Map(members.map((m, i) => [m.node, results[i]]));
+    if (!box.isConnected) return;
+    box.replaceChildren(...treeRows(members, (m) => m.role === "self"
+      ? memberRow({ role: "self", name: p.id || p.name, location: "", scope: m.scope || "", canonical: canonicalOf(p), available: "public" })
+      : publicMemberRow(m, byNode.get(m.node))));
     return;
   }
   if (!LIVE()) {
@@ -429,10 +475,9 @@ async function viewFamily(main) {
     for (const c of p.children || []) box.append(memberRow({ role: "child", name: c.name, location: c.location, scope: c.scope, canonical: c.location.startsWith("https://") ? c.location : "", available: "none", fetch: null }));
     return;
   }
-  const members = FAMILY || await fetchFamily() || [];
-  // the chain from the root down, then this level: ancestors by depth, parent, self, siblings, children
-  const rank = (m) => (m.role === "ancestor" || m.role === "grandparent" ? -(m.depth || 2) : { parent: 0, self: 1, sibling: 2, child: 3 }[m.role] ?? 4);
-  box.append(...[...members].sort((a, b) => rank(a) - rank(b)).map(memberRow));
+  const members = await fetchTree() || [];
+  if (!box.isConnected) return;
+  box.replaceChildren(...treeRows(members, memberRow));
 }
 let PROJECTS = null; // /api/projects result
 async function viewProjects(main) {
@@ -464,11 +509,7 @@ function renderDetailsTopic(t) {
   d.append(el("h3", {}, "Topic"), el("div", { class: "kv" }, el("span", { class: "k" }, "file"), el("span", { class: "v mono" }, t.file), el("span", { class: "k" }, "entries"), el("span", { class: "v" }, t.entries)));
   d.append(el("h3", {}, `References out (${t.refs_out.length})`), ...(t.refs_out.length ? t.refs_out.map((f) => el("a", { class: "backlink", href: `#topic/${f}` }, topicOf(f)?.title || f)) : [el("p", { class: "empty" }, "none")]));
   d.append(el("h3", {}, `Referenced by (${t.refs_in.length})`), ...(t.refs_in.length ? t.refs_in.map((f) => el("a", { class: "backlink", href: `#topic/${f}` }, topicOf(f)?.title || f)) : [el("p", { class: "empty" }, "none")]));
-  if (narrow()) { d.append(el("h3", {}, "Graph"), el("a", { class: "backlink", href: "#graph" }, "Open the project graph →")); return; }
-  const box = el("div", { class: "mini tall" }, el("span", { class: "mini-title" }, "neighbourhood"), el("span", { class: "mini-hint" }, "click to open"));
-  const canvas = el("canvas"); box.prepend(canvas);
-  d.append(el("h3", {}, "Graph"), box);
-  requestAnimationFrame(() => runGraph(canvas, buildTopicSubgraph(t), { mini: true, focusId: `t:${t.file}` }));
+  miniGraph(d, { topic: t });
 }
 function renderDetailsEntry(e) {
   const d = $("#details"); d.replaceChildren();
@@ -502,8 +543,14 @@ function renderDetailsEntry(e) {
 function renderDetailsDefault() {
   const d = $("#details"); d.replaceChildren();
   const route = location.hash.slice(1) || "overview";
-  if (route === "graph") {
+  if (route === "graph" || route === "graph/family") {
     d.append(el("h3", {}, "Legend"), el("div", { class: "legend-list" },
+      scope() === "family" ? [
+        el("span", {}, el("i", { class: "dot", style: "background:var(--bg);border:3px solid var(--accent);width:12px;height:12px" }), "project — a ring in its colour; its topics take the same colour"),
+        el("span", {}, "thick dashed line — parent and child project"),
+        el("span", {}, "coloured line — a See between two entries, within a project or across"),
+        el("span", {}, "grey dashed line — Superseded by"),
+        el("span", {}, "with entries hidden, references between projects are drawn between their topics")] : null,
       el("span", {}, el("i", { class: "dot", style: "background:var(--accent);width:12px;height:12px" }), "topic — size follows its entry count"),
       el("span", {}, el("i", { class: "dot confirmed" }), "entry, Evidence confirmed"), el("span", {}, el("i", { class: "dot inferred" }), "entry, Evidence inferred"), el("span", {}, el("i", { class: "dot unknown" }), "entry, Evidence unknown"),
       el("span", {}, el("i", { class: "dot", style: "background:transparent;border:1.5px solid var(--fg3)" }), "superseded — hollow"),
@@ -512,19 +559,32 @@ function renderDetailsDefault() {
       el("h3", {}, "Keys"), el("p", { class: "note" }, el("kbd", {}, "/"), " search · ", el("kbd", {}, "g"), " graph · ", el("kbd", {}, "o"), " overview · ", el("kbd", {}, "q"), " queues · ", el("kbd", {}, "t"), " timeline · ", el("kbd", {}, "a"), " authors"));
     return;
   }
-  if (narrow()) { d.append(el("h3", {}, "Graph"), el("a", { class: "backlink", href: "#graph" }, "Open the project graph →")); return; }
-  const box = el("div", { class: "mini fill" }, el("span", { class: "mini-title" }, "graph"), el("span", { class: "mini-hint" }, "hover · click · g for the full view"));
-  const canvas = el("canvas"); box.prepend(canvas);
-  d.append(box);
-  requestAnimationFrame(() => runGraph(canvas, buildGraph(), { mini: true }));
+  miniGraph(d, {});
 }
-function renderDetailsNeighbourhood(e) {
-  const d = $("#details");
+function renderDetailsNeighbourhood(e) { miniGraph($("#details"), { entry: e }); }
+// The side-pane graph: the neighbourhood of an entry or topic, the whole
+// project, or the whole family — a switch in its corner, remembered per
+// browser. Family is offered where the family scope is (live, public).
+let MINI = (() => { try { return localStorage.getItem("ktw-mini") || "near"; } catch { return "near"; } })();
+function miniGraph(d, ctx) {
+  const focusId = ctx.entry ? `e:${ctx.entry.id}` : ctx.topic ? `t:${ctx.topic.file}` : null;
   if (narrow()) { d.append(el("h3", {}, "Graph"), el("a", { class: "backlink", href: "#graph" }, "Open the project graph →")); return; }
-  const box = el("div", { class: "mini tall" }, el("span", { class: "mini-title" }, "neighbourhood"), el("span", { class: "mini-hint" }, "click to open"));
-  const canvas = el("canvas"); box.prepend(canvas);
-  d.append(el("h3", {}, "Graph"), box);
-  requestAnimationFrame(() => runGraph(canvas, buildSubgraph(e), { mini: true, focusId: `e:${e.id}` }));
+  const modes = [...(focusId ? ["near"] : []), "project", ...(canFamily() ? ["family"] : [])];
+  const mode = modes.includes(MINI) ? MINI : focusId ? "near" : "project";
+  const box = el("div", { class: `mini ${focusId ? "tall" : "fill"}` });
+  const seg = el("span", { class: "mini-seg" }, modes.length > 1 ? modes.map((m) => el("button", { type: "button", class: m === mode ? "on" : "", title: { near: "this entry's or topic's neighbourhood", project: "the whole project", family: "the whole family tree" }[m], onclick: () => { MINI = m; try { localStorage.setItem("ktw-mini", m); } catch {} const keep = d.querySelector(".mini"); const h = keep?.previousElementSibling?.tagName === "H3" ? keep.previousElementSibling : null; h?.remove(); keep?.remove(); miniGraph(d, ctx); } }, m)) : el("span", { class: "mini-title" }, "graph"));
+  const canvas = el("canvas");
+  box.append(canvas, seg, el("span", { class: "mini-hint" }, mode === "near" ? "click to open" : "hover · click · g for the full view"));
+  if (focusId) d.append(el("h3", {}, "Graph"));
+  d.append(box);
+  const opts = { mini: true, focusId };
+  if (mode === "near") return requestAnimationFrame(() => runGraph(canvas, ctx.entry ? buildSubgraph(ctx.entry) : buildTopicSubgraph(ctx.topic), opts));
+  if (mode === "project") return requestAnimationFrame(() => runGraph(canvas, buildGraph(), opts));
+  // family: the family graph's nodes, in a view of its own (its own zoom, entries shown)
+  const note = el("span", { class: "mini-hint", style: "top:28px;bottom:auto" }, "loading the family…"); box.append(note);
+  const show = (fg) => { note.remove(); if (!canvas.isConnected) return; runGraph(canvas, { ...fg, scale: 1, ox: 0, oy: 0, showEntries: true, showLabels: true, raf: null, wake: null, alpha: Math.max(fg.alpha, 0.3) }, opts); };
+  if (fgraph && Date.now() - fgraph.at < 30000) requestAnimationFrame(() => show(fgraph));
+  else buildFamilyGraph().then(show);
 }
 // ---------------------------------------------------------------- graph (canvas force layout, no library)
 let graph = null; // the full graph persists across re-renders so positions survive live updates
@@ -545,8 +605,21 @@ function assemble(topics, entries, prev = {}) {
   }
   const seen = new Set();
   for (const t of topics) for (const f of t.refs_out) { if (index[`t:${f}`] == null) continue; const k = [t.file, f].sort().join("|"); if (seen.has(k)) continue; seen.add(k); links.push({ s: index[`t:${t.file}`], t: index[`t:${f}`], kind: "topic", len: 170 }); }
+  // See and Superseded by between entries, by Id; between their topics while entries are hidden
+  const tpairs = new Set();
+  for (const x of linkFamily([{ key: "self", role: "self", state: { entries } }]).xrefs) {
+    const a = entries.find((e) => e.id === x.from.id), b = entries.find((e) => e.id === x.to.id);
+    const s = index[`e:${x.from.id}`], t = index[`e:${x.to.id}`];
+    if (s == null || t == null) continue;
+    links.push({ s, t, kind: x.kind, len: 150 });
+    const ts = index[`t:${a.file}`], tt = index[`t:${b.file}`]; const k = `${ts}|${tt}`;
+    if (a.file !== b.file && ts != null && tt != null && !tpairs.has(k)) { tpairs.add(k); links.push({ s: ts, t: tt, kind: "xtopic", len: 200 }); }
+  }
   return { nodes, links, index };
 }
+// the Ids an entry points at, and the entries of `list` that point at it
+const pointsAt = (e) => [...(e.see || []).map((r) => r?.uuid), e.superseded_by ? parseSupersededBy(e.superseded_by)?.uuid : null].filter(Boolean);
+const linkedTo = (e, list) => list.filter((x) => x !== e && ((e.uuid && pointsAt(x).includes(e.uuid)) || (x.uuid && pointsAt(e).includes(x.uuid))));
 function buildGraph() {
   const prev = graph ? Object.fromEntries(graph.nodes.map((n) => [n.id, n])) : {};
   graph = Object.assign(graph || { scale: 1, ox: 0, oy: 0, showEntries: true, showLabels: true, alpha: 1 }, assemble(S.topics, S.entries, prev));
@@ -565,30 +638,109 @@ function buildSubgraph(e) {
   // the entry, its topic and siblings, the topics it references, and the entries elsewhere that reference its topic
   const files = new Set([e.file, ...e.refs]);
   const back = S.entries.filter((x) => x.refs.includes(e.file));
-  for (const b of back) files.add(b.file);
+  const linked = linkedTo(e, S.entries); // See / Superseded by, either direction
+  for (const b of [...back, ...linked]) files.add(b.file);
   const topics = S.topics.filter((t) => files.has(t.file));
-  const entries = S.entries.filter((x) => x.file === e.file || x.id === e.id || back.includes(x));
+  const entries = S.entries.filter((x) => x.file === e.file || x.id === e.id || back.includes(x) || linked.includes(x));
   const prev = graph ? Object.fromEntries(graph.nodes.map((n) => [n.id, n])) : {};
   return Object.assign({ scale: 1, ox: 0, oy: 0, showEntries: true, showLabels: true, alpha: 1 }, assemble(topics, entries, prev));
 }
-function viewGraph(main) {
-  const g = buildGraph();
-  const wrap = el("div", { class: "graph-wrap" });
-  const canvas = el("canvas");
-  const ui = el("div", { class: "graph-ui" },
-    el("label", {}, el("input", { type: "checkbox", checked: g.showEntries, onchange: (ev) => { g.showEntries = ev.target.checked; g.alpha = 0.5; g.wake?.(); } }), "entries"),
-    el("label", {}, el("input", { type: "checkbox", checked: g.showLabels, onchange: (ev) => { g.showLabels = ev.target.checked; g.wake?.(); } }), "labels"),
-    el("button", { class: "link-btn", onclick: () => { g.scale = 1; g.ox = 0; g.oy = 0; for (const n of g.nodes) { n.fixed = false; } g.alpha = 1; g.wake?.(); } }, "reset"),
-  );
-  const legend = el("div", { class: "graph-legend" },
-    el("span", {}, el("i", { class: "dot", style: "background:var(--accent);width:12px;height:12px" }), "topic (size = entries)"),
-    el("span", {}, el("i", { class: "dot confirmed" }), "confirmed"), el("span", {}, el("i", { class: "dot inferred" }), "inferred"), el("span", {}, el("i", { class: "dot unknown" }), "unknown"),
-    el("span", {}, el("i", { class: "dot", style: "background:transparent;border:1.5px solid var(--fg3)" }), "superseded"),
-    el("span", {}, "— reference · ··· membership"));
-  wrap.append(canvas, ui, legend, el("div", { class: "graph-hint" }, "drag nodes · wheel zoom · drag background to pan · click to open"));
-  main.append(wrap);
-  runGraph(canvas, g, {});
+// The family graph: every project of the tree as a hub in its own colour,
+// its topics and entries around it, parent and child projects joined, and
+// the See and Superseded by lines between entries drawn across projects.
+let fgraph = null; // kept across re-renders so positions survive live updates
+const memberLink = (m, hash) => m.role === "self" ? hash : MODE === "public" ? publicHref(m.canonical, m.root || "", hash) : `${location.pathname}?project=${encodeURIComponent(m.key)}${hash}`;
+async function buildFamilyGraph() {
+  const pool = await searchPool("family");
+  const groups = pool.groups.map((g, i) => ({
+    g, key: g.member.role === "self" ? "self" : g.member.key || `${g.member.canonical}|${g.member.root || ""}`,
+    canonical: g.state.project?.canonical || g.member.canonical || (g.member.role === "self" ? canonicalOf(S.project) : ""),
+    root: g.state.project?.root || g.member.root || (g.member.role === "self" ? PUBLIC_ROOT : ""),
+    role: g.member.role, state: g.state, color: i === 0 ? color0() : PALETTE[i % PALETTE.length],
+  }));
+  const { parentOf, xrefs } = linkFamily(groups);
+  const prev = fgraph ? Object.fromEntries(fgraph.nodes.map((n) => [n.id, n])) : {};
+  const nodes = []; const links = []; const index = {};
+  const add = (n, near) => {
+    const p = prev[n.id];
+    if (p) Object.assign(n, { x: p.x, y: p.y, vx: 0, vy: 0, fixed: p.fixed });
+    else { n.x = (near?.x || 0) + (Math.random() - 0.5) * 140; n.y = (near?.y || 0) + (Math.random() - 0.5) * 140; n.vx = n.vy = 0; }
+    index[n.id] = nodes.length; nodes.push(n); return n;
+  };
+  // this project keeps the local graph's ids, so the selected entry and the positions carry over
+  const tid = (G, file) => (G.key === "self" ? `t:${file}` : `t:${G.key}:${file}`);
+  const eid = (G, id) => (G.key === "self" ? `e:${id}` : `e:${G.key}:${id}`);
+  const R = groups.length > 1 ? 220 + 45 * groups.length : 0;
+  groups.forEach((G, i) => {
+    const ang = (2 * Math.PI * i) / groups.length;
+    const hub = add({ id: `p:${G.key}`, kind: "project", label: G.g.member.name, r: 15, color: G.color, href: memberLink(G.g.member, "#overview") }, { x: R * Math.cos(ang), y: R * Math.sin(ang) });
+    for (const t of G.state.topics || []) {
+      const n = add({ id: tid(G, t.file), kind: "topic", label: t.title, file: t.file, color: G.color, r: 8 + Math.sqrt(t.entries || 0) * 2.8, href: memberLink(G.g.member, `#topic/${t.file}`) }, hub);
+      links.push({ s: index[hub.id], t: index[n.id], kind: "hub", len: 80 });
+    }
+    for (const e of G.state.entries || []) {
+      const t = nodes[index[tid(G, e.file)]];
+      add({ id: eid(G, e.id), kind: "entry", label: e.title, file: e.file, entry: e, r: 4.2, href: G.key === "self" ? `#entry/${encodeURIComponent(e.id)}` : G.g.href(e) }, t || hub);
+    }
+    for (const e of G.state.entries || []) {
+      const me = index[eid(G, e.id)];
+      if (index[tid(G, e.file)] != null) links.push({ s: me, t: index[tid(G, e.file)], kind: "member", len: 42 });
+      for (const f of e.refs || []) if (index[tid(G, f)] != null) links.push({ s: me, t: index[tid(G, f)], kind: "ref", len: 110 });
+    }
+    const seen = new Set();
+    for (const t of G.state.topics || []) for (const f of t.refs_out || []) { if (index[tid(G, f)] == null) continue; const k = [t.file, f].sort().join("|"); if (seen.has(k)) continue; seen.add(k); links.push({ s: index[tid(G, t.file)], t: index[tid(G, f)], kind: "topic", len: 150 }); }
+  });
+  for (const [child, parent] of Object.entries(parentOf)) if (index[`p:${child}`] != null && index[`p:${parent}`] != null) links.push({ s: index[`p:${child}`], t: index[`p:${parent}`], kind: "family", len: 320 });
+  const byKey = Object.fromEntries(groups.map((G) => [G.key, G]));
+  const entryOf = (G, id) => (G.state.entries || []).find((e) => e.id === id);
+  const topicPairs = new Set(); let across = 0;
+  for (const x of xrefs) {
+    const A = byKey[x.from.key], B = byKey[x.to.key];
+    const s = index[eid(A, x.from.id)], t = index[eid(B, x.to.id)];
+    if (s == null || t == null) continue;
+    links.push({ s, t, kind: x.kind, len: 170, color: A.color });
+    if (x.from.key === x.to.key) continue;
+    across++;
+    // the same reference between the two topics, for the view with entries hidden
+    const ts = index[tid(A, entryOf(A, x.from.id)?.file)], tt = index[tid(B, entryOf(B, x.to.id)?.file)];
+    const k = `${ts}|${tt}`;
+    if (ts != null && tt != null && !topicPairs.has(k)) { topicPairs.add(k); links.push({ s: ts, t: tt, kind: "xtopic", len: 220, color: A.color }); }
+  }
+  fgraph = Object.assign(fgraph || { scale: 0.7, ox: 0, oy: 0, showEntries: false, showLabels: true, alpha: 1 }, { nodes, links, index, groups, missing: pool.missing, across, at: Date.now() });
+  fgraph.alpha = Math.max(fgraph.alpha, 0.6);
+  return fgraph;
 }
+const color0 = () => getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#835bec";
+function viewGraph(main) {
+  const family = scope() === "family";
+  const wrap = el("div", { class: "graph-wrap" });
+  main.append(wrap);
+  const fill = (g) => {
+    const canvas = el("canvas");
+    const ui = el("div", { class: "graph-ui" },
+      el("label", {}, el("input", { type: "checkbox", checked: g.showEntries, onchange: (ev) => { g.showEntries = ev.target.checked; g.alpha = 0.5; g.wake?.(); } }), "entries"),
+      el("label", {}, el("input", { type: "checkbox", checked: g.showLabels, onchange: (ev) => { g.showLabels = ev.target.checked; g.wake?.(); } }), "labels"),
+      el("button", { class: "link-btn", onclick: () => { g.scale = family ? 0.7 : 1; g.ox = 0; g.oy = 0; g.userMoved = false; for (const n of g.nodes) { n.fixed = false; } g.alpha = 1; g.wake?.(); } }, "reset"),
+    );
+    const legend = family
+      ? el("div", { class: "graph-legend" },
+        g.groups.map((G) => el("span", {}, el("i", { class: "dot", style: `background:${G.color};width:10px;height:10px` }), G.g.member.name)),
+        el("span", {}, `${plural(g.across, "reference")} across projects`),
+        g.missing.length ? el("span", { class: "warn", title: g.missing.map(({ member: m, reason }) => `${m.name}: ${reason}`).join("\n") }, `${plural(g.missing.length, "member")} not available here`) : null)
+      : el("div", { class: "graph-legend" },
+        el("span", {}, el("i", { class: "dot", style: "background:var(--accent);width:12px;height:12px" }), "topic (size = entries)"),
+        el("span", {}, el("i", { class: "dot confirmed" }), "confirmed"), el("span", {}, el("i", { class: "dot inferred" }), "inferred"), el("span", {}, el("i", { class: "dot unknown" }), "unknown"),
+        el("span", {}, el("i", { class: "dot", style: "background:transparent;border:1.5px solid var(--fg3)" }), "superseded"),
+        el("span", {}, "— reference · ··· membership"));
+    wrap.replaceChildren(canvas, ui, legend, el("div", { class: "graph-hint" }, family ? "family — a project opens its overview · drag nodes · wheel zoom · drag background to pan" : "drag nodes · wheel zoom · drag background to pan · click to open"));
+    runGraph(canvas, g, { fit: family });
+  };
+  if (!family) return fill(buildGraph());
+  if (fgraph && Date.now() - fgraph.at < 30000) return fill(fgraph); // a live update re-renders: no refetch
+  wrap.append(el("p", { class: "center" }, "Loading the family…"));
+  buildFamilyGraph().then((g) => { if (wrap.isConnected && location.hash === "#graph" && scope() === "family") fill(g); });
+}
+const go = (href) => { if (href.startsWith("#")) location.hash = href; else location.href = href; };
 function runGraph(canvas, g, opts = {}) {
   const mini = !!opts.mini;
   const ctx = canvas.getContext("2d");
@@ -600,7 +752,9 @@ function runGraph(canvas, g, opts = {}) {
   resize();
   const ro = new ResizeObserver(resize); ro.observe(canvas);
   const toWorld = (px, py) => [(px - W / 2 - g.ox) / g.scale, (py - H / 2 - g.oy) / g.scale];
-  const visible = (n) => n.kind === "topic" || g.showEntries;
+  const visible = (n) => n.kind !== "entry" || g.showEntries;
+  // a topic-level reference stands in for entry references only while entries are hidden
+  const linkOn = (l) => visible(g.nodes[l.s]) && visible(g.nodes[l.t]) && (l.kind !== "xtopic" || !g.showEntries);
   const dim = (n) => n.kind === "entry" && filterActive() && !matches(n.entry);
   const pick = (px, py) => { const [x, y] = toWorld(px, py); let best = null, bd = 1e9; for (const n of g.nodes) { if (!visible(n)) continue; const d = Math.hypot(n.x - x, n.y - y); if (d < Math.max(n.r + 4, 8) / Math.min(g.scale, 1) && d < bd) { best = n; bd = d; } } return best; };
   canvas.onmousemove = (ev) => {
@@ -609,16 +763,17 @@ function runGraph(canvas, g, opts = {}) {
     if (pan) { g.ox = pan.ox + (px - pan.px); g.oy = pan.oy + (py - pan.py); moved = true; return; }
     hover = pick(px, py); canvas.style.cursor = hover ? "pointer" : "grab";
   };
-  canvas.onmousedown = (ev) => { const r = canvas.getBoundingClientRect(); const px = ev.clientX - r.left, py = ev.clientY - r.top; moved = false; const n = pick(px, py); if (n) drag = n; else pan = { px, py, ox: g.ox, oy: g.oy }; canvas.classList.add("grabbing"); };
-  window.addEventListener("mouseup", () => { if (drag && !moved) { location.hash = drag.href; } drag = null; pan = null; canvas.classList.remove("grabbing"); });
+  canvas.onmousedown = (ev) => { const r = canvas.getBoundingClientRect(); const px = ev.clientX - r.left, py = ev.clientY - r.top; moved = false; g.userMoved = true; const n = pick(px, py); if (n) drag = n; else pan = { px, py, ox: g.ox, oy: g.oy }; canvas.classList.add("grabbing"); };
+  window.addEventListener("mouseup", () => { if (drag && !moved) go(drag.href); drag = null; pan = null; canvas.classList.remove("grabbing"); });
   canvas.onmouseleave = () => { hover = null; };
-  canvas.onwheel = (ev) => { ev.preventDefault(); const r = canvas.getBoundingClientRect(); const px = ev.clientX - r.left - W / 2, py = ev.clientY - r.top - H / 2; const f = Math.exp(-ev.deltaY * 0.0012); const ns = Math.min(6, Math.max(0.15, g.scale * f)); const k = ns / g.scale; g.ox = px - (px - g.ox) * k; g.oy = py - (py - g.oy) * k; g.scale = ns; };
+  canvas.onwheel = (ev) => { ev.preventDefault(); g.userMoved = true; const r = canvas.getBoundingClientRect(); const px = ev.clientX - r.left - W / 2, py = ev.clientY - r.top - H / 2; const f = Math.exp(-ev.deltaY * 0.0012); const ns = Math.min(6, Math.max(0.15, g.scale * f)); const k = ns / g.scale; g.ox = px - (px - g.ox) * k; g.oy = py - (py - g.oy) * k; g.scale = ns; };
   canvas.ondblclick = (ev) => { const r = canvas.getBoundingClientRect(); const n = pick(ev.clientX - r.left, ev.clientY - r.top); if (n) { n.fixed = false; g.alpha = 0.4; } };
   // touch: one finger drags a node or pans (full view only), two fingers pinch-zoom, a tap opens
   let pinch = null;
   const tpos = (t) => { const r = canvas.getBoundingClientRect(); return [t.clientX - r.left, t.clientY - r.top]; };
   const tdist = (ts) => Math.hypot(ts[0].clientX - ts[1].clientX, ts[0].clientY - ts[1].clientY);
   canvas.addEventListener("touchstart", (ev) => {
+    g.userMoved = true;
     if (ev.touches.length === 2) { pinch = { d: tdist(ev.touches), scale: g.scale, ox: g.ox, oy: g.oy }; drag = null; pan = null; return; }
     const [px, py] = tpos(ev.touches[0]); moved = false; const n = pick(px, py);
     if (n) drag = n; else if (!mini) pan = { px, py, ox: g.ox, oy: g.oy };
@@ -632,7 +787,7 @@ function runGraph(canvas, g, opts = {}) {
   }, { passive: false });
   canvas.addEventListener("touchend", (ev) => {
     if (pinch) { if (!ev.touches.length) pinch = null; return; }
-    if (drag && !moved) location.hash = drag.href;
+    if (drag && !moved) go(drag.href);
     drag = null; pan = null;
   });
   const ev = (n) => n.entry.evidence;
@@ -643,34 +798,48 @@ function runGraph(canvas, g, opts = {}) {
       const k = g.alpha;
       // repulsion
       for (let i = 0; i < ns.length; i++) for (let j = i + 1; j < ns.length; j++) {
-        const a = ns[i], b = ns[j]; let dx = b.x - a.x, dy = b.y - a.y; let d2 = dx * dx + dy * dy + 0.01; if (d2 > 250000) continue;
-        const rep = (a.kind === "topic" && b.kind === "topic" ? 2600 : a.kind === "entry" && b.kind === "entry" ? 260 : 900) / d2; const d = Math.sqrt(d2);
+        const a = ns[i], b = ns[j]; let dx = b.x - a.x, dy = b.y - a.y; let d2 = dx * dx + dy * dy + 0.01;
+        const hubs = a.kind === "project" && b.kind === "project";
+        if (d2 > (hubs ? 4000000 : 250000)) continue;
+        const rep = (hubs ? 30000 : a.kind === "entry" && b.kind === "entry" ? 260 : a.kind === "entry" || b.kind === "entry" ? 900 : 2600) / d2; const d = Math.sqrt(d2);
         const fx = (dx / d) * rep * k, fy = (dy / d) * rep * k;
         if (!a.fixed) { a.vx -= fx; a.vy -= fy; } if (!b.fixed) { b.vx += fx; b.vy += fy; }
       }
       // springs
-      for (const l of g.links) { const a = g.nodes[l.s], b = g.nodes[l.t]; if (!visible(a) || !visible(b)) continue; const dx = b.x - a.x, dy = b.y - a.y; const d = Math.hypot(dx, dy) || 0.01; const f = (d - l.len) * (l.kind === "member" ? 0.05 : 0.02) * k; const fx = (dx / d) * f, fy = (dy / d) * f; if (!a.fixed) { a.vx += fx; a.vy += fy; } if (!b.fixed) { b.vx -= fx; b.vy -= fy; } }
+      for (const l of g.links) { if (!linkOn(l)) continue; const a = g.nodes[l.s], b = g.nodes[l.t]; const dx = b.x - a.x, dy = b.y - a.y; const d = Math.hypot(dx, dy) || 0.01; const f = (d - l.len) * (l.kind === "member" || l.kind === "hub" ? 0.05 : l.kind === "family" ? 0.03 : 0.02) * k; const fx = (dx / d) * f, fy = (dy / d) * f; if (!a.fixed) { a.vx += fx; a.vy += fy; } if (!b.fixed) { b.vx -= fx; b.vy -= fy; } }
       // gravity + integrate
       for (const n of ns) { if (n.fixed) continue; n.vx -= n.x * 0.004 * k; n.vy -= n.y * 0.004 * k; n.vx *= 0.82; n.vy *= 0.82; n.x += n.vx; n.y += n.vy; }
       g.alpha *= 0.985;
     }
-    if (mini && g.alpha > 0.01) { // keep the small canvas framed on the nodes while they settle
+    // keep the canvas framed on the nodes while they settle: the small one always, the family graph until the person moves it
+    if ((mini || (opts.fit && !g.userMoved)) && g.alpha > 0.01 && W && H) {
       let minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
-      for (const n of ns) { minX = Math.min(minX, n.x); maxX = Math.max(maxX, n.x); minY = Math.min(minY, n.y); maxY = Math.max(maxY, n.y); }
-      if (ns.length) { const sw = Math.max(80, maxX - minX + 60), sh = Math.max(80, maxY - minY + 60); g.scale = Math.min(2.2, Math.min(W / sw, H / sh)); g.ox = -((minX + maxX) / 2) * g.scale; g.oy = -((minY + maxY) / 2) * g.scale; }
+      for (const n of ns) { minX = Math.min(minX, n.x - n.r); maxX = Math.max(maxX, n.x + n.r); minY = Math.min(minY, n.y - n.r); maxY = Math.max(maxY, n.y + n.r + 18); }
+      const pad = mini ? 60 : 140;
+      if (ns.length) { const sw = Math.max(80, maxX - minX + pad), sh = Math.max(80, maxY - minY + pad); g.scale = Math.min(mini ? 2.2 : 1.2, Math.min(W / sw, H / sh)); g.ox = -((minX + maxX) / 2) * g.scale; g.oy = -((minY + maxY) / 2) * g.scale; }
     }
     // draw
     ctx.clearRect(0, 0, W, H);
     ctx.save(); ctx.translate(W / 2 + g.ox, H / 2 + g.oy); ctx.scale(g.scale, g.scale);
     const focus = hover || (opts.focusId && g.index[opts.focusId] != null ? g.nodes[g.index[opts.focusId]] : null) || (!mini && selected ? g.nodes[g.index[`e:${selected}`]] : null);
-    const neigh = new Set(); if (focus) { neigh.add(focus); for (const l of g.links) { if (g.nodes[l.s] === focus) neigh.add(g.nodes[l.t]); if (g.nodes[l.t] === focus) neigh.add(g.nodes[l.s]); } }
-    for (const l of g.links) { const a = g.nodes[l.s], b = g.nodes[l.t]; if (!visible(a) || !visible(b)) continue; const hi = focus && (a === focus || b === focus); ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineWidth = (l.kind === "topic" ? 1.6 : l.kind === "ref" ? 1 : 0.6) / g.scale; ctx.setLineDash(l.kind === "member" ? [2 / g.scale, 3 / g.scale] : []); ctx.strokeStyle = hi ? color("--accent2") : color("--line"); ctx.globalAlpha = focus && !hi ? 0.25 : 1; ctx.stroke(); }
+    const neigh = new Set(); if (focus) { neigh.add(focus); for (const l of g.links) { if (!linkOn(l)) continue; if (g.nodes[l.s] === focus) neigh.add(g.nodes[l.t]); if (g.nodes[l.t] === focus) neigh.add(g.nodes[l.s]); } }
+    const LW = { topic: 1.6, ref: 1, family: 2.6, see: 1.5, xtopic: 1.5, superseded: 1.3 };
+    const DASH = { member: [2, 3], hub: [2, 3], family: [9, 6], superseded: [5, 4] };
+    for (const l of g.links) {
+      if (!linkOn(l)) continue;
+      const a = g.nodes[l.s], b = g.nodes[l.t]; const hi = focus && (a === focus || b === focus);
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+      ctx.lineWidth = (LW[l.kind] || 0.6) / g.scale; ctx.setLineDash((DASH[l.kind] || []).map((v) => v / g.scale));
+      const base = l.kind === "see" || l.kind === "xtopic" ? (l.color || color("--accent2")) : l.kind === "superseded" ? color("--fg3") : l.kind === "family" ? color("--fg3") : color("--line");
+      ctx.strokeStyle = hi ? (l.kind === "see" || l.kind === "xtopic" ? color("--fg") : color("--accent2")) : base; ctx.globalAlpha = focus && !hi ? 0.25 : l.kind === "see" || l.kind === "xtopic" ? 0.85 : 1; ctx.stroke();
+    }
     ctx.setLineDash([]);
     for (const n of ns) {
       const faded = (focus && !neigh.has(n)) || dim(n);
       ctx.globalAlpha = faded ? 0.18 : 1;
       ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-      if (n.kind === "topic") { ctx.fillStyle = color("--accent"); ctx.fill(); }
+      if (n.kind === "project") { ctx.fillStyle = color("--bg"); ctx.fill(); ctx.lineWidth = 3.5 / g.scale; ctx.strokeStyle = n.color; ctx.stroke(); ctx.beginPath(); ctx.arc(n.x, n.y, n.r * 0.38, 0, Math.PI * 2); ctx.fillStyle = n.color; ctx.fill(); }
+      else if (n.kind === "topic") { ctx.fillStyle = n.color || color("--accent"); ctx.fill(); }
       else { const sup = n.entry.status === "superseded"; ctx.fillStyle = sup ? color("--bg") : evColor[ev(n)] || color("--muted"); ctx.fill(); if (sup) { ctx.lineWidth = 1.2 / g.scale; ctx.strokeStyle = evColor[ev(n)] || color("--fg3"); ctx.stroke(); } if (n.entry.status === "open" || n.entry.status === "needs-review" || n.entry.status === "pending-confirmation") { ctx.beginPath(); ctx.arc(n.x, n.y, n.r + 2.5 / g.scale, 0, Math.PI * 2); ctx.lineWidth = 1.2 / g.scale; ctx.strokeStyle = color(`--${n.entry.status}`); ctx.stroke(); } }
       if (n === focus) { ctx.beginPath(); ctx.arc(n.x, n.y, n.r + 4 / g.scale, 0, Math.PI * 2); ctx.lineWidth = 1.5 / g.scale; ctx.strokeStyle = color("--fg"); ctx.stroke(); }
     }
@@ -678,13 +847,15 @@ function runGraph(canvas, g, opts = {}) {
     if (g.showLabels || focus) {
       ctx.font = `${(mini ? 11 : 12) / g.scale}px ${color("--font") || "sans-serif"}`; ctx.textAlign = "center"; ctx.textBaseline = "top";
       for (const n of ns) {
-        const show = n.kind === "topic" ? (mini ? neigh.has(n) || n === focus || g.nodes.filter((x) => x.kind === "topic").length <= 12 : g.showLabels || neigh.has(n)) : (focus && (neigh.has(n) || n === focus)) || (!mini && g.showLabels && g.scale > 1.6);
+        const show = n.kind === "project" ? true : n.kind === "topic" ? (mini ? neigh.has(n) || n === focus || g.nodes.filter((x) => x.kind === "topic").length <= 12 : g.showLabels || neigh.has(n)) : (focus && (neigh.has(n) || n === focus)) || (!mini && g.showLabels && g.scale > 1.6);
         if (!show) continue;
         const faded = focus && !neigh.has(n) && n !== focus; if (faded) continue;
         const lbl = n.label.replace(/`/g, ""); const txt = lbl.length > 48 ? lbl.slice(0, 46) + "…" : lbl;
         const tw = ctx.measureText(txt).width; const y = n.y + n.r + 3 / g.scale;
         ctx.fillStyle = color("--bg"); ctx.globalAlpha = 0.75; ctx.fillRect(n.x - tw / 2 - 3 / g.scale, y - 1 / g.scale, tw + 6 / g.scale, 15 / g.scale); ctx.globalAlpha = 1;
-        ctx.fillStyle = n.kind === "topic" ? color("--fg") : color("--fg2"); ctx.fillText(txt, n.x, y);
+        if (n.kind === "project") ctx.font = `600 ${13 / g.scale}px ${color("--font") || "sans-serif"}`;
+        ctx.fillStyle = n.kind === "entry" ? color("--fg2") : color("--fg"); ctx.fillText(txt, n.x, y);
+        if (n.kind === "project") ctx.font = `${(mini ? 11 : 12) / g.scale}px ${color("--font") || "sans-serif"}`;
       }
     }
     ctx.restore();
@@ -762,18 +933,19 @@ async function publicTree() {
   if (PUBLIC_TREE) return PUBLIC_TREE;
   const canon = canonicalOf(S.project); const myRoot = PUBLIC_ROOT;
   const keyOf = (c, r) => `${c}|${r}`;
-  const self = { member: { role: "self", name: S.project.id || S.project.name, canonical: canon, root: myRoot }, state: S, href: (e) => entryHref(e) };
+  const self = { member: { role: "self", name: S.project.id || S.project.name, canonical: canon, root: myRoot, node: keyOf(canon, myRoot), up: null }, state: S, href: (e) => entryHref(e) };
   const groups = [self]; const missing = []; const seen = new Set([keyOf(canon, myRoot)]);
   const label = (loc) => loc.root ? `${loc.canonical.replace(/^https:\/\//, "")}/${loc.root}` : loc.canonical.replace(/^https:\/\//, "");
   const add = (m, r) => { if (r.state) groups.push({ member: m, state: r.state, href: (e) => publicHref(m.canonical, m.root, entryHref(e)) }); else missing.push({ member: m, reason: r.error }); return r.state; };
   // up: the parent chain, as far as each level is published
-  let cur = { state: S, canonical: canon, root: myRoot }; let depth = 1; let parentKey = null;
+  let cur = { state: S, canonical: canon, root: myRoot }; let depth = 1; let parentKey = null; let below = self.member;
   while (cur.state?.project?.parent && depth < 12) {
     const loc = resolveLocation(cur.state.project.parent, cur.canonical, cur.root);
     if (!loc || seen.has(keyOf(loc.canonical, loc.root))) break;
     seen.add(keyOf(loc.canonical, loc.root));
     if (depth === 1) parentKey = keyOf(loc.canonical, loc.root);
-    const m = { role: depth === 1 ? "parent" : depth === 2 ? "grandparent" : "ancestor", depth, name: label(loc), ...loc };
+    const m = { role: depth === 1 ? "parent" : depth === 2 ? "grandparent" : "ancestor", depth, name: label(loc), ...loc, node: keyOf(loc.canonical, loc.root), up: null };
+    below.up = m.node; below = m; // the tree's shape: each level names the one above it
     const st = add(m, await fetchPublicState(loc.canonical, loc.root));
     cur = { state: st, canonical: loc.canonical, root: loc.root }; depth++;
   }
@@ -787,7 +959,7 @@ async function publicTree() {
     const results = await Promise.all(kids.map((k) => fetchPublicState(k.loc.canonical, k.loc.root)));
     kids.forEach((k, i) => {
       const role = k.from.key === keyOf(canon, myRoot) ? "child" : k.from.key === parentKey ? "sibling" : "relative";
-      const st = add({ role, name: k.c.name, scope: k.c.scope, via: k.from.state?.project?.id || "", ...k.loc }, results[i]);
+      const st = add({ role, name: k.c.name, scope: k.c.scope, via: k.from.state?.project?.id || "", ...k.loc, node: keyOf(k.loc.canonical, k.loc.root), up: k.from.key }, results[i]);
       if (st) next.push({ state: st, canonical: k.loc.canonical, root: k.loc.root, key: keyOf(k.loc.canonical, k.loc.root) });
     });
     level = next;
@@ -798,7 +970,7 @@ async function publicTree() {
 }
 // { groups: [{ member, state, href(e) }], missing: [{ member, reason }] } — this project first
 async function searchPool(scope) {
-  const self = { member: { role: "self", name: S.project.id || S.project.name }, state: S, href: (e) => entryHref(e) };
+  const self = { member: { role: "self", name: S.project.name || S.project.id }, state: S, href: (e) => entryHref(e) };
   if (scope !== "family") return { groups: [self], missing: [] };
   if (MODE === "public") return publicTree();
   if (!LIVE()) return { groups: [self], missing: [] };
@@ -815,6 +987,30 @@ function searchRows(pool, q) {
   return rows.sort((a, b) => compareHits(a.hit, b.hit));
 }
 const searchScopes = () => (LIVE() || MODE === "public" ? ["project", "family"] : ["project"]);
+// One setting for every view that can span projects (search, graph): this
+// project, or the whole family tree. Kept per browser; a results-page link
+// carries its own scope and sets it.
+const hasFamily = () => !!(S?.project?.parent || (S?.project?.children || []).length);
+const canFamily = () => searchScopes().includes("family") && hasFamily();
+let SCOPE = (() => { try { return localStorage.getItem("ktw-scope") || localStorage.getItem("ktw-search-scope") || "project"; } catch { return "project"; } })();
+const scope = () => (canFamily() && SCOPE === "family" ? "family" : "project");
+function markScope() {
+  const box = $("#scope"); if (!box) return;
+  box.hidden = !canFamily();
+  for (const b of box.querySelectorAll("button")) b.classList.toggle("on", b.dataset.scope === scope());
+}
+function setScope(v, { rerender: again = true } = {}) {
+  if (v !== "project" && v !== "family") return;
+  const changed = SCOPE !== v; SCOPE = v;
+  try { localStorage.setItem("ktw-scope", v); } catch {}
+  markScope();
+  if (!changed || !again) return;
+  const route = location.hash.slice(1);
+  if (route.startsWith("search/")) { const q = decodeURIComponent(route.split("/").slice(2).join("/")); location.hash = searchHref(scope(), q); }
+  else render();
+  window.__ktwScopeChanged?.();
+}
+function setupScope() { for (const b of $("#scope").querySelectorAll("button")) b.onclick = () => setScope(b.dataset.scope); markScope(); }
 const searchHref = (scope, q) => `#search/${scope}/${encodeURIComponent(q)}`;
 const memberLabel = (m) => m.role === "self" ? "this project" : m.role === "relative" && m.via ? `relative, via ${m.via}` : m.role;
 const topicTitle = (st, file) => st.topics?.find((t) => t.file === file)?.title || file;
@@ -824,14 +1020,14 @@ function hitSnippet(hit) {
   return (w.field === "body" || w.field === "title" ? "" : `<b>${esc(w.field)}:</b> `) + highlight(text, hit.terms);
 }
 let RESTORE_SCROLL = 0; // a live update re-renders the results page; its rows arrive after the scroll was restored
-async function viewSearch(main, scope, q) {
-  if (!searchScopes().includes(scope)) scope = "project";
+async function viewSearch(main, linkScope, q) {
+  if (linkScope === "family" || linkScope === "project") setScope(linkScope, { rerender: false }); // a shared link brings its scope
+  const scope = SCOPE === "family" && canFamily() ? "family" : "project";
+  if (scope !== linkScope) { history.replaceState(null, "", searchHref(scope, q)); } // this project has no family: the link falls back
   const input = $("#search"); if (document.activeElement !== input) input.value = q;
-  const scopeSel = $("#search-scope"); if (!scopeSel.hidden) scopeSel.value = scope;
   const terms = searchTerms(q);
-  const scopeBtns = searchScopes().length > 1 ? el("div", { class: "seg" }, searchScopes().map((sc) => el("a", { href: searchHref(sc, q), class: sc === scope ? "on" : "" }, sc === "project" ? "this project" : "whole family"))) : null;
   const sub = el("p", { class: "sub" }, "Searching…");
-  main.append(el("div", { class: "search-head" }, el("h1", {}, "Search ", el("span", { class: "q" }, `“${q}”`)), scopeBtns), sub);
+  main.append(el("div", { class: "search-head" }, el("h1", {}, "Search ", el("span", { class: "q" }, `“${q}”`)), el("span", { class: "note" }, scope === "family" ? "whole family — switch next to the project menu" : canFamily() ? "this project — switch next to the project menu" : "")), sub);
   if (terms.length === 0 || q.trim().length < 2) { sub.textContent = "Type at least two characters in the search field and press Enter."; return; }
   const pool = await searchPool(scope);
   if (location.hash !== searchHref(scope, q) && decodeURIComponent(location.hash) !== decodeURIComponent(searchHref(scope, q))) return; // navigated away meanwhile
@@ -863,7 +1059,7 @@ async function viewSearch(main, scope, q) {
           el("div", { class: "rm" }, meta));
       }))));
   }
-  if (!rows.length) box.append(el("p", { class: "center" }, `No entry matches “${q}”`, scope === "project" && searchScopes().includes("family") && (S.project.parent || (S.project.children || []).length) ? [" in this project — ", el("a", { href: searchHref("family", q) }, "search the whole family")] : "", "."));
+  if (!rows.length) box.append(el("p", { class: "center" }, `No entry matches “${q}”`, scope === "project" && canFamily() ? [" in this project — ", el("a", { href: searchHref("family", q) }, "search the whole family")] : "", "."));
   if (pool.missing.length) box.append(el("section", { class: "sgroup missing" }, el("div", { class: "sg-head" }, el("b", {}, "Not searched"), el("span", { class: "count" }, pool.missing.length)),
     pool.missing.map(({ member: m, reason }) => el("div", { class: "sr-missing" }, el("b", {}, m.name), ` (${memberLabel(m)}) — ${reason}`)),
     el("p", { class: "note" }, "Family shows how to get a member that is not on this machine.")));
@@ -873,8 +1069,6 @@ async function viewSearch(main, scope, q) {
 function setupSearch() {
   const input = $("#search"); const box = $("#search-results"); let sel = -1; let seq = 0;
   const close = () => { box.hidden = true; sel = -1; };
-  const scopeSel = $("#search-scope");
-  const scope = () => (searchScopes().includes(scopeSel.value) && !scopeSel.hidden ? scopeSel.value : "project");
   const run = async () => {
     const q = input.value.trim(); if (q.length < 2 || !S) return close();
     const mine = ++seq;
@@ -892,13 +1086,7 @@ function setupSearch() {
       el("a", { class: "sr-all", href: searchHref(scope(), q), onclick: close }, all.length > rows.length ? `↵  all ${all.length} results in ${plural(projects, "project")}` : "↵  results page"));
     box.hidden = false; sel = -1;
   };
-  scopeSel.onchange = () => {
-    try { localStorage.setItem("ktw-search-scope", scopeSel.value); } catch {}
-    const route = location.hash.slice(1);
-    if (route.startsWith("search/")) location.hash = searchHref(scopeSel.value, input.value.trim());
-    else if (input.value.trim().length >= 2) run();
-  };
-  if (searchScopes().length > 1) { scopeSel.hidden = false; let v = "project"; try { v = localStorage.getItem("ktw-search-scope") || "project"; } catch {} scopeSel.value = v; }
+  window.__ktwScopeChanged = () => { if (!box.hidden && input.value.trim().length >= 2) run(); };
   input.oninput = run; input.onfocus = () => { if (input.value.trim().length >= 2 && !location.hash.startsWith("#search/")) run(); };
   input.onkeydown = (ev) => {
     const items = [...box.querySelectorAll("a")];
@@ -928,6 +1116,7 @@ function render() {
   const route = location.hash.slice(1) || "overview";
   selected = null;
   if (route === "overview") { viewOverview(main); renderDetailsDefault(); }
+  else if (route === "graph/family") { setScope("family", { rerender: false }); history.replaceState(null, "", "#graph"); viewGraph(main); renderDetailsDefault(); }
   else if (route === "graph") { viewGraph(main); renderDetailsDefault(); }
   else if (route === "timeline") { viewTimeline(main); renderDetailsDefault(); }
   else if (route === "authors") { viewAuthors(main); renderDetailsDefault(); }
@@ -956,7 +1145,7 @@ function applyState(state) {
     el("span", { class: "grow" }, el("a", { href: "https://keepthewhy.com", target: "_blank", rel: "noopener" }, "keepthewhy.com")));
   FAMILY = null;
   if (LIVE()) $("#nav-projects").hidden = false;
-  setupMode();
+  setupMode(); markScope();
   const main = $("#main"); const scroll = main.scrollTop;
   RESTORE_SCROLL = scroll;
   rerender();
@@ -1049,7 +1238,7 @@ function setupMode() {
   $("#mode-note").textContent = MODE === "public" ? `export generated ${S.generated}` : "";
 }
 async function boot() {
-  setupTheme(); setupSearch(); setupSideToggle();
+  setupTheme(); setupSearch(); setupScope(); setupSideToggle();
   window.addEventListener("hashchange", () => { RESTORE_SCROLL = 0; render(); });
   if (MODE === "public") {
     const r = await fetchPublicState(PUBLIC, PUBLIC_ROOT);
