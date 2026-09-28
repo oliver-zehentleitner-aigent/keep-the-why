@@ -5,7 +5,7 @@
 [![keep-the-why-dashboard (package)](https://github.com/oliver-zehentleitner/keep-the-why/actions/workflows/dashboard-package.yml/badge.svg)](https://github.com/oliver-zehentleitner/keep-the-why/actions/workflows/dashboard-package.yml)
 [![Black](https://github.com/oliver-zehentleitner/keep-the-why/actions/workflows/black.yml/badge.svg)](https://github.com/oliver-zehentleitner/keep-the-why/actions/workflows/black.yml)
 [![Read the Docs](https://img.shields.io/badge/read-%20docs-yellow)](https://keepthewhy.com/dashboard/)
-[![Telegram](https://img.shields.io/badge/community-telegram-41ab8c)](https://t.me/unicorndevs)
+[![Telegram](https://img.shields.io/badge/chat-telegram-41ab8c)](https://t.me/unicorndevs)
 [![X](https://img.shields.io/badge/x-%40keep__the__why-000000?logo=x)](https://x.com/keep_the_why)
 [![Bluesky](https://img.shields.io/badge/bluesky-%40keep--the--why-0285FF?logo=bluesky&logoColor=white)](https://bsky.app/profile/keep-the-why.bsky.social)
 [![Mastodon](https://img.shields.io/badge/mastodon-%40keep__the__why-6364FF?logo=mastodon&logoColor=white)](https://mastodon.social/@keep_the_why)
