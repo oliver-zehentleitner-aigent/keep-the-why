@@ -77,7 +77,7 @@ The server polls a cheap fingerprint every two seconds — HEAD, the mtimes of `
 **Source:** maintainer conversation, 2026-09-11
 **Revisit when:** a project using the dashboard asks to tell agent-written entries from human-written ones, or a commit trailer or entry field for that purpose appears in the schema
 
-The author layer comes from three Git calls per entry: `blame` on the heading for who committed it and when, `log -L` on the `Status` line for the sequence of values with author and date, `log -S` on the heading for the commit that introduced it. The dashboard reports the committer of record. When an agent writes inside a developer's session, that is the developer; in a repository where the agent commits under its own identity, it is the agent. E-mail addresses never enter the state; `--anonymize` replaces names for exports of other people's repositories.
+The author layer comes from three Git calls per entry: `blame` on the heading for who committed it and when, `log -L` on the `Status` line for the sequence of values with author and date, `log -S` on the heading for the commit that introduced it. The dashboard reports the committer of record. When an agent writes inside a developer's session, that is the developer; in a repository where the agent commits under its own identity, it is the agent. E-mail addresses never enter the state; `--anonymize` replaces names for exports of other people's repositories. Names follow the project's `.mailmap`, as `git log` and `git shortlog` do: two identities of one author — the same account committing under a second name and address from another machine's configuration — are joined in the repository, where Git itself shows them joined, not by the viewer guessing that two names are one person (added 2026-09-28, when the suite showed one agent account as two authors).
 
 **Reason:** the question the maintainer wanted answered is *who* created what — the user layer — not *what kind of author* did. Git answers the first exactly and the second not at all; inventing a convention (a commit trailer, an entry field) to answer the second would be a schema change decided by the viewer, and it is not clear anyone wants the distinction. It could also read as a value judgement on agent-written entries, which the project does not make.
 
@@ -105,7 +105,7 @@ The author layer comes from three Git calls per entry: `blame` on the heading fo
 **Status:** active
 **Evidence:** confirmed
 **Source:** maintainer request, 2026-09-11
-**Verification:** corroborated — re-checked 2026-09-27 when public mode arrived (`project-families.md`): the Python server still makes the one call, and the *page* now fetches a family member's raw `.keep-the-why` and its published `state.json` when a person switches it to public — on request, in the browser, never from the server and never from the skill; an exported page left in local mode still makes none
+**Verification:** corroborated — re-checked 2026-09-27 when public mode arrived (`project-families.md`): the Python server still makes the one call, and the *page* now fetches a family member's raw `.keep-the-why` and its published `state.json` when a person switches it to public — on request, in the browser, never from the server and never from the skill; an exported page left in local mode still makes none; re-checked 2026-09-28 when author profile links arrived: the page also asks a host's API for one commit, on a click on an author's name — again a request the person makes, from the browser
 **Revisit when:** the server is asked for a second call, the page is asked to fetch anything without the person switching to public, or the check is asked to do anything but compare two version strings
 **See:** project-families.md#public-mode-is-the-browser-reading-published-exports-bootstrapped-from-a-raw-keep-the-why-at-head — cae2d3bf-9ca6-42a8-98f4-6da2ca1904d3 — as of 2026-09-28
 
@@ -150,3 +150,39 @@ The search's *family* scope reads every member of the tree the project belongs t
 **Rejected alternative:** searching the family only, as before, and linking to the parent for more. Rejected because a search that silently misses part of the tree reads as "not recorded anywhere", which is the one wrong answer a reader cannot detect.
 
 **Consequence:** members that are not on the machine, or whose state does not load, are listed under "Not searched" on the results page and counted in the dropdown, never dropped silently. One *this project / family* switch next to the project menu sets the scope for search and graph alike, instead of a scope per view.
+
+## An author's name opens their profile on the host, looked up on the click
+
+**Id:** abc3718d-0ddb-45a8-9104-a7a366c56d73
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** maintainer request, 2026-09-28
+**Revisit when:** a host's API stops naming the account behind a commit without a token, or a page is asked to look up authors before anyone clicks
+
+A Git author's name in the dashboard links to their profile on the host.
+On the click the browser asks the host's API for one of that author's
+commits — the newest the page shows — and opens the account it names;
+until then, and whenever the lookup fails, the link is the commit's own
+page, which names the author too. GitLab's commit API names no account, so
+there the commit page is the link. An `--anonymize` state carries
+`anonymized` and gets no link at all.
+
+**Reason:** Git knows a name and an email, and neither is a profile: the
+suite's agent account commits as `mail@aigent.zehentleitner.co`, from
+which no login follows; only GitHub's `…@users.noreply.github.com`
+addresses carry one. The host knows which account made a commit, and a
+commit hash is already in every entry's Git record. Asking on the click
+keeps the page's rule that it fetches only what the person asks for.
+
+**Rejected alternative:** resolving authors when the state is built, on
+the server. Rejected because it would be the server's second network call,
+made for every author of every project on every rebuild, against a rate
+limit of sixty requests an hour — and the exported state would carry the
+answer to everyone who opens it.
+
+**Rejected alternative:** deriving the profile from the email. Rejected as
+right only for the rare noreply address and wrong in silence otherwise.
+
+**Rejected alternative:** a link on an anonymized export. Rejected because
+the commit hash names the person the export was made to hide.
