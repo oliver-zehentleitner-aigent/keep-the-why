@@ -68,13 +68,13 @@ if (S.project.git?.available && /^github\.com\//.test(S.project.git.remote || ""
 }
 // the side-pane graph: near and project in an export (no family), and the switch works
 await go(`#entry/${encodeURIComponent(S.entries[0].id)}`);
-const modes = [...window.document.querySelectorAll("#details .mini-seg button")].map((b) => b.textContent);
+const modes = [...window.document.querySelectorAll("#details .mini-seg:not(.mini-friends) button")].map((b) => b.textContent);
 const wantModes = exportFamily ? "near,project,family" : "near,project";
 if (modes.join() !== wantModes) errors.push(`side-pane graph in an export: expected ${wantModes}, got ` + modes.join());
-[...window.document.querySelectorAll("#details .mini-seg button")].find((b) => b.textContent === "project")?.click();
+[...window.document.querySelectorAll("#details .mini-seg:not(.mini-friends) button")].find((b) => b.textContent === "project")?.click();
 await tick(50);
-if (window.document.querySelector("#details .mini-seg button.on")?.textContent !== "project" || !window.document.querySelector("#details .mini canvas")) errors.push("side-pane graph: the project switch did not take");
-[...window.document.querySelectorAll("#details .mini-seg button")].find((b) => b.textContent === "near")?.click();
+if (window.document.querySelector("#details .mini-seg:not(.mini-friends) button.on")?.textContent !== "project" || !window.document.querySelector("#details .mini canvas")) errors.push("side-pane graph: the project switch did not take");
+[...window.document.querySelectorAll("#details .mini-seg:not(.mini-friends) button")].find((b) => b.textContent === "near")?.click();
 await tick(50);
 await go("#family");
 const inFamily = !!(S.project.parent || (S.project.children || []).length);
@@ -101,6 +101,30 @@ if (withUuid) {
 if (withSee) {
   await go(`#entry/${withSee.uuid || encodeURIComponent(withSee.id)}`);
   if (![...main.querySelectorAll(".refs-box h3")].some((h) => h.textContent === "See")) errors.push("entry with See lines: no See section in the reader");
+}
+// friends: an export offers the repositories its entries cite outside the family, and loads none of them on its own
+{
+  const cited = new Set(); const own = (S.project.canonical || "").toLowerCase();
+  for (const e of S.entries) for (const r of e.see || []) if (r?.remote && r.remote.toLowerCase() !== own) cited.add(r.remote.toLowerCase());
+  await go("#graph");
+  const btn = window.document.querySelector(".graph-ui .friends-load");
+  report.friends = btn?.textContent || "none";
+  if (cited.size && !btn) errors.push(`graph: entries cite ${cited.size} other repositories, but there is no friends button`);
+  if (!cited.size && btn) errors.push("graph: a friends button without a cross-project reference");
+}
+// thoughts: the chains of See and Superseded by beside the graph; a click holds one and lists its steps
+{
+  await go("#graph"); await tick(100);
+  const heads = [...window.document.querySelectorAll("#thoughts .thought-head")];
+  report.thoughts = heads.map((h) => h.textContent.slice(0, 60));
+  if (!window.document.getElementById("thoughts")) errors.push("graph: no thoughts box beside the graph");
+  if (heads.length) {
+    heads[0].click(); await tick(50);
+    const steps = window.document.querySelectorAll("#thoughts .thought.on .thought-steps li").length;
+    if (steps < 4) errors.push("thoughts: a held thought lists fewer than four steps: " + steps);
+    window.document.querySelector("#thoughts .thought.on .thought-head")?.click(); await tick(50);
+    if (window.document.querySelector("#thoughts .thought.on")) errors.push("thoughts: a second click does not let go");
+  }
 }
 const search = window.document.getElementById("search");
 search.value = S.entries[0].title.split(" ").slice(0, 2).join(" ");

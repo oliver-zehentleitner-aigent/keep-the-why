@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import {
   esc, plural, isUuid, rawFileUrl, configLine, normalizeState, slug, hostFileLink, canonicalOf,
   parseSupersededBy, kindLabel, typeName, groupByFamily, searchTerms, searchHit, compareHits, snippetAt, highlight,
-  resolveLocation, bodyProse, linkFamily, authorLookup, mergeStates,
+  resolveLocation, bodyProse, linkFamily, authorLookup, mergeStates, friendsOf, thoughtsOf,
 } from "../../ktw_dashboard/web/lib.js";
 
 test("esc escapes the five HTML characters and nothing else", () => {
@@ -226,4 +226,32 @@ test("mergeStates: one state for the family, a member's files and ids prefixed, 
   assert.equal(m.anonymized, true); // one anonymized member keeps profile lookups off for the whole family
   assert.equal(m.project.id, "suite");
   assert.equal(groups[1].state.entries[0].id, "history.md#x"); // the members' own states are left as they are
+});
+
+test("friendsOf: repositories cited by See or Superseded by, the family left out, one row per repository", () => {
+  const A = "https://github.com/acme/thesis", B = "https://gitlab.com/acme/ops", SELF = "https://github.com/acme/app", PARENT = "https://github.com/acme/suite";
+  const U1 = "11111111-1111-4111-8111-111111111111", U2 = "22222222-2222-4222-8222-222222222222", U3 = "33333333-3333-4333-8333-333333333333";
+  const entries = [
+    { see: [{ remote: A, uuid: U1 }, { remote: null, file: "x.md", uuid: U2 }, { remote: PARENT, uuid: U2 }] },
+    { see: [{ remote: A + "/", uuid: U1 }, { remote: "https://GitHub.com/acme/thesis", uuid: U3 }], superseded_by: `${B} — ${U2} — as of 2026-09-29` },
+    { see: [{ remote: SELF, uuid: U3 }] },
+    { superseded_by: U1 },
+  ];
+  assert.deepEqual(friendsOf(entries, [SELF, PARENT]), [
+    { canonical: A, uuids: [U1, U3] },
+    { canonical: B, uuids: [U2] },
+  ]);
+  assert.deepEqual(friendsOf([], [SELF]), []);
+  assert.deepEqual(friendsOf(entries.slice(2), [SELF]), []);
+});
+
+test("thoughtsOf: longest citation chains of at least four entries, origin first, no part of a longer one", () => {
+  // e cites d cites c cites b cites a; f cites c too; g-h is short; x-y-z-x is a cycle of three
+  const edges = [["e", "d"], ["d", "c"], ["c", "b"], ["b", "a"], ["f", "c"], ["g", "h"], ["x", "y"], ["y", "z"], ["z", "x"]];
+  assert.deepEqual(thoughtsOf(edges), [["a", "b", "c", "d", "e"], ["a", "b", "c", "f"]]);
+  assert.deepEqual(thoughtsOf(edges, 6), []);
+  assert.deepEqual(thoughtsOf([["a", "b"], ["b", "c"], ["c", "a"]], 3), [["a", "c", "b"], ["b", "a", "c"], ["c", "b", "a"]]);
+  // a fan of many long chains stops at the cap instead of enumerating them all
+  const fan = []; for (let i = 0; i < 50; i++) fan.push([`s${i}`, "m"]); fan.push(["m", "n"], ["n", "o"], ["o", "p"]);
+  assert.equal(thoughtsOf(fan, 4, 10).length, 10);
 });

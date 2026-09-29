@@ -211,3 +211,58 @@ When the reader shows an entry, every cross-project `See` or `Superseded by` in 
 **Rejected alternative:** leave references outside the family as text (canonical plus Id, found by grep in a clone). Rejected — that is what the page did, and it is the case the maintainer asked to fix.
 
 **Consequence:** only a project at its repository's top level can be reached this way, because a `See` locator carries the canonical and nothing more; a project below the top level (an isolated-context mono repo) is found only when it is in the family, or checked out here.
+
+## Friends — repositories cited outside the family — load into the graph on a click, linked and never merged
+
+**Id:** b1b36585-edb2-416c-95fe-126ed4b4b788
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** maintainer design discussion, 2026-09-29
+**Revisit when:** friends are asked for outside the graph (search, a view of their own), or a project's friends grow numerous enough that one click loading all of them is slow
+**See:** dashboard.md#a-see-into-another-repository-is-resolved-when-the-entry-is-shown-family-or-not-through-that-repositorys-published-export — ffdb33a5-3d9c-43b8-951b-a95a90ac2a74 — as of 2026-09-29
+**See:** dashboard.md#the-update-check-is-the-servers-one-network-call-the-page-asks-other-hosts-only-for-what-a-person-opens — 5b7a6c2d-8218-4987-b912-0fe7bb15cc1a — as of 2026-09-29
+
+The graph offers the repositories its entries cite by a cross-project `See` or `Superseded by` outside the family as *friends*. They are loaded only when a person clicks *friends (N)* in the graph, in every mode — the count comes from the entries already on the page — and each is loaded the way a reference row resolves it: a project known to the live server, else the repository's published export. One level deep: a friend's own friends are not followed. A friend is a hub with a dashed ring and the entries cited there, joined by their `See` lines; a click on the hub shows the whole friend. Friends are linked into the graph, never merged into search, queues, counts or the other views.
+
+**Reason:** a family is a routing relation — entries are written into the member whose scope fits — and projects that only cite each other must not become one to be seen together, which is why a `See` into any repository already resolves on display. The graph is where such links are read as a web, so that is where friends appear. "Friends" names the difference from the family: connected, nothing routed between them.
+
+**Rejected alternative:** load friends when the page opens. Rejected by the maintainer — never as a default; the page asks other hosts only for what a person opens, and a click on *friends* is that request.
+
+**Rejected alternative:** merge friends into the page like the family scope does (search, counts, queues). Rejected — a friend is not part of this project's knowledge, and counting its open questions here would misstate what this project owes.
+
+**Rejected alternative:** show each friend whole from the start. Rejected for readability — a large friend would bury the project's own graph; the cited entries come first, the hub expands on a click.
+
+**Rejected alternative:** follow friends of friends. Rejected — the web would grow without a bound the reader chose. One hop is enough because the reader can move the centre: a friend's name in the legend opens that project's own dashboard, which again shows one hop from there. The web is walked from centre to centre, each view bounded, rather than loaded as a whole.
+
+## Thoughts are the longest chains of See and Superseded by, listed beside the graph
+
+**Id:** cfe036bd-3264-411d-b26d-4214a22f6fe2
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** maintainer idea, 2026-09-29 (the name, the list, "a path when you point at the label or click it"); the derivation was left to the implementer and measured on this repository and the UNICORN Binance Suite the same day
+**Revisit when:** projects carry enough citations that the list grows too long to read, or thoughts are asked to be named and kept rather than derived
+
+Beside the graph, *Thoughts* lists its lines of reasoning: the longest chains of entries in which each cites the one before — a `See` read from the later entry to the earlier, a `Superseded by` from the old entry to its successor — with at least 3, 4 (the default) or 5 entries, never a part of a longer chain, in reading order (origin first). They run across projects wherever the graph spans them: with the family scope through the family, with friends loaded through them. Pointing at one lights its path; a click holds it and lists its steps. A chain made only of `Superseded by` is marked *evolution*: how one decision changed over time.
+
+**Reason:** a `See` or `Superseded by` is a recorded "follows from" or "replaced", so a chain of them is a line of reasoning someone actually wrote down, which is what the name promises. Measured on 2026-09-29: from four entries up there is one such chain in this repository (public mode → the page asks other hosts only on request → a `See` resolved on display → friends) and none across the eight repositories of the UNICORN Binance Suite; from three there are nine there, most of them fanning into one decision. The chains are few and meaningful, and the length choice lets a sparse project show its shorter ones.
+
+**Rejected alternative:** any path through the graph longer than a threshold. Rejected — topic membership and topic references connect almost everything, so the paths number in the thousands and say nothing.
+
+**Rejected alternative:** thoughts named and kept by a person (a field or a file listing the entries). Rejected for now — a format change for something the recorded citations already express; revisit when derived chains turn out not to be the thoughts people mean.
+
+## The graph turns very slowly in its plane
+
+**Id:** 5f097cf0-af55-47cf-8b23-4125855a8b1a
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** maintainer request, 2026-09-29 ("only move slightly, very slowly, stay in 2D")
+**Revisit when:** the motion is reported as distracting while working, or as a battery or CPU cost
+
+The graph turns in its plane, one turn in about six minutes, rotating the node positions around the centre so labels stay upright. It stops while it is pointed at, dragged or panned, stays still with the system's reduced-motion setting, and *motion* in the graph turns it off, kept per browser. While only turning, every other frame is drawn.
+
+**Reason:** a slight movement makes the web read as alive without asking for attention; turning the positions rather than the canvas keeps the text level and the click targets where they are drawn.
+
+**Rejected alternative:** a turntable in 3D, the axis tilted 30° to the left. Considered first and dropped by the maintainer in favour of staying simple: a third dimension for the layout, projection and depth cues, and moving labels and click targets while working.
