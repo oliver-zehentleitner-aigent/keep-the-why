@@ -64,12 +64,12 @@ const stubFetch = async (url) => {
 const errors = [];
 const navigations = []; // jsdom does not navigate: a location.href to another page is reported, not followed
 const tick = (ms) => new Promise((r) => setTimeout(r, ms));
-async function open(url, page = html) {
+async function open(url, page = html, store = {}) {
   const vc = new VirtualConsole();
   vc.on("jsdomError", (e) => /^Not implemented: navigation/.test(e.message || "") ? navigations.push(e.message) : errors.push("jsdom: " + (e.detail?.stack || e.message || e).toString().split("\n").slice(0, 2).join(" | ")));
   vc.on("error", (...a) => errors.push("console: " + a.join(" ")));
   const dom = new JSDOM(page, { url, runScripts: "dangerously", pretendToBeVisual: true, virtualConsole: vc,
-    beforeParse(w) { w.fetch = stubFetch; w.ResizeObserver = class { observe() {} disconnect() {} }; w.HTMLCanvasElement.prototype.getContext = () => new Proxy({}, { get: (t, k) => (k === "measureText" ? () => ({ width: 10 }) : () => {}), set: () => true }); w.matchMedia = () => ({ matches: false }); w.CSS = { escape: (x) => x.replace(/([^\w-])/g, "\\$1") }; } });
+    beforeParse(w) { for (const [k, v] of Object.entries(store)) w.localStorage.setItem(k, v); w.fetch = stubFetch; w.ResizeObserver = class { observe() {} disconnect() {} }; w.HTMLCanvasElement.prototype.getContext = () => new Proxy({}, { get: (t, k) => (k === "measureText" ? () => ({ width: 10 }) : () => {}), set: () => true }); w.matchMedia = () => ({ matches: false }); w.CSS = { escape: (x) => x.replace(/([^\w-])/g, "\\$1") }; } });
   await tick(300);
   return dom.window;
 }
@@ -226,7 +226,7 @@ const report = {};
   // friends: the repositories an entry cites outside the family — nothing fetched before the click, then
   // linked into the graph (the cited entries only, all of them once a hub is expanded), never merged
   const before = fetched.length;
-  const window = await open(`http://localhost/?public=${encodeURIComponent(`${GH}/refs`)}#graph`);
+  const window = await open(`http://localhost/?public=${encodeURIComponent(`${GH}/refs`)}#graph`, html, { "ktw-friends": "off" });
   await tick(200);
   const d = window.document;
   let btn = d.querySelector(".graph-ui .friends-load");
@@ -266,7 +266,7 @@ const report = {};
 }
 {
   // friends from an entry's neighbourhood: the side pane's control switches to the project level and loads them there
-  const window = await open(`http://localhost/?public=${encodeURIComponent(`${GH}/refs`)}#entry/5a1e5a1e-0000-4000-8000-000000000004`);
+  const window = await open(`http://localhost/?public=${encodeURIComponent(`${GH}/refs`)}#entry/5a1e5a1e-0000-4000-8000-000000000004`, html, { "ktw-friends": "off" });
   await tick(200);
   const d = window.document;
   const b = d.querySelector("#details .mini-friends button");
@@ -277,6 +277,60 @@ const report = {};
   if (mode !== "project") errors.push("friends, near: did not switch to the project level: " + mode);
   if (!d.querySelector("#details .mini-friends button")?.classList.contains("on")) errors.push("friends, near: the friends were not loaded at the project level");
   window.close();
+}
+{
+  // the path: a walk to a friend changes the centre in place (no page load), the page keeps where it came from,
+  // back returns along it, and a discarded path is gone
+  const window = await open(`http://localhost/?public=${encodeURIComponent(`${GH}/refs`)}#graph`);
+  await tick(200);
+  const d = window.document;
+  await tick(400); // friends load with the graph, by default
+  const navBefore = navigations.length;
+  [...d.querySelectorAll(".graph-legend .friend a")].find((a) => a.textContent === "acme/notes")?.click(); await tick(300);
+  report.pathWalk = { search: window.location.search, hash: window.location.hash, bar: d.querySelector(".path-bar")?.textContent.replace(/\s+/g, " ") };
+  if (navigations.length !== navBefore) errors.push("path: the walk to a friend loaded a page instead of moving in place");
+  if (window.location.search !== `?public=${encodeURIComponent(`${GH}/notes`)}` || window.location.hash !== "#graph") errors.push("path: the address is not the friend's graph: " + window.location.search + window.location.hash);
+  if (!/1 · acme---refs › acme---notes/.test(report.pathWalk.bar || "")) errors.push("path: no path bar 'refs › notes': " + report.pathWalk.bar);
+  const g = window.__g();
+  const trailHub = g?.nodes.find((n) => n.trail);
+  if (trailHub?.label !== "1 · acme---refs") errors.push("path: the project walked from is not a hub in the graph: " + trailHub?.label);
+  if (!g?.links.some((l) => l.kind === "see" && g.nodes[l.s].label === "Cites elsewhere")) errors.push("path: the See from the path's project to this one is not drawn");
+  if (!/acme---notes/.test(d.title)) errors.push("path: the page did not switch to the friend: " + d.title);
+  // back along the path: in place, and the path shortens
+  window.history.back(); await tick(300);
+  if (!/acme---refs/.test(d.title) || window.location.search !== `?public=${encodeURIComponent(`${GH}/refs`)}`) errors.push("path: back did not return to the project walked from: " + d.title + " " + window.location.search);
+  if (d.querySelector(".path-bar")) errors.push("path: back at the start, a path bar is still shown");
+  if (navigations.length !== navBefore) errors.push("path: back loaded a page instead of moving in place");
+  // forward again, then discard
+  window.history.forward(); await tick(300);
+  if (!/acme---notes/.test(d.title)) errors.push("path: forward did not return to the friend: " + d.title);
+  window.location.hash = "#overview"; window.dispatchEvent(new window.Event("hashchange")); await tick(150);
+  if (!d.querySelector("#main .path-bar")) errors.push("path: no path bar above the overview");
+  [...d.querySelectorAll("#main .path-bar button")].find((b) => b.textContent === "discard")?.click(); await tick(100);
+  if (d.querySelector(".path-bar")) errors.push("path: discard did not clear the path");
+  window.close();
+}
+{
+  // by default friends load as soon as a graph shows them; unchecking *friends* turns that off for this browser
+  const window = await open(`http://localhost/?public=${encodeURIComponent(`${GH}/refs`)}#graph`);
+  await tick(500);
+  const d = window.document;
+  const hubs = () => window.__g().nodes.filter((n) => n.friend).map((n) => n.label).sort().join();
+  if (hubs() !== "acme/notes,acme/suite") errors.push("friends by default: not loaded with the graph: " + hubs());
+  report.friendsDefault = { hubs: hubs(), ui: d.querySelector(".graph-ui")?.textContent, legend: d.querySelector(".graph-legend")?.textContent };
+  const box = d.querySelector(".graph-ui .friends-toggle input");
+  if (!box) { errors.push("friends by default: no friends box: " + JSON.stringify(report.friendsDefault)); window.close(); }
+  else {
+  if (!box?.checked) errors.push("friends by default: no checked 'friends' box");
+  box.checked = false; box.dispatchEvent(new window.Event("change")); await tick(150);
+  if (hubs()) errors.push("friends unchecked: still drawn: " + hubs());
+  if (window.localStorage.getItem("ktw-friends") !== "off") errors.push("friends unchecked: not kept for this browser");
+  if (d.querySelector(".graph-ui .friends-load")?.textContent !== "friends (4)") errors.push("friends unchecked: no 'friends (4)' to load them again");
+  // the reset button is the last of the controls
+  const last = [...d.querySelector(".graph-ui").children].pop();
+  if (last?.textContent !== "reset") errors.push("graph controls: reset is not the last one: " + last?.textContent);
+  window.close();
+  }
 }
 console.log(JSON.stringify(report, null, 1));
 console.log("ERRORS:", errors.length); for (const e of errors) console.log("  " + e);
