@@ -140,11 +140,11 @@ const report = {};
   report.referencedBy = d.querySelector(".refs-box")?.textContent.replace(/\s+/g, " ").slice(0, 160);
   // with the family merged, the plugin's entry is part of what is shown: a reference like any other, named by its project
   if (!/Referenced by \(See\)\s*Plugins load lazily · plugin · Design/.test(report.referencedBy || "")) errors.push("entry, scope family: the plugin's See is not listed as a reference: " + report.referencedBy);
-  const modes = [...d.querySelectorAll("#details .mini-seg:not(.mini-friends) button")].map((b) => b.textContent);
+  const modes = [...d.querySelectorAll("#details .mini-seg:not(.mini-friends):not(.mini-width) button")].map((b) => b.textContent);
   if (modes.join() !== "near,project,family") errors.push("side-pane graph in public mode: expected near,project,family, got " + modes.join());
   // on a page without an entry the side pane's graph follows the scope: family here
   window.location.hash = "#overview"; window.dispatchEvent(new window.Event("hashchange")); await tick(300);
-  report.miniOnOverview = d.querySelector("#details .mini-seg:not(.mini-friends) button.on")?.textContent;
+  report.miniOnOverview = d.querySelector("#details .mini-seg:not(.mini-friends):not(.mini-width) button.on")?.textContent;
   if (report.miniOnOverview !== "family") errors.push("overview with the family scope: the side-pane graph shows " + report.miniOnOverview + ", not family");
   const fg = window.__fg?.();
   if (fg && fg.showEntries !== true) errors.push("family graph: entries are not shown by default");
@@ -283,7 +283,7 @@ const report = {};
   report.nearFriends = b?.textContent;
   if (b?.textContent !== "friends (4)") errors.push("friends, near: no 'friends (4)' on the neighbourhood graph: " + b?.textContent);
   b?.click(); await tick(400);
-  const mode = d.querySelector("#details .mini-seg:not(.mini-friends) button.on")?.textContent;
+  const mode = d.querySelector("#details .mini-seg:not(.mini-friends):not(.mini-width) button.on")?.textContent;
   if (mode !== "project") errors.push("friends, near: did not switch to the project level: " + mode);
   if (!d.querySelector("#details .mini-friends button")?.classList.contains("on")) errors.push("friends, near: the friends were not loaded at the project level");
   window.close();
@@ -373,6 +373,47 @@ const report = {};
   d.querySelector(".thought-beyond button")?.click(); await tick(1500);
   report.chainView = window.location.hash;
   if (!window.location.hash.startsWith(`#thought/${FARTHER_ID},${FAR_ID},${NOTES_ID},`)) errors.push("thought view: following did not lead to the whole chain: " + window.location.hash);
+  window.close();
+}
+{
+  // all their entries: every entry of every friend on one switch, off by default
+  const window = await open(`http://localhost/?public=${encodeURIComponent(`${GH}/refs`)}#graph`);
+  await tick(600);
+  const d = window.document;
+  const notes = () => window.__g().nodes.filter((n) => n.kind === "entry" && n.id.startsWith("fe:P:https://github.com/acme/notes|")).length;
+  const box = d.querySelector(".graph-ui .friend-entries input");
+  if (!box || box.checked) errors.push("friend entries: no switch, or on by default");
+  const shown = notes();
+  box.checked = true; box.dispatchEvent(new window.Event("change")); await tick(150);
+  if (!(notes() > shown)) errors.push(`friend entries: switching on did not show more of notes (${shown} → ${notes()})`);
+  if (window.localStorage.getItem("ktw-friend-entries") !== "all") errors.push("friend entries: not kept for this browser");
+  // the Friends page: a card per friend, what cites what
+  window.location.hash = "#friends"; window.dispatchEvent(new window.Event("hashchange")); await tick(400);
+  const cards = [...d.querySelectorAll(".friend-card h2")].map((h) => h.textContent);
+  report.friendsPage = cards;
+  if (!cards.some((c) => c.startsWith("acme/notes")) || !cards.some((c) => c.startsWith("acme/suite"))) errors.push("friends page: no card for notes and suite: " + cards.join(" | "));
+  if (!/A family of 4/.test(d.querySelector("#main").textContent)) errors.push("friends page: the suite's family is not named");
+  if (!/Cited from here \(1\)/.test(d.querySelector("#main").textContent)) errors.push("friends page: what this project cites there is not listed");
+  if (!/Not loaded/.test(d.querySelector("#main").textContent)) errors.push("friends page: the friends that could not be loaded are not listed");
+  // the Thoughts page: numbers, and every thought
+  window.location.hash = "#thoughts"; window.dispatchEvent(new window.Event("hashchange")); await tick(400);
+  const main = d.querySelector("#main");
+  report.thoughtsPage = [...main.querySelectorAll(".stat")].map((x) => x.textContent);
+  if (!main.querySelector(".stats") || !/Going on beyond this page/.test(main.textContent)) errors.push("thoughts page: no numbers, or no chains going on beyond");
+  const r = main.querySelector(".thought-row"); r?.dispatchEvent(new window.Event("mouseenter")); r?.dispatchEvent(new window.Event("mouseleave"));
+  // pointing at a step marks it in the graph beside (no error while doing so)
+  main.querySelector(".backlink, .thought-row a") && [...main.querySelectorAll(".backlink")].slice(0, 1).forEach((a) => { a.dispatchEvent(new window.Event("mouseenter")); a.dispatchEvent(new window.Event("mouseleave")); });
+  window.close();
+}
+{
+  // the side pane's width, from the corner of its graph: kept per browser
+  const window = await open(`http://localhost/?public=${encodeURIComponent(`${GH}/refs`)}#overview`);
+  await tick(300);
+  const d = window.document;
+  const btns = [...d.querySelectorAll("#details .mini-width button")].map((b) => b.textContent);
+  if (btns.join() !== "1×,2×,3×,½") errors.push("side width: no 1×/2×/3×/½ control on the side pane's graph: " + btns.join());
+  [...d.querySelectorAll("#details .mini-width button")].find((b) => b.textContent === "½")?.click(); await tick(50);
+  if (d.getElementById("app").dataset.side !== "half" || window.localStorage.getItem("ktw-side") !== "half") errors.push("side width: ½ did not take or was not kept");
   window.close();
 }
 console.log(JSON.stringify(report, null, 1));
