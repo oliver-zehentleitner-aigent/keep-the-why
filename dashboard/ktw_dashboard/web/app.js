@@ -442,6 +442,62 @@ function viewEntry(main, id) {
   selected = e.id;
   renderDetailsEntry(e);
 }
+// #thought/<id>,<id>,…: a whole thought in one view — every entry of the chain
+// in reading order, origin first, each in full, joined by how the next one
+// follows from it. The Ids are the entries' own, so the address names the
+// thought; entries of friends or of the path's projects are found in what the
+// page has loaded, and a missing one says so.
+const thoughtHref = (t) => `#thought/${t.steps.map((n) => encodeURIComponent(n.entry.uuid || n.entry.id)).join(",")}`;
+function findEntry(ref) {
+  const here = entryOf(ref);
+  if (here) return { e: here, href: entryHref(here), where: here.project || null, own: true };
+  const pools = [
+    ...Object.values(FRIENDS.loaded).filter((r) => r?.state).flatMap((r) => (r.members || [r]).map((m) => ({ state: m.state, name: m.name, href: m.href }))),
+    ...TRAIL.map((t) => ({ state: t.state, name: t.name, href: (e) => t.url + entryHref(e) })),
+  ];
+  for (const p of pools) { const e = (p.state.entries || []).find((x) => x.uuid === ref || x.id === ref); if (e) return { e, href: p.href ? p.href(e) : "#graph", where: p.name, own: false }; }
+  return null;
+}
+function thoughtLink(a, b) {
+  if (!a || !b) return "then";
+  if (a.e.uuid && (b.e.see || []).some((x) => x?.uuid === a.e.uuid)) return "cited by";
+  const sb = a.e.superseded_by ? parseSupersededBy(a.e.superseded_by) : null;
+  if (sb?.uuid && sb.uuid === b.e.uuid) return "superseded by";
+  return "then";
+}
+function viewThought(main, refs) {
+  const steps = refs.map(findEntry);
+  // an entry of a friend is found once the friends are in: they load with a graph, and the view renders again
+  if (steps.some((f) => !f) && FRIENDS_AUTO && !FRIENDS.on && !FRIENDS.loading) buildGraph();
+  const links = steps.map((f, i) => (i ? thoughtLink(steps[i - 1], f) : null));
+  // where the chain goes on beyond what the page has loaded: before its origin, after its newest entry
+  const beyond = (f, kind) => (f ? entryRefs(f.e).filter((x) => x.kind === kind && x.remote && !findEntry(x.uuid)) : []);
+  const before = beyond(steps[0], "see"), after = beyond(steps[steps.length - 1], "superseded");
+  const goOn = (ends, where) => el("div", { class: "thought-beyond" }, `${where} goes on in ${[...new Set(ends.map((x) => repoLabel(x.remote)))].join(", ")} — not loaded on this page. `,
+    el("button", { type: "button", class: "link-btn", disabled: CHAIN.busy, onclick: () => followThought({ anchor: steps.filter(Boolean).pop()?.e.uuid }, (c) => { if (c) location.hash = thoughtHref(c); else render(); }) }, CHAIN.busy ? "loading…" : "load the whole chain"));
+  const evolution = steps.length > 1 && links.slice(1).every((l) => l === "superseded by");
+  const r = el("div", { class: "reader thought-reader" },
+    el("div", { class: "crumbs" }, el("a", { href: "#graph" }, "Graph"), " / thought"),
+    el("h1", {}, evolution ? `An evolution in ${refs.length} entries` : `A thought in ${refs.length} entries`),
+    el("p", { class: "sub" }, evolution ? "One decision, replaced step by step — from the first version to the one in force." : "A chain of entries, each citing the one before — read from the origin to where it led."),
+    before.length ? goOn(before.map((x) => ({ ...x })), "↑ Before its origin, it") : null);
+  steps.forEach((f, i) => {
+    if (i) r.append(el("div", { class: "thought-link" }, `↓ ${links[i]}`));
+    if (!f) { r.append(el("section", { class: "thought-step missing" }, el("div", { class: "crumbs" }, `${i + 1} / ${refs.length}`), el("p", { class: "note" }, `Entry ${refs[i]} is not loaded on this page — it lives in a project outside it (a friend, or a step of a path); load the friends in the graph, or walk there.`))); return; }
+    const e = f.e;
+    INLINE_PROJECT = f.own ? e.project || null : "\u0000"; // a foreign entry's file names are not this page's topics
+    r.append(el("section", { class: `thought-step ${e.status}` },
+      el("div", { class: "crumbs" }, `${i + 1} / ${refs.length}`, f.where ? ` · ${f.where}` : "", f.own && topicOf(e.file) ? [" · ", el("a", { href: `#topic/${e.file}` }, topicOf(e.file).title)] : null),
+      el("h2", {}, el("a", { href: f.href, html: inline(e.title) })),
+      el("div", { class: "fields" }, ...entryPills(e)),
+      el("div", { class: "body", html: renderMarkdown(e.body?.text || "_(no body)_") }),
+      e.revisit_when ? el("div", { class: "body" }, el("div", { class: "label", html: `<b>Revisit when</b><p>${inline(e.revisit_when)}</p>` })) : null));
+    INLINE_PROJECT = null;
+  });
+  if (after.length) r.append(goOn(after, "↓ After its newest entry, it"));
+  main.append(r);
+  renderDetailsDefault();
+}
 function viewQueues(main) {
   const q = queues();
   const section = (title, why, list) => el("section", { class: "queue" },
@@ -639,6 +695,11 @@ function renderDetailsEntry(e) {
   }
   const back = S.entries.filter((x) => x.id !== e.id && x.refs.includes(e.file));
   d.append(el("h3", {}, `Backlinks (${back.length})`), ...(back.length ? back.map((x) => el("a", { class: "backlink", href: entryHref(x) }, x.title, el("div", { class: "note" }, topicOf(x.file)?.title || x.file))) : [el("p", { class: "empty" }, `nothing references ${e.file}`)]));
+  // the thoughts this entry is a step of — in the graph of the scope, friends and path included
+  const mine = entryThoughts(e);
+  if (mine.length) d.append(el("h3", {}, `In thoughts (${mine.length})`), ...mine.map(({ t, i }) => el("a", { class: "backlink", href: thoughtHref(t), title: t.steps.map((n) => n.label).join("\n→ ") },
+    `${shortLabel(t.steps[0])} → ${shortLabel(t.steps[t.steps.length - 1])}`,
+    el("div", { class: "note" }, `step ${i + 1} of ${t.steps.length}${t.evolution ? " · evolution" : ""}${t.ends.length ? " · continues ↗" : ""}`))));
   if (e.refs.length) d.append(el("h3", {}, "References"), ...e.refs.map((f) => el("a", { class: "backlink", href: `#topic/${f}` }, topicOf(f)?.title || f)));
   if (e.findings.length) d.append(el("h3", {}, "Linter"), ...e.findings.map((f) => el("div", { class: "finding" }, pill(f.code, `sev-${f.severity}`), ` line ${f.line}: ${f.message}`)));
   renderDetailsNeighbourhood(e);
@@ -811,7 +872,7 @@ async function buildFamilyGraph() {
     const seen = new Set();
     for (const t of G.state.topics || []) for (const f of t.refs_out || []) { if (index[tid(G, f)] == null) continue; const k = [t.file, f].sort().join("|"); if (seen.has(k)) continue; seen.add(k); links.push({ s: index[tid(G, t.file)], t: index[tid(G, f)], kind: "topic", len: 150 }); }
   });
-  for (const [child, parent] of Object.entries(parentOf)) if (index[`p:${child}`] != null && index[`p:${parent}`] != null) links.push({ s: index[`p:${child}`], t: index[`p:${parent}`], kind: "family", len: 320 });
+  for (const [child, parent] of Object.entries(parentOf)) if (index[`p:${child}`] != null && index[`p:${parent}`] != null) links.push({ s: index[`p:${child}`], t: index[`p:${parent}`], kind: "family", len: 260 });
   const byKey = Object.fromEntries(groups.map((G) => [G.key, G]));
   const entryOf = (G, id) => (G.state.entries || []).find((e) => e.id === id);
   const topicPairs = new Set(); let across = 0;
@@ -875,21 +936,51 @@ function loadFriend(f) {
         const res = await fetch(`/api/entry?uuid=${encodeURIComponent(f.uuids[0])}${PROJECT ? `&project=${encodeURIComponent(PROJECT)}` : ""}`, { cache: "no-store" });
         if (res.ok) {
           const hit = await res.json(); const m = await memberState(hit.project);
-          const at = (hash) => `${location.pathname}?project=${encodeURIComponent(hit.project)}${hash}`;
-          if (m.state) r = { state: m.state, name: m.state.project?.id || repoLabel(f.canonical), href: (e) => at(entryHref(e)), topicHref: (file) => at(`#topic/${file}`), open: at("#graph"), centre: { mode: "live", project: hit.project } };
+          if (m.state) r = { ...liveMember({ key: hit.project, name: m.state.project?.id, role: "self" }, m.state), name: m.state.project?.id || repoLabel(f.canonical) };
         }
       } catch { /* not known here: the published export */ }
     }
     if (!r) {
       const p = await fetchPublicState(f.canonical, "");
-      r = p.state
-        ? { state: p.state, name: repoLabel(f.canonical), href: (e) => publicHref(f.canonical, "", entryHref(e)), topicHref: (file) => publicHref(f.canonical, "", `#topic/${file}`), open: publicHref(f.canonical, "", "#graph"), centre: { mode: "public", canonical: f.canonical, root: "" } }
-        : { error: p.error };
+      r = p.state ? { ...publicMember({ canonical: f.canonical, root: "", name: repoLabel(f.canonical), role: "self" }, p.state) } : { error: p.error };
     }
     r.canonical = f.canonical;
+    // a family is one unit, like a repository: a friend that has one comes with all of it
+    if (r.state) r.members = await friendUnit(r);
     return (FRIENDS.loaded[k] = r);
   })());
 }
+// One member of a friend's unit, however it was found
+function liveMember(m, state) {
+  const at = (hash) => `${location.pathname}?project=${encodeURIComponent(m.key)}${hash}`;
+  return { key: `L:${m.key}`, name: m.name || state.project?.id || m.key, role: m.role, state, canonical: canonicalOf(state.project) || m.canonical || "", root: state.project?.root || "",
+    href: (e) => at(entryHref(e)), topicHref: (file) => at(`#topic/${file}`), open: at("#graph"), centre: { mode: "live", project: m.key } };
+}
+function publicMember(m, state) {
+  return { key: `P:${fkey(m.canonical)}|${m.root || ""}`, name: m.name, role: m.role, state, canonical: m.canonical, root: m.root || "",
+    href: (e) => publicHref(m.canonical, m.root || "", entryHref(e)), topicHref: (file) => publicHref(m.canonical, m.root || "", `#topic/${file}`), open: publicHref(m.canonical, m.root || "", "#graph"), centre: { mode: "public", canonical: m.canonical, root: m.root || "" } };
+}
+// The friend's whole family tree — on the live server what it knows about that
+// project, else the members' published exports; members that cannot be read
+// are left out of the unit (the friend itself is always in it).
+async function friendUnit(r) {
+  const p = r.state.project || {};
+  const self = { ...r };
+  if (!p.parent && !(p.children || []).length) return [self];
+  const out = [self];
+  if (r.centre?.mode === "live") {
+    try {
+      const members = ((await (await fetch(`/api/family?project=${encodeURIComponent(r.centre.project)}&tree=1`, { cache: "no-store" })).json()).members || []).filter((m) => m.role !== "self" && m.key);
+      const states = await Promise.all(members.map((m) => memberState(m.key)));
+      members.forEach((m, i) => { if (states[i].state) out.push(liveMember(m, states[i].state)); });
+      return out;
+    } catch { /* fall back to the published exports */ }
+  }
+  const t = await publicTreeFrom({ state: r.state, canonical: r.canonical, root: p.root || "", name: r.name, href: r.href });
+  for (const g of t.groups) if (g.member.role !== "self") out.push(publicMember(g.member, g.state));
+  return out;
+}
+
 async function loadFriends(list) {
   if (LIVE()) await fetchTree(); // the whole family is known before anything counts as a friend
   FRIENDS.on = true; FRIENDS.loading = true;
@@ -903,99 +994,147 @@ function toggleFriend(k) {
   if (fgraph) fgraph.at = 0;
   render();
 }
-// Linked projects in the graph: friends (loaded on a click) and the path
-// (the projects walked through to get here). Each is a hub with some of its
-// entries — the ones that link to what the graph shows, or all of them once a
-// friend's hub is expanded — joined by See and Superseded by, both ways, a
-// reference counting only when it names that repository and an Id there.
-// Called by buildGraph and buildFamilyGraph after their own nodes.
+// Linked projects in the graph: friends and the path. Each item is a unit —
+// one repository, or a whole family, which is one unit like a repository —
+// drawn as a hub per project (joined by their parent lines) with some of its
+// entries: the ones that link to what the graph shows, or all of them once a
+// friend's hub is expanded. See and Superseded by join them to the graph and
+// to each other, both ways, a reference counting only when it names one of
+// the unit's repositories and an Id there. Called by buildGraph and
+// buildFamilyGraph after their own nodes.
+const unitKey = (members) => members.map((m) => m.key).sort().join(" ");
+// an entry's See and Superseded by, each { uuid, remote, kind }
+const entryRefs = (e) => [...(e.see || []).map((x) => x && { uuid: x.uuid, remote: x.remote, kind: "see" }), e.superseded_by ? { ...parseSupersededBy(e.superseded_by), kind: "superseded" } : null].filter((x) => x?.uuid);
+function friendUnits(g) {
+  // friends of one family are one unit: the Ids cited in any of its repositories together
+  const units = new Map();
+  const add = (f, via) => {
+    const r = FRIENDS.loaded[fkey(f.canonical)];
+    if (!r?.state || onPath(f.canonical)) return;
+    const members = r.members || [r];
+    const k = unitKey(members);
+    if (!units.has(k)) units.set(k, { k, r, members, uuids: new Set(), via });
+    const u = units.get(k); if (via === "friend") u.via = "friend";
+    for (const x of f.uuids) u.uuids.add(x);
+  };
+  if (FRIENDS.on) (g.friends || []).forEach((f) => add(f, "friend"));
+  for (const f of CHAIN.extra.values()) add(f, "chain"); // reached by following a thought
+  return [...units.values()];
+}
 function addFriendLayer(g, prev) {
   const items = [];
   const trail = pathShown() ? TRAIL.filter((t) => !sameCentreAsGraph(g, t)) : [];
   trail.forEach((t, i) => items.push({
-    k: `trail:${t.key}`, kind: "trail", r: t, label: `${i + 1} · ${t.name}`, color: PALETTE[(i + 2) % PALETTE.length], cited: "linked",
-    hub: () => moveTo(t, "#graph"), entry: (e) => moveTo(t, entryHref(e)), topic: (file) => moveTo(t, `#topic/${file}`),
+    k: `trail:${t.key}`, kind: "trail", color: PALETTE[(i + 2) % PALETTE.length], cited: "linked",
+    members: [{ key: t.key, name: `${i + 1} · ${t.name}`, state: t.state, canonical: t.canonical, root: t.state.project?.root || "", href: (e) => t.url + entryHref(e), topicHref: (file) => `${t.url}#topic/${file}`, open: `${t.url}#graph` }],
+    hub: () => moveTo(t, "#graph"), entry: () => (e) => moveTo(t, entryHref(e)), topic: () => (file) => moveTo(t, `#topic/${file}`),
     next: i + 1 < trail.length ? `trail:${trail[i + 1].key}` : null,
   }));
-  if (FRIENDS.on) (g.friends || []).forEach((f, i) => {
-    const k = fkey(f.canonical); const r = FRIENDS.loaded[k];
-    if (!r?.state || onPath(f.canonical)) return;
-    const expanded = FRIENDS.expanded.has(k);
-    items.push({
-      k, kind: "friend", r, label: r.name, color: friendColor(i), cited: expanded ? null : new Set(f.uuids), canonical: f.canonical,
-      hub: () => toggleFriend(k), entry: r.centre ? (e) => moveTo({ centre: r.centre, state: r.state }, entryHref(e)) : null, topic: r.centre ? (file) => moveTo({ centre: r.centre, state: r.state }, `#topic/${file}`) : null,
-    });
-  });
+  friendUnits(g).forEach((u, i) => items.push({
+    k: u.k, kind: "friend", chain: u.via === "chain", color: friendColor(i), cited: FRIENDS.expanded.has(u.k) ? null : u.uuids, members: u.members,
+    hub: () => toggleFriend(u.k),
+    entry: (m) => (m.centre ? (e) => moveTo({ centre: m.centre, state: m.state }, entryHref(e)) : null),
+    topic: (m) => (m.centre ? (file) => moveTo({ centre: m.centre, state: m.state }, `#topic/${file}`) : null),
+  }));
   if (items.length) addLinkedLayer(g, prev, items);
 }
 function addLinkedLayer(g, prev, items) {
   const { nodes, links, index } = g;
+  let unit = null; // the item being placed: its nodes keep together, and apart from the graph's own and the other items'
   const add = (n, near) => {
     const p = prev[n.id];
     if (p) Object.assign(n, { x: p.x, y: p.y, vx: 0, vy: 0, fixed: p.fixed });
     else { n.x = (near?.x || 0) + (Math.random() - 0.5) * 120; n.y = (near?.y || 0) + (Math.random() - 0.5) * 120; n.vx = n.vy = 0; }
+    n.unit = unit; n.ext = true;
     index[n.id] = nodes.length; nodes.push(n); return n;
   };
-  const refsOf = (e) => [...(e.see || []).map((x) => x && { uuid: x.uuid, remote: x.remote, kind: "see" }), e.superseded_by ? { ...parseSupersededBy(e.superseded_by), kind: "superseded" } : null].filter((x) => x?.uuid);
-  // the path's hubs show what links to the rest: the graph's own entries, the friends', the other steps'
-  const graphUuids = new Set(nodes.filter((n) => n.kind === "entry" && n.entry.uuid).map((n) => n.entry.uuid));
-  const pool = new Set(graphUuids);
-  for (const it of items) for (const e of it.r.state.entries || []) if (e.uuid) pool.add(e.uuid);
-  const R = 420 + 30 * items.length;
+  const refsOf = entryRefs;
+  const ours = nodes.filter((n) => n.kind === "entry");
+  const ourUuids = new Set(ours.map((n) => n.entry.uuid).filter(Boolean));
+  const pool = new Set(ours.map((n) => n.entry.uuid).filter(Boolean));
+  for (const it of items) for (const m of it.members) for (const e of m.state.entries || []) if (e.uuid) pool.add(e.uuid);
+  const R = 680 + 40 * items.length;
   const placed = [];
   items.forEach((it, i) => {
-    const r = it.r; const col = it.color; const canon = fkey(it.canonical || r.canonical || canonicalOf(r.state.project));
+    const col = it.color;
+    const canons = new Set(it.members.map((m) => fkey(m.canonical)).filter(Boolean));
+    const unitUuids = new Set(it.members.flatMap((m) => (m.state.entries || []).map((e) => e.uuid).filter(Boolean)));
+    let cited = it.cited; // null: all of the unit (an expanded friend)
+    if (cited !== null) {
+      const seeds = new Set(cited === "linked" ? [] : cited);
+      if (cited === "linked") { // a path's step: what links to the rest — the graph's entries, the friends', the other steps'
+        for (const m of it.members) for (const e of m.state.entries || []) if (e.uuid && refsOf(e).some((x) => pool.has(x.uuid) && !unitUuids.has(x.uuid))) seeds.add(e.uuid);
+        for (const n of ours) for (const x of refsOf(n.entry)) if (unitUuids.has(x.uuid) && (!x.remote || canons.has(fkey(x.remote)))) seeds.add(x.uuid);
+        for (const o of items) if (o !== it) for (const m of o.members) for (const e of m.state.entries || []) for (const x of refsOf(e)) if (unitUuids.has(x.uuid) && x.remote && canons.has(fkey(x.remote))) seeds.add(x.uuid);
+      }
+      // the unit's entries that cite the graph belong to it too
+      for (const m of it.members) for (const e of m.state.entries || []) if (e.uuid && refsOf(e).some((x) => x.remote && ourUuids.has(x.uuid))) seeds.add(e.uuid);
+      // and everything a See or Superseded by chain inside the unit connects to them, so a thought runs through the unit whole
+      const adj = new Map(); const tie = (a, b) => { if (!adj.has(a)) adj.set(a, new Set()); if (!adj.has(b)) adj.set(b, new Set()); adj.get(a).add(b); adj.get(b).add(a); };
+      for (const m of it.members) for (const e of m.state.entries || []) if (e.uuid) for (const x of refsOf(e)) if (unitUuids.has(x.uuid) && (!x.remote || canons.has(fkey(x.remote)))) tie(e.uuid, x.uuid);
+      const stack = [...seeds];
+      while (stack.length) { const u = stack.pop(); for (const v of adj.get(u) || []) if (!seeds.has(v)) { seeds.add(v); stack.push(v); } }
+      cited = seeds;
+    }
     const ang = (2 * Math.PI * i) / items.length + Math.PI / 5;
-    const hub = add({ id: `f:${it.k}`, kind: "project", friend: it.kind === "friend", trail: it.kind === "trail", label: it.label, r: 13, color: col, href: r.open || "#graph", action: it.hub }, { x: R * Math.cos(ang), y: R * Math.sin(ang) });
-    const own = r.state.entries || [];
-    const ownUuids = new Set(own.map((e) => e.uuid).filter(Boolean));
-    const cited = it.cited === "linked"
-      ? new Set(own.filter((e) => e.uuid && (refsOf(e).some((x) => pool.has(x.uuid) && !ownUuids.has(x.uuid)))).map((e) => e.uuid))
-      : it.cited;
-    if (it.cited === "linked") for (const n of nodes) if (n.kind === "entry" && n.entry) for (const x of refsOf(n.entry)) if (ownUuids.has(x.uuid) && (!x.remote || fkey(x.remote) === canon)) cited.add(x.uuid);
-    if (it.cited === "linked") for (const o of items) if (o !== it) for (const e of o.r.state.entries || []) for (const x of refsOf(e)) if (ownUuids.has(x.uuid) && x.remote && fkey(x.remote) === canon) cited.add(x.uuid);
-    const entries = own.filter((e) => !cited || (e.uuid && cited.has(e.uuid)));
-    const files = new Set(entries.map((e) => e.file));
-    const tIdx = {};
-    for (const t of r.state.topics || []) {
-      if (cited && !files.has(t.file)) continue;
-      const n = add({ id: `ft:${it.k}:${t.file}`, kind: "topic", label: t.title, file: t.file, color: col, r: 7 + Math.sqrt(t.entries || 0) * 2.4, href: r.topicHref ? r.topicHref(t.file) : "#graph", action: it.topic ? () => it.topic(t.file) : null }, hub);
-      tIdx[t.file] = index[n.id];
-      links.push({ s: index[hub.id], t: tIdx[t.file], kind: "hub", len: 70 });
+    const centre = { x: R * Math.cos(ang), y: R * Math.sin(ang) };
+    unit = it.k;
+    const idx = {}; // uuid -> node index, across the unit
+    const hubs = {};
+    const entriesShown = [];
+    it.members.forEach((m, j) => {
+      const off = it.members.length > 1 ? { x: centre.x + 110 * Math.cos((2 * Math.PI * j) / it.members.length), y: centre.y + 110 * Math.sin((2 * Math.PI * j) / it.members.length) } : centre;
+      const hub = add({ id: `f:${it.k}:${m.key}`, kind: "project", friend: it.kind === "friend", chain: !!it.chain, trail: it.kind === "trail", label: m.name, r: j === 0 ? 13 : 10, color: col, href: m.open || "#graph", action: it.hub }, off);
+      hubs[m.key] = index[hub.id];
+      const own = (m.state.entries || []).filter((e) => !cited || (e.uuid && cited.has(e.uuid)));
+      const files = new Set(own.map((e) => e.file));
+      const tIdx = {};
+      for (const t of m.state.topics || []) {
+        if (cited && !files.has(t.file)) continue;
+        const act = it.topic(m);
+        const n = add({ id: `ft:${it.k}:${m.key}:${t.file}`, kind: "topic", label: t.title, file: t.file, color: col, r: 7 + Math.sqrt(t.entries || 0) * 2.4, href: m.topicHref ? m.topicHref(t.file) : "#graph", action: act ? () => act(t.file) : null }, hub);
+        tIdx[t.file] = index[n.id];
+        links.push({ s: index[hub.id], t: tIdx[t.file], kind: "hub", len: 70 });
+      }
+      for (const e of own) {
+        const act = it.entry(m);
+        const n = add({ id: `fe:${it.k}:${m.key}:${e.id}`, kind: "entry", label: e.title, file: e.file, entry: e, r: 4.2, href: m.href ? m.href(e) : "#graph", action: act ? () => act(e) : null }, nodes[tIdx[e.file]] || hub);
+        if (e.uuid) idx[e.uuid] = index[n.id];
+        if (tIdx[e.file] != null) links.push({ s: index[n.id], t: tIdx[e.file], kind: "member", len: 40 });
+        entriesShown.push(e);
+      }
+    });
+    // the unit's own shape: each project joined to its parent, as in the family graph
+    if (it.members.length > 1) {
+      const { parentOf } = linkFamily(it.members.map((m) => ({ key: m.key, role: m.role === "self" ? "self" : m.role || "relative", canonical: m.canonical, root: m.root, state: m.state })));
+      for (const [child, parent] of Object.entries(parentOf)) if (hubs[child] != null && hubs[parent] != null) links.push({ s: hubs[child], t: hubs[parent], kind: "family", len: 170 });
     }
-    const fIdx = {};
-    for (const e of entries) {
-      const n = add({ id: `fe:${it.k}:${e.id}`, kind: "entry", label: e.title, file: e.file, entry: e, r: 4.2, href: r.href ? r.href(e) : "#graph", action: it.entry ? () => it.entry(e) : null }, nodes[tIdx[e.file]] || hub);
-      if (e.uuid) fIdx[e.uuid] = index[n.id];
-      if (tIdx[e.file] != null) links.push({ s: index[n.id], t: tIdx[e.file], kind: "member", len: 40 });
-    }
-    placed.push({ it, canon, fIdx, tIdx, col, entries });
+    placed.push({ it, canons, idx, col, entries: entriesShown, firstHub: hubs[it.members[0].key] });
   });
-  // See and Superseded by between any two placed groups and the graph, both ways; between their topics while entries are hidden
+  // See and Superseded by between any two placed units and the graph, both ways; between their topics while entries are hidden
   const topicOfNode = {}; for (const l of links) if (l.kind === "member") topicOfNode[l.s] = l.t;
   const joined = new Set(); const pairs = new Set();
   const join = (s, t, kind, col) => {
     if (s == null || t == null || s === t) return;
     const key = `${s}|${t}|${kind}`; if (joined.has(key)) return; joined.add(key);
-    links.push({ s, t, kind, len: 190, color: col });
+    links.push({ s, t, kind, len: 240, color: col });
     const ts = topicOfNode[s], tt = topicOfNode[t];
     if (ts != null && tt != null && ts !== tt && !pairs.has(`${ts}|${tt}`)) { pairs.add(`${ts}|${tt}`); links.push({ s: ts, t: tt, kind: "xtopic", len: 240, color: col }); }
   };
-  const ours = nodes.filter((n) => n.kind === "entry" && !String(n.id).startsWith("fe:"));
   const byUuid = {}; for (const n of ours) if (n.entry.uuid) byUuid[n.entry.uuid] = index[n.id];
   for (const P of placed) {
-    // the graph's entries citing this group
-    for (const n of ours) for (const x of refsOf(n.entry)) if (fkey(x.remote) === P.canon && P.fIdx[x.uuid] != null) join(index[n.id], P.fIdx[x.uuid], x.kind, P.col);
+    for (const n of ours) for (const x of refsOf(n.entry)) if (x.remote && P.canons.has(fkey(x.remote)) && P.idx[x.uuid] != null) join(index[n.id], P.idx[x.uuid], x.kind, P.col);
     for (const e of P.entries) {
-      const s = P.fIdx[e.uuid]; if (s == null) continue;
+      const s = P.idx[e.uuid]; if (s == null) continue;
       for (const x of refsOf(e)) {
-        if (!x.remote) continue;
-        if (byUuid[x.uuid] != null) join(s, byUuid[x.uuid], x.kind, P.col); // this group citing the graph
-        for (const Q of placed) if (Q !== P && fkey(x.remote) === Q.canon && Q.fIdx[x.uuid] != null) join(s, Q.fIdx[x.uuid], x.kind, P.col); // citing another group
+        if (!x.remote) { if (P.idx[x.uuid] != null) join(s, P.idx[x.uuid], x.kind, P.col); continue; } // within the unit's repository
+        if (P.canons.has(fkey(x.remote)) && P.idx[x.uuid] != null) { join(s, P.idx[x.uuid], x.kind, P.col); continue; } // across the unit
+        if (byUuid[x.uuid] != null) join(s, byUuid[x.uuid], x.kind, P.col); // citing the graph
+        for (const Q of placed) if (Q !== P && Q.canons.has(fkey(x.remote)) && Q.idx[x.uuid] != null) join(s, Q.idx[x.uuid], x.kind, P.col); // citing another unit
       }
     }
     // the walk's order: one step's hub to the next
-    if (P.it.next && index[`f:${P.it.next}`] != null) links.push({ s: index[`f:${P.it.k}`], t: index[`f:${P.it.next}`], kind: "trail", len: 360 });
+    if (P.it.next) { const Q = placed.find((q) => q.it.k === P.it.next); if (Q) links.push({ s: P.firstHub, t: Q.firstHub, kind: "trail", len: 360 }); }
   }
 }
 
@@ -1039,7 +1178,7 @@ function remember(c, state) {
 function setCentre(c, state) {
   MODE = c.mode; PUBLIC = c.mode === "public" ? c.canonical : null; PUBLIC_ROOT = c.mode === "public" ? c.root || "" : ""; PROJECT = c.mode === "live" ? c.project || null : null;
   graph = null; fgraph = null; TREE = null; TREE_AT = 0; TREE_ASKED = false; PUBLIC_TREE = null; LAST_POOL = null;
-  FRIENDS.on = false; FRIENDS.expanded.clear(); THOUGHT_PIN = null; MINI = null;
+  FRIENDS.on = false; FRIENDS.expanded.clear(); THOUGHT_PIN = null; MINI = null; CHAIN.extra.clear(); CHAIN.tried.clear();
   if (MODE === "public") state.exported = true;
   connectLive();
   const sel = $("#project-select");
@@ -1074,7 +1213,7 @@ function onPopState() {
 function stateForUrl(url) {
   const key = centreKey(centreFromUrl(url));
   if (VISITED.has(key)) return VISITED.get(key);
-  for (const r of Object.values(FRIENDS.loaded)) if (r?.state && r.centre && centreKey(r.centre) === key) return { centre: r.centre, state: r.state };
+  for (const r of Object.values(FRIENDS.loaded)) for (const m of (r?.state ? r.members || [r] : [])) if (m.centre && centreKey(m.centre) === key) return { centre: m.centre, state: m.state };
   return null;
 }
 function onLinkClick(ev) {
@@ -1128,7 +1267,14 @@ function miniFriends(g) {
 // holds it and lists its steps in reading order, origin first. A chain made
 // only of Superseded by is how one decision changed over time: an evolution.
 let THOUGHT_MIN = (() => { try { return Number(localStorage.getItem("ktw-thought-min")) || 4; } catch { return 4; } })(); // entries a thought has at least, kept per browser
-function graphThoughts(g) {
+// Every chain in the graph, at least two entries long: the entry-to-entry
+// edges in reading order (later → earlier), plus an edge to a placeholder for
+// every reference into an entry the page has not loaded — a chain that ends
+// in a placeholder goes on beyond this page, before its origin (a See into
+// an unloaded repository) or after its newest entry (a Superseded by naming a
+// successor there). What cites a chain's newest entry from a repository that
+// is not loaded cannot be known; there is no index of the web, by design.
+function graphChains(g) {
   const kind = {};
   const edges = [];
   for (const l of g.links) {
@@ -1139,12 +1285,83 @@ function graphThoughts(g) {
     const [later, earlier] = l.kind === "see" ? [a, b] : [b, a];
     edges.push([later.id, earlier.id]); kind[`${later.id}|${earlier.id}`] = l.kind;
   }
+  const present = new Set(g.nodes.filter((n) => n.kind === "entry" && n.entry.uuid).map((n) => n.entry.uuid));
+  for (const n of g.nodes) {
+    if (n.kind !== "entry") continue;
+    for (const x of entryRefs(n.entry)) {
+      if (!x.remote || present.has(x.uuid)) continue;
+      const v = `?${x.remote}|${x.uuid}`;
+      edges.push(x.kind === "see" ? [n.id, v] : [v, n.id]);
+    }
+  }
   const byId = Object.fromEntries(g.nodes.map((n) => [n.id, n]));
-  return thoughtsOf(edges, THOUGHT_MIN).map((ids) => {
-    const steps = ids.map((id) => byId[id]);
-    const kinds = ids.slice(1).map((id, i) => kind[`${id}|${ids[i]}`]);
-    return { ids, steps, evolution: kinds.every((k) => k === "superseded") };
-  });
+  const merged = new Map(); // one chain per run of real entries, its open ends together
+  for (const ids of thoughtsOf(edges, 2)) {
+    const real = ids.filter((id) => !id.startsWith("?"));
+    if (real.length < 2) continue;
+    const ends = ids.filter((id) => id.startsWith("?")).map((v) => { const cut = v.lastIndexOf("|"); return { canonical: v.slice(1, cut), uuid: v.slice(cut + 1) }; });
+    const key = real.join("|");
+    if (!merged.has(key)) {
+      const steps = real.map((id) => byId[id]);
+      const kinds = real.slice(1).map((id, i) => kind[`${id}|${real[i]}`]);
+      merged.set(key, { ids: real, steps, evolution: kinds.every((k) => k === "superseded"), ends: [] });
+    }
+    const t = merged.get(key);
+    for (const e of ends) if (!t.ends.some((x) => x.uuid === e.uuid && x.canonical === e.canonical)) t.ends.push(e);
+  }
+  return [...merged.values()].sort((a, b) => b.steps.length - a.steps.length || a.ids.join().localeCompare(b.ids.join()));
+}
+const shortLabel = (n) => { const t = (n?.label || "").replace(/`/g, ""); return t.length > 34 ? t.slice(0, 32) + "…" : t; };
+// the thoughts an entry is a step of, with its place in each
+function entryThoughts(e) {
+  const g = scope() === "family" && fgraph && Date.now() - fgraph.at < 30000 ? fgraph : graph && !e.project ? graph : buildGraph(e.project || null);
+  const same = (n) => n.entry === e || (e.uuid && n.entry?.uuid === e.uuid);
+  return graphChains(g).filter((t) => t.steps.length >= THOUGHT_MIN || t.ends.length).map((t) => ({ t, i: t.steps.findIndex(same) })).filter((x) => x.i >= 0);
+}
+// the thoughts (at least THOUGHT_MIN entries), and the shorter chains that go on beyond this page
+function graphThoughts(g) {
+  const all = graphChains(g);
+  return { thoughts: all.filter((t) => t.steps.length >= THOUGHT_MIN), open: all.filter((t) => t.ends.length && t.steps.length < THOUGHT_MIN) };
+}
+// Following a chain: a click loads exactly the repositories a chain goes on
+// into, each as a unit, and again from there, until the chain ends, reaches a
+// repository without a published export, or eight hops. Only what lies on the
+// chain is loaded, not its friends; it is drawn like a friend, marked as
+// reached through a thought.
+const CHAIN = { extra: new Map(), tried: new Set(), busy: false }; // canonical key -> { canonical, uuids }
+const graphNow = async () => (scope() === "family" ? buildFamilyGraph() : buildGraph());
+async function loadEnds(ends) {
+  const own = new Set([fkey(canonicalOf(SELF?.project)), ...((fgraph?.groups || []).map((G) => fkey(G.canonical)))]);
+  const fresh = [];
+  for (const x of ends) {
+    const k = fkey(x.canonical);
+    if (own.has(k) || CHAIN.tried.has(`${k}|${x.uuid}`)) continue;
+    CHAIN.tried.add(`${k}|${x.uuid}`);
+    if (!CHAIN.extra.has(k)) CHAIN.extra.set(k, { canonical: x.canonical, uuids: [] });
+    const f = CHAIN.extra.get(k); if (!f.uuids.includes(x.uuid)) f.uuids.push(x.uuid);
+    if (!fresh.includes(f)) fresh.push(f);
+  }
+  await Promise.all(fresh.map(loadFriend));
+  return fresh.length;
+}
+async function followChains(pick) {
+  if (CHAIN.busy) return;
+  CHAIN.busy = true; render();
+  try {
+    for (let hop = 0; hop < 8; hop++) {
+      if (fgraph) fgraph.at = 0;
+      const ends = pick(await graphNow());
+      if (!ends.length || !(await loadEnds(ends))) break;
+    }
+  } finally { CHAIN.busy = false; if (fgraph) fgraph.at = 0; render(); }
+}
+const followAll = () => followChains((g) => { const t = graphThoughts(g); return [...t.thoughts, ...t.open].flatMap((c) => c.ends); });
+// one chain, found again after each hop by its newest entry's Id
+function followThought(t, then) {
+  const anchor = t.anchor || t.steps[t.steps.length - 1].entry.uuid;
+  let last = null;
+  return followChains((g) => { last = graphChains(g).filter((c) => c.steps.some((n) => n.entry.uuid === anchor)).sort((a, b) => b.steps.length - a.steps.length)[0] || null; return last ? last.ends : []; })
+    .then(() => then?.(last));
 }
 let THOUGHT_PIN = null; // the ids of the held thought, joined
 function lightThought(g, t) {
@@ -1154,30 +1371,42 @@ function lightThought(g, t) {
 function renderThoughts(g) {
   const box = $("#thoughts");
   if (!box || !g) return;
-  const list = graphThoughts(g);
+  const { thoughts: list, open } = graphThoughts(g);
   const short = (n) => { const t = (n?.label || "").replace(/`/g, ""); return t.length > 34 ? t.slice(0, 32) + "…" : t; };
-  const held = list.find((t) => t.ids.join("|") === THOUGHT_PIN) || null;
+  const held = [...list, ...open].find((t) => t.ids.join("|") === THOUGHT_PIN) || null;
   lightThought(g, held);
   const minSeg = el("span", { class: "thought-min", title: "entries a thought has at least" }, "from ", ...[3, 4, 5].map((m) => el("button", { type: "button", class: m === THOUGHT_MIN ? "on" : "", onclick: () => { THOUGHT_MIN = m; try { localStorage.setItem("ktw-thought-min", String(m)); } catch {} THOUGHT_PIN = null; renderThoughts(g); } }, String(m))));
-  if (!list.length) return setKids(box, el("h3", {}, "Thoughts ", minSeg), el("p", { class: "note" }, `No line of reasoning in this graph is ${THOUGHT_MIN} or more entries long yet — a thought is a chain of See or Superseded by, each entry citing the one before.`));
-  setKids(box, el("h3", {}, `Thoughts (${list.length}) `, minSeg), el("p", { class: "note" }, "Chains of See and Superseded by, origin first. Point at one to light its path, click to hold it."),
-    ...list.map((t) => {
-      const key = t.ids.join("|"); const on = key === THOUGHT_PIN;
-      const row = el("div", { class: `thought ${on ? "on" : ""}` },
-        el("button", { type: "button", class: "thought-head", title: t.steps.map((n) => n.label).join("\n→ "),
-          onmouseenter: () => { if (!THOUGHT_PIN) lightThought(g, t); }, onmouseleave: () => { if (!THOUGHT_PIN) lightThought(g, null); },
-          onclick: () => { THOUGHT_PIN = on ? null : key; renderThoughts(g); } },
-          el("span", { class: "count" }, String(t.steps.length)), `${short(t.steps[0])} → ${short(t.steps[t.steps.length - 1])}`, t.evolution ? el("span", { class: "pill" }, "evolution") : null),
-        on ? el("ol", { class: "thought-steps" }, t.steps.map((n) => el("li", {}, el("a", { href: n.href }, n.label.replace(/`/g, ""))))) : null);
-      return row;
-    }));
+  const repos = (ends) => [...new Set(ends.map((e) => repoLabel(e.canonical)))];
+  const row = (t) => {
+    const key = t.ids.join("|"); const on = key === THOUGHT_PIN;
+    return el("div", { class: `thought ${on ? "on" : ""} ${t.ends.length ? "open" : ""}` },
+      el("button", { type: "button", class: "thought-head", title: t.steps.map((n) => n.label).join("\n→ ") + (t.ends.length ? `\n… goes on in ${repos(t.ends).join(", ")}` : ""),
+        onmouseenter: () => { if (!THOUGHT_PIN) lightThought(g, t); }, onmouseleave: () => { if (!THOUGHT_PIN) lightThought(g, null); },
+        onclick: () => { THOUGHT_PIN = on ? null : key; renderThoughts(g); } },
+        el("span", { class: "count" }, String(t.steps.length)), `${short(t.steps[0])} → ${short(t.steps[t.steps.length - 1])}`, t.evolution ? el("span", { class: "pill" }, "evolution") : null),
+      el("a", { class: "thought-read", href: thoughtHref(t), title: "read the whole thought — every entry in order, in full" }, "read ›"),
+      t.ends.length ? el("button", { type: "button", class: "thought-follow link-btn", disabled: CHAIN.busy, title: `load the repositories this chain goes on into — ${repos(t.ends).join(", ")} — hop by hop, until it ends`, onclick: () => followThought(t) }, `continues ↗ ${repos(t.ends).join(", ")}`) : null,
+      on ? el("ol", { class: "thought-steps" }, t.steps.map((n) => el("li", {}, el("a", { href: n.href }, n.label.replace(/`/g, ""))))) : null);
+  };
+  const openEnds = [...list, ...open].flatMap((t) => t.ends);
+  const followBtn = openEnds.length ? el("button", { type: "button", class: "link-btn thought-follow-all", disabled: CHAIN.busy, title: "load every repository the chains here go on into, hop by hop — nothing else", onclick: followAll }, CHAIN.busy ? "loading the chains…" : `load the whole chains (${repos(openEnds).length} ${repos(openEnds).length === 1 ? "repository" : "repositories"})`) : null;
+  const head = list.length
+    ? [el("h3", {}, `Thoughts (${list.length}) `, minSeg), el("p", { class: "note" }, "Chains of See and Superseded by, origin first. Point at one to light its path, click to hold it.")]
+    : [el("h3", {}, "Thoughts ", minSeg), el("p", { class: "note" }, `No line of reasoning in this graph is ${THOUGHT_MIN} or more entries long yet — a thought is a chain of See or Superseded by, each entry citing the one before.`)];
+  setKids(box, ...head, followBtn, ...list.map(row),
+    open.length ? el("h3", { class: "thought-open-head" }, `Going on beyond this page (${open.length})`) : null,
+    open.length ? el("p", { class: "note" }, "Shorter chains that continue in a repository this page has not loaded — loading it may make them thoughts.") : null,
+    ...open.map(row));
 }
 function friendsLegend(g) {
-  if (!FRIENDS.on) return [];
-  let i = -1;
-  return (g.friends || []).filter((f) => !onPath(f.canonical)).map((f) => FRIENDS.loaded[fkey(f.canonical)]).filter(Boolean).map((r) => r.state
-    ? (i++, el("span", { class: "friend", title: `friend: ${r.canonical} — its hub shows the entries cited there; a click on the hub shows all of it, a click on the name goes there` }, el("i", { class: "dot", style: `background:transparent;border:2px dashed ${friendColor(i)};width:10px;height:10px` }), el("a", { href: r.open, onclick: (ev) => { if (!r.centre) return; ev.preventDefault(); moveTo({ centre: r.centre, state: r.state }, "#graph"); } }, r.name)))
-    : el("span", { class: "warn", title: r.error }, `${repoLabel(r.canonical)} not loaded`));
+  if (!FRIENDS.on && !CHAIN.extra.size) return [];
+  const out = friendUnits(g).map((u, i) => el("span", { class: "friend", title: `friend: ${u.r.canonical}${u.members.length > 1 ? ` — a family of ${u.members.length}, shown whole` : ""} — its hub shows the entries cited there; a click on a hub shows all of it, a click on the name goes there` },
+    el("i", { class: "dot", style: `background:transparent;border:2px dashed ${friendColor(i)};width:10px;height:10px` }),
+    el("a", { href: u.r.open, onclick: (ev) => { if (!u.r.centre) return; ev.preventDefault(); moveTo({ centre: u.r.centre, state: u.r.state }, "#graph"); } }, u.r.name),
+    u.members.length > 1 ? el("span", { class: "note" }, ` · family of ${u.members.length}`) : null,
+    u.via === "chain" ? el("span", { class: "note" }, " · via a thought") : null));
+  for (const f of g.friends || []) { const r = FRIENDS.loaded[fkey(f.canonical)]; if (r && !r.state) out.push(el("span", { class: "warn", title: r.error }, `${repoLabel(r.canonical)} not loaded`)); }
+  return out;
 }
 let TREE_ASKED = false;
 function viewGraph(main) {
@@ -1290,15 +1519,17 @@ function runGraph(canvas, g, opts = {}) {
       for (let i = 0; i < ns.length; i++) for (let j = i + 1; j < ns.length; j++) {
         const a = ns[i], b = ns[j]; let dx = b.x - a.x, dy = b.y - a.y; let d2 = dx * dx + dy * dy + 0.01;
         const hubs = a.kind === "project" && b.kind === "project";
-        if (d2 > (hubs ? 4000000 : 250000)) continue;
-        const rep = (hubs ? 30000 : a.kind === "entry" && b.kind === "entry" ? 260 : a.kind === "entry" || b.kind === "entry" ? 900 : 2600) / d2; const d = Math.sqrt(d2);
+        const apart = (a.unit || "") !== (b.unit || ""); // this graph and a friend, or two friends: a family keeps together, strangers keep their distance
+        if (d2 > (hubs ? (apart ? 9000000 : 4000000) : apart ? 640000 : 250000)) continue;
+        const base = hubs ? (apart ? 70000 : 22000) : a.kind === "entry" && b.kind === "entry" ? 260 : a.kind === "entry" || b.kind === "entry" ? 900 : 2600;
+        const rep = (apart && !hubs ? base * 2.5 : base) / d2; const d = Math.sqrt(d2);
         const fx = (dx / d) * rep * k, fy = (dy / d) * rep * k;
         if (!a.fixed) { a.vx -= fx; a.vy -= fy; } if (!b.fixed) { b.vx += fx; b.vy += fy; }
       }
       // springs
       for (const l of g.links) { if (!linkOn(l)) continue; const a = g.nodes[l.s], b = g.nodes[l.t]; const dx = b.x - a.x, dy = b.y - a.y; const d = Math.hypot(dx, dy) || 0.01; const f = (d - l.len) * (l.kind === "member" || l.kind === "hub" ? 0.05 : l.kind === "family" ? 0.03 : 0.02) * k; const fx = (dx / d) * f, fy = (dy / d) * f; if (!a.fixed) { a.vx += fx; a.vy += fy; } if (!b.fixed) { b.vx -= fx; b.vy -= fy; } }
       // gravity + integrate
-      for (const n of ns) { if (n.fixed) continue; n.vx -= n.x * 0.004 * k; n.vy -= n.y * 0.004 * k; n.vx *= 0.82; n.vy *= 0.82; n.x += n.vx; n.y += n.vy; }
+      for (const n of ns) { if (n.fixed) continue; const gr = n.ext ? 0.0015 : 0.004; n.vx -= n.x * gr * k; n.vy -= n.y * gr * k; n.vx *= 0.82; n.vy *= 0.82; n.x += n.vx; n.y += n.vy; }
       g.alpha *= 0.985;
     }
     // keep the canvas framed on the nodes while they settle: the small one always, the family graph until the person moves it
@@ -1331,7 +1562,7 @@ function runGraph(canvas, g, opts = {}) {
       const faded = ((focus || th) && !neigh.has(n)) || dim(n);
       ctx.globalAlpha = faded ? 0.18 : 1;
       ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-      if (n.kind === "project") { ctx.fillStyle = color("--bg"); ctx.fill(); ctx.lineWidth = 3.5 / g.scale; ctx.strokeStyle = n.color; if (n.friend) ctx.setLineDash([5 / g.scale, 3 / g.scale]); else if (n.trail) ctx.setLineDash([1.5 / g.scale, 3 / g.scale]); ctx.stroke(); ctx.setLineDash([]); ctx.beginPath(); ctx.arc(n.x, n.y, n.r * 0.38, 0, Math.PI * 2); ctx.fillStyle = n.color; ctx.fill(); }
+      if (n.kind === "project") { ctx.fillStyle = color("--bg"); ctx.fill(); ctx.lineWidth = 3.5 / g.scale; ctx.strokeStyle = n.color; if (n.chain) ctx.setLineDash([8 / g.scale, 3 / g.scale, 2 / g.scale, 3 / g.scale]); else if (n.friend) ctx.setLineDash([5 / g.scale, 3 / g.scale]); else if (n.trail) ctx.setLineDash([1.5 / g.scale, 3 / g.scale]); ctx.stroke(); ctx.setLineDash([]); ctx.beginPath(); ctx.arc(n.x, n.y, n.r * 0.38, 0, Math.PI * 2); ctx.fillStyle = n.color; ctx.fill(); }
       else if (n.kind === "topic") { ctx.fillStyle = n.color || color("--accent"); ctx.fill(); }
       else { const sup = n.entry.status === "superseded"; ctx.fillStyle = sup ? color("--bg") : evColor[ev(n)] || color("--muted"); ctx.fill(); if (sup) { ctx.lineWidth = 1.2 / g.scale; ctx.strokeStyle = evColor[ev(n)] || color("--fg3"); ctx.stroke(); } if (n.entry.status === "open" || n.entry.status === "needs-review" || n.entry.status === "pending-confirmation") { ctx.beginPath(); ctx.arc(n.x, n.y, n.r + 2.5 / g.scale, 0, Math.PI * 2); ctx.lineWidth = 1.2 / g.scale; ctx.strokeStyle = color(`--${n.entry.status}`); ctx.stroke(); } }
       if (n === focus) { ctx.beginPath(); ctx.arc(n.x, n.y, n.r + 4 / g.scale, 0, Math.PI * 2); ctx.lineWidth = 1.5 / g.scale; ctx.strokeStyle = color("--fg"); ctx.stroke(); }
@@ -1424,14 +1655,20 @@ function memberState(key) {
 let PUBLIC_TREE = null; // the tree read from published exports, public mode
 async function publicTree() {
   if (PUBLIC_TREE) return PUBLIC_TREE;
-  const canon = canonicalOf(S.project); const myRoot = MY_ROOT();
+  PUBLIC_TREE = await publicTreeFrom({ state: SELF, canonical: canonicalOf(S.project), root: MY_ROOT(), name: S.project.id || S.project.name, href: (e) => entryHref(e) });
+  return PUBLIC_TREE;
+}
+// The family tree around one published project, read from the members'
+// published exports: this page's own (publicTree), or a friend's.
+async function publicTreeFrom(start) {
+  const canon = start.canonical; const myRoot = start.root || "";
   const keyOf = (c, r) => `${c}|${r}`;
-  const self = { member: { role: "self", name: S.project.id || S.project.name, canonical: canon, root: myRoot, node: keyOf(canon, myRoot), up: null }, state: SELF, href: (e) => entryHref(e) };
+  const self = { member: { role: "self", name: start.name, canonical: canon, root: myRoot, node: keyOf(canon, myRoot), up: null }, state: start.state, href: start.href };
   const groups = [self]; const missing = []; const seen = new Set([keyOf(canon, myRoot)]);
   const label = (loc) => loc.root ? `${loc.canonical.replace(/^https:\/\//, "")}/${loc.root}` : loc.canonical.replace(/^https:\/\//, "");
   const add = (m, r) => { if (r.state) groups.push({ member: m, state: r.state, href: (e) => publicHref(m.canonical, m.root, entryHref(e)) }); else missing.push({ member: m, reason: r.error }); return r.state; };
   // up: the parent chain, as far as each level is published
-  let cur = { state: SELF, canonical: canon, root: myRoot }; let depth = 1; let parentKey = null; let below = self.member;
+  let cur = { state: start.state, canonical: canon, root: myRoot }; let depth = 1; let parentKey = null; let below = self.member;
   while (cur.state?.project?.parent && depth < 12) {
     const loc = resolveLocation(cur.state.project.parent, cur.canonical, cur.root);
     if (!loc || seen.has(keyOf(loc.canonical, loc.root))) break;
@@ -1458,8 +1695,7 @@ async function publicTree() {
     level = next;
   }
   groups.sort((a, b) => familyRank(a.member) - familyRank(b.member));
-  PUBLIC_TREE = { groups, missing };
-  return PUBLIC_TREE;
+  return { groups, missing };
 }
 // { groups: [{ member, state, href(e) }], missing: [{ member, reason }] } — this project first
 async function searchPool(scope) {
@@ -1622,6 +1858,7 @@ function render() {
   else if (route === "projects") { viewProjects(main); renderDetailsDefault(); }
   else if (route.startsWith("topic/")) viewTopic(main, route.slice(6));
   else if (route.startsWith("entry/")) viewEntry(main, decodeURIComponent(route.slice(6)));
+  else if (route.startsWith("thought/")) viewThought(main, route.slice(8).split(",").filter(Boolean).map(decodeURIComponent));
   else if (route.startsWith("ref/")) { const cut = route.lastIndexOf("/"); viewRemoteEntry(main, decodeURIComponent(route.slice(4, cut)), route.slice(cut + 1)); renderDetailsDefault(); }
   else if (route.startsWith("search/")) { const [, scope, ...q] = route.split("/"); viewSearch(main, scope, decodeURIComponent(q.join("/"))); renderDetailsDefault(); }
   else { viewOverview(main); renderDetailsDefault(); }
