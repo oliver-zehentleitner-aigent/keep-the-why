@@ -14,7 +14,7 @@ hide:
 
 Same question. Same wrong turn. Same explanation, again. Your agent forgets between sessions. Nothing in the usual project structure is dedicated to remembering it.
 
-Keep the Why is the part that remembers *why*. Your repository already is your project's memory — README, docs, tests, changelog, history; [one layer was missing](https://oliver-zehentleitner.github.io/repo-native-project-memory/). The reasoning behind a codebase — decisions, rejected alternatives, workarounds, constraints the code alone can't explain — captured as a byproduct of working with your agent and kept as plain Markdown in `context/`, versioned and shared by Git. No database, no daemon, no account.
+Keep the Why is the part that remembers *why*. Your repository already is your project's memory — README, docs, tests, changelog, history; [one layer was missing](https://oliver-zehentleitner.github.io/repo-native-project-memory/). [The reasoning behind a codebase](https://keepthewhy.com/dashboard/live/#thoughts){ target=_blank rel=noopener } — decisions, rejected alternatives, workarounds, constraints the code alone can't explain — captured as a byproduct of working with your agent and kept as plain Markdown in `context/`, versioned and shared by Git. No database, no daemon, no account.
 
 [Install](installation.md){ .md-button .md-button--primary }
 [Read the README](readme.md){ .md-button }
@@ -129,7 +129,7 @@ Decisions that shipped, alternatives that lost, workarounds, constraints — Kee
 
 </div>
 
-The dashboard — a read-only view over `context/` and its Git history: who recorded what, when a status changed, what still needs a person. Run locally, it updates as the project changes. Two static exports, each rebuilt with its project's docs deploy: Keep the Why's own `context/` — one repository, the export behind the screenshot — and the UNICORN Binance Suite, a family of eight repositories. [Dashboard →](dashboard.md) · [Single / mono repository example: Keep the Why →](https://keepthewhy.com/dashboard/live/) · [Multi repository example: unicorn-binance-suite →](https://oliver-zehentleitner.github.io/unicorn-binance-suite/keep-the-why-dashboard/){ target=_blank rel=noopener }
+The dashboard — a read-only view over `context/` and its Git history: who recorded what, when a status changed, what still needs a person. It follows the reasoning beyond one repository: the project's family, its [*friends*](https://keepthewhy.com/dashboard/live/#friends){ target=_blank rel=noopener } — the repositories its entries cite — and the [*thoughts*](https://keepthewhy.com/dashboard/live/#thoughts){ target=_blank rel=noopener } running through them, lines of decisions each citing the one before. Run locally, it updates as the project changes. Two static exports, each rebuilt with its project's docs deploy: Keep the Why's own `context/` — one repository, the export behind the screenshot — and the UNICORN Binance Suite, a family of eight repositories. [Dashboard →](dashboard.md) · [Single / mono repository example: Keep the Why →](https://keepthewhy.com/dashboard/live/) · [Multi repository example: unicorn-binance-suite →](https://oliver-zehentleitner.github.io/unicorn-binance-suite/keep-the-why-dashboard/){ target=_blank rel=noopener }
 
 </div>
 
@@ -147,6 +147,8 @@ The dashboard — a read-only view over `context/` and its Git history: who reco
 
 One `.keep-the-why`, one `context/`. The common case — nothing to configure.
 
+[Example: Keep the Why's own dashboard →](https://keepthewhy.com/dashboard/live/){ target=_blank rel=noopener }
+
 </div>
 
 <div class="ktw-card" markdown>
@@ -154,6 +156,8 @@ One `.keep-the-why`, one `context/`. The common case — nothing to configure.
 ### Mono repository
 
 One `context/` for the whole tree, or one per sub-project — each with its own settings, and still one family under the repository's root.
+
+[How the two mono layouts look →](repository-structure.md#layouts-one-repository-or-several)
 
 </div>
 
@@ -163,7 +167,7 @@ One `context/` for the whole tree, or one per sub-project — each with its own 
 
 A family: one parent project lists its children, one line each on what belongs where. The why lives once, in the project it binds, and is cited from everywhere else — families can nest, a suite, its cluster, the cluster's dashboard.
 
-[Example: the UNICORN Binance Suite's dashboard →](https://oliver-zehentleitner.github.io/unicorn-binance-suite/keep-the-why-dashboard/){ target=_blank rel=noopener }
+[Example: the UNICORN Binance Suite's dashboard →](https://oliver-zehentleitner.github.io/unicorn-binance-suite/keep-the-why-dashboard/){ target=_blank rel=noopener } · [its family, eight repositories →](https://oliver-zehentleitner.github.io/unicorn-binance-suite/keep-the-why-dashboard/#family){ target=_blank rel=noopener }
 
 </div>
 
@@ -177,7 +181,9 @@ A repository inside another — a submodule, a vendored checkout — is a projec
 
 </div>
 
-[Layouts →](repository-structure.md#layouts-one-repository-or-several) · [Families →](setup.md#family-routing-and-writing-across-projects) · [Dashboard: the family view →](dashboard.md)
+**Linked across all of them.** Any project can cite an entry in any other — in its family or not, one repository or eight — with a `See` line naming the other repository and the entry's Id; a reworded heading or a split file doesn't break it. The dashboard follows those links: family members show as one, the other repositories cited as *friends*, and the reasoning that runs through them as *thoughts*. [See it: Keep the Why with its friends →](https://keepthewhy.com/dashboard/live/#graph){ target=_blank rel=noopener } · [the thoughts across them →](https://keepthewhy.com/dashboard/live/#thoughts){ target=_blank rel=noopener }
+
+[Layouts →](repository-structure.md#layouts-one-repository-or-several) · [Families →](setup.md#family-routing-and-writing-across-projects) · [Dashboard: family, friends, thoughts →](dashboard.md#family-friends-thoughts)
 
 </div>
 
