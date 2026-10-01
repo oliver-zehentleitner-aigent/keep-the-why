@@ -28,6 +28,8 @@ const SUITE_ID = "5a1e5a1e-0000-4000-8000-000000000001";
 const NOTES_ID = "5a1e5a1e-0000-4000-8000-000000000003";
 const FAR_ID = "5a1e5a1e-0000-4000-8000-0000000000f1", FARTHER_ID = "5a1e5a1e-0000-4000-8000-0000000000f2";
 const state = (id, project, entries) => ({ generated: "2026-09-28 10:00", dashboard: "0.2.0", linter: "0.18.0.0", project: { id, name: id, context: "context/", schema: "0.18.0", ...project }, topics: [{ file: "design.md", title: "Design", entries: entries.length }], entries, authors: [], findings: { errors: 0, warnings: 0, items: [] } });
+// a lean export: state.json without bodies, naming state.body.json beside it, which holds them by entry id
+const lean = (base, s) => ({ [`${base}state.json`]: { ...s, entries: s.entries.map(({ body, ...e }) => e), bodies: "state.body.json" }, [`${base}state.body.json`]: JSON.stringify({ bodies: Object.fromEntries(s.entries.map((e) => [e.id, e.body])) }) });
 const FILES = {
   "https://raw.githubusercontent.com/acme/suite/HEAD/.keep-the-why": config("acme---suite", ["- dashboard-state: https://acme.github.io/suite/state.json"]),
   "https://acme.github.io/suite/state.json": state("acme---suite", { canonical: `${GH}/suite`, children: [{ name: "web", location: `${GH}/web`, scope: "the web UI" }, { name: "docs", location: "docs", scope: "the manual" }, { name: "cli", location: `${GH}/cli`, scope: "the command line" }] }, [entry("Release together", "Every package ships with the same needle version.", { uuid: SUITE_ID })]),
@@ -40,10 +42,13 @@ const FILES = {
   "https://raw.githubusercontent.com/acme/cli/HEAD/.keep-the-why": config("acme---cli", []),
   // outside the family: no parent, no children — reached only through a See
   "https://raw.githubusercontent.com/acme/notes/HEAD/.keep-the-why": config("acme---notes", ["- dashboard-state: https://acme.github.io/notes/state.json"]),
-  "https://acme.github.io/notes/state.json": state("acme---notes", { canonical: `${GH}/notes` }, [entry('Notes are <img src=x onerror="window.__pwned=1"> plain text', "No needle here either.", { uuid: NOTES_ID, see: [{ remote: `${GH}/far`, uuid: FAR_ID, date: "2026-09-29" }] }), entry("Notes are kept short", "Short.", { uuid: "5a1e5a1e-0000-4000-8000-000000000005" })]),
+  // notes is a lean export (dashboard 0.6.0): its state.json carries no bodies and names state.body.json beside it
+  ...lean("https://acme.github.io/notes/", state("acme---notes", { canonical: `${GH}/notes` }, [entry('Notes are <img src=x onerror="window.__pwned=1"> plain text', "No needle here either.", { id: "n1", uuid: NOTES_ID, see: [{ remote: `${GH}/far`, uuid: FAR_ID, date: "2026-09-29" }] }), entry("Notes are kept short", "Short.", { id: "n2", uuid: "5a1e5a1e-0000-4000-8000-000000000005" })])),
   // a chain beyond the friends: notes cites far, far cites farther — reached only by following a thought
   "https://raw.githubusercontent.com/acme/far/HEAD/.keep-the-why": config("acme---far", ["- dashboard-state: https://acme.github.io/far/state.json"]),
   "https://acme.github.io/far/state.json": state("acme---far", { canonical: `${GH}/far` }, [entry("Far away", "Cited from notes.", { uuid: FAR_ID, status: "needs-review", git: { created: { date: "2026-08-10" } }, see: [{ remote: `${GH}/farther`, uuid: FARTHER_ID, date: "2026-09-29" }] })]),
+  // the registry: a list of published states, read by the globe
+  "https://keepthewhy.com/registry/index.json": JSON.stringify({ checked: "2026-10-01", projects: [{ canonical: `${GH}/farther`, state: "https://acme.github.io/farther/state.json", id: "acme---farther", entries: 1 }, { canonical: `${GH}/gone`, state: "https://acme.github.io/gone/state.json", id: "acme---gone", entries: 3, error: "HTTP Error 404", failed_since: "2026-09-30" }, { canonical: `${GH}/refs`, state: "https://acme.github.io/refs/state.json", id: "acme---refs", entries: 1 }] }),
   "https://raw.githubusercontent.com/acme/farther/HEAD/.keep-the-why": config("acme---farther", ["- dashboard-state: https://acme.github.io/farther/state.json"]),
   "https://acme.github.io/farther/state.json": state("acme---farther", { canonical: `${GH}/farther` }, [entry("The origin", "Where it started.", { uuid: FARTHER_ID, evidence: "inferred", git: { created: { date: "2026-08-01" } } })]),
   // an export that claims to be another repository's
@@ -281,7 +286,9 @@ const report = {};
   const to = async (h) => { window.location.hash = h; window.dispatchEvent(new window.Event("hashchange")); await tick(150); };
   if (!/friend — a repository cited outside the family/.test(d.getElementById("details").textContent)) errors.push("friends: not in the graph page's legend");
   await to("#overview");
-  if (mini()?.textContent !== "friends (4)") errors.push("friends: no 'friends (4)' button on the side pane's graph: " + mini()?.textContent);
+  d.querySelector("#details .mini-gear")?.click(); await tick(50);
+  if (!/friends \(4\)/.test(d.querySelector("#details .mini-filters")?.textContent || "")) errors.push("friends: no 'friends (4)' in the side pane graph's switches: " + d.querySelector("#details .mini-filters")?.textContent);
+  if (mini()) errors.push("friends: the side pane's project graph still has the friends button beside the gear");
   await to("#graph");
   const early = fetched.slice(before).filter((u) => /acme\/(notes|suite|cli|impostor)|acme\.github\.io\/(notes|suite|impostor)/.test(u));
   if (early.length) errors.push("friends: fetched before the click: " + early.join(", "));
@@ -293,7 +300,7 @@ const report = {};
   const notesLink = [...d.querySelectorAll(".graph-legend .friend a")].find((a) => a.textContent === "acme/notes")?.getAttribute("href") || "";
   if (!notesLink.endsWith(`?public=${encodeURIComponent(`${GH}/notes`)}#graph`)) errors.push("friends: the legend link does not open the friend's graph: " + notesLink);
   await to("#overview");
-  if (!mini()?.classList.contains("on")) errors.push("friends: the side pane's graph does not show the friends as on");
+  if (!d.querySelector("#details .mini-filters .friends-ctl input")?.checked) errors.push("friends: the side pane graph's switches do not show the friends as on");
   await to("#graph");
   for (const name of ["acme/cli not loaded", "acme/impostor not loaded"]) if (!legend.includes(name)) errors.push(`friends: '${name}' missing from the legend`);
   // the graph's own control says it too, and leads to the Friends view, which names the reason
@@ -332,7 +339,7 @@ const report = {};
   b?.click(); await tick(400);
   const mode = d.querySelector("#details .mini-seg:not(.mini-friends):not(.mini-width) button.on")?.textContent;
   if (mode !== "project") errors.push("friends, near: did not switch to the project level: " + mode);
-  if (!d.querySelector("#details .mini-friends button")?.classList.contains("on")) errors.push("friends, near: the friends were not loaded at the project level");
+  if (!d.querySelector("#details .mini-filters .friends-ctl input")?.checked) errors.push("friends, near: the friends were not loaded at the project level");
   window.close();
 }
 {
@@ -516,6 +523,7 @@ const report = {};
 }
 {
   // a project's name under its hub: always drawn, labels on or off, and a click on it goes there
+  const open0 = fetched.length;
   const window = await open(`http://localhost/?public=${encodeURIComponent(`${GH}/refs`)}#graph`);
   await tick(600);
   const d = window.document;
@@ -528,12 +536,121 @@ const report = {};
   const box = g.nameBoxes.find((b) => b.n.label === "acme/notes");
   const canvas = d.querySelector("#main .graph-wrap canvas");
   const cx = ((box.x0 + box.x1) / 2) * g.scale + g.ox, cy = ((box.y0 + box.y1) / 2) * g.scale + g.oy;
-  const nav = navigations.length;
+  const nav = navigations.length; const nav0 = fetched.length;
   canvas.dispatchEvent(new window.MouseEvent("mousedown", { clientX: cx, clientY: cy, bubbles: true }));
   window.dispatchEvent(new window.MouseEvent("mouseup", { clientX: cx, clientY: cy }));
   await tick(300);
+  if (!fetched.slice(nav0).some((u) => /notes\/state\.body\.json/.test(u))) errors.push("lean export: the walk to notes did not fetch its bodies");
+  if (fetched.slice(open0, nav0).some((u) => /notes\/state\.body\.json/.test(u))) errors.push("lean export: notes' bodies were fetched for the graph, before the walk");
+  window.location.hash = `#entry/${NOTES_ID}`; window.dispatchEvent(new window.Event("hashchange")); await tick(300);
+  if (!/No needle here either\./.test(d.getElementById("main").textContent)) errors.push("lean export: the entry's body is not shown after the walk");
   if (window.location.search !== `?public=${encodeURIComponent(`${GH}/notes`)}` || !/acme---notes/.test(d.title)) errors.push("hub names: a click on the friend's name did not go there: " + window.location.search);
   if (navigations.length !== nav) errors.push("hub names: the walk loaded a page instead of moving in place");
+  window.close();
+}
+{
+  // the globe: the graph alone, full width; waves out from what is loaded, each asked for with its count; the registry as a wave of its own
+  const window = await open(`http://localhost/?public=${encodeURIComponent(`${GH}/refs`)}#globe`);
+  await tick(700);
+  const d = window.document;
+  if (!d.getElementById("app").classList.contains("globe")) errors.push("globe: the page is not in the globe layout");
+  // the intro on the way in: what hops and registry do; "don't show this again" is kept
+  const intro = d.querySelector(".globe-intro");
+  if (!intro || !/Hops/.test(intro.textContent) || !/registry/.test(intro.textContent)) errors.push("globe: no intro explaining hops and registry on the way in");
+  intro?.querySelector("input[type=checkbox]")?.click(); [...(intro?.querySelectorAll("button") || [])].find((b) => b.textContent === "got it")?.click(); await tick(50);
+  if (d.querySelector(".globe-intro")) errors.push("globe: the intro did not close");
+  if (window.localStorage.getItem("ktw-globe-intro") !== "off") errors.push("globe: 'don't show this again' was not kept");
+  window.location.hash = "#graph"; window.dispatchEvent(new window.Event("hashchange")); await tick(150);
+  window.location.hash = "#globe"; window.dispatchEvent(new window.Event("hashchange")); await tick(150);
+  if (d.querySelector(".globe-intro")) errors.push("globe: the intro came back after 'don't show this again'");
+  if (!d.querySelector(".statusbar .globe-egg")) errors.push("globe: no globe in the status bar");
+  const ctl = d.querySelector(".graph-ui .globe-ctl");
+  if (!ctl) errors.push("globe: no globe group in the control bar");
+  const sel = ctl?.querySelector("select");
+  if (!sel || sel.options.length !== 11 || sel.value !== "1") errors.push("globe: the hops choice is not off…10 with 1 chosen: " + sel?.options.length + " " + sel?.value);
+  const before = fetched.length;
+  window.__g().userMoved = true; // as if the reader had panned or zoomed
+  [...ctl.querySelectorAll("button")].find((b) => b.textContent === "go")?.click(); await tick(300);
+  const dialog = d.querySelector(".globe-dialog");
+  if (!dialog) errors.push("globe: no dialog before the first wave");
+  report.globeWave1 = dialog?.querySelector("h3")?.textContent;
+  if (!/^Hop 1: 1 repository/.test(report.globeWave1 || "")) errors.push("globe: hop 1 should offer acme/far alone: " + report.globeWave1);
+  if (!/acme\/far — cited by 1 entry/.test(dialog?.textContent || "")) errors.push("globe: the dialog does not list acme/far with its citation: " + dialog?.textContent?.slice(0, 200));
+  if (fetched.slice(before).some((u) => /acme\/far/.test(u))) errors.push("globe: acme/far was fetched before the yes");
+  [...dialog.querySelectorAll("button")].find((b) => b.textContent === "load them")?.click(); await tick(600);
+  let g = window.__g();
+  let hubs = g.nodes.filter((n) => n.kind === "project" && n.hop != null).map((n) => `${n.label}:${n.hop}`);
+  if (hubs.join() !== "acme/far:1") errors.push("globe: after hop 1 the graph should hold acme/far at hop 1: " + hubs.join());
+  if (!/acme\/far · hop 1/.test(d.querySelector(".graph-legend")?.textContent.replace(/\s+/g, " ") || "")) errors.push("globe: the legend does not say hop 1 for acme/far");
+  if (g.userMoved) errors.push("globe: after a wave the view is not framed again (userMoved still set)");
+  // the second wave, asked for again, finds farther; a no leaves hop 1 standing
+  const sel2 = d.querySelector(".graph-ui .globe-ctl select"); sel2.value = "2"; sel2.dispatchEvent(new window.Event("change")); await tick(300);
+  [...d.querySelectorAll(".graph-ui .globe-ctl button")].find((b) => /^go on/.test(b.textContent))?.click(); await tick(300);
+  const dialog2 = d.querySelector(".globe-dialog");
+  if (!/^Hop 2: 1 repository/.test(dialog2?.querySelector("h3")?.textContent || "")) errors.push("globe: hop 2 should offer acme/farther: " + dialog2?.querySelector("h3")?.textContent);
+  [...dialog2.querySelectorAll("button")].find((b) => b.textContent === "no, stop here")?.click(); await tick(300);
+  g = window.__g(); hubs = g.nodes.filter((n) => n.kind === "project" && n.hop != null).map((n) => `${n.label}:${n.hop}`);
+  if (hubs.join() !== "acme/far:1") errors.push("globe: a no at hop 2 should leave hop 1 as it was: " + hubs.join());
+  // the registry: what it lists and is not here yet — farther; refs is this project and is left out
+  d.querySelector(".graph-ui .globe-ctl input[type=checkbox]").click(); await tick(300);
+  const dialog3 = d.querySelector(".globe-dialog");
+  report.globeRegistry = dialog3?.querySelector("h3")?.textContent;
+  if (!/^The registry: 2 projects/.test(report.globeRegistry || "")) errors.push("globe: the registry should offer farther and gone: " + report.globeRegistry);
+  if (!/acme\/gone — acme---gone · 3 entries · not answering since 2026-09-30, tried anyway/.test(dialog3?.textContent || "")) errors.push("globe: the dialog does not mark gone as not answering: " + dialog3?.textContent?.slice(0, 300));
+  [...dialog3.querySelectorAll("button")].find((b) => b.textContent === "load them")?.click(); await tick(600);
+  g = window.__g(); hubs = g.nodes.filter((n) => n.kind === "project" && n.hop != null).map((n) => `${n.label}:${n.hop}`).sort();
+  if (hubs.join() !== "acme/far:1,acme/farther:registry") errors.push("globe: after the registry the graph should hold far (hop 1) and farther (registry): " + hubs.join());
+  if (!/from the registry/.test(d.querySelector(".graph-legend")?.textContent || "")) errors.push("globe: the legend does not say 'from the registry'");
+  if (!/acme\/gone not loaded · registry/.test(d.querySelector(".graph-legend")?.textContent || "")) errors.push("globe: a registry project that did not load is not named in the legend");
+  // the registry switched off and on again offers its projects again (their states come from memory)
+  d.querySelector(".graph-ui .globe-ctl input[type=checkbox]").click(); await tick(300);
+  g = window.__g(); hubs = g.nodes.filter((n) => n.kind === "project" && n.hop === "registry").map((n) => n.label);
+  if (hubs.length) errors.push("globe: the registry switched off left its projects in the graph: " + hubs.join());
+  d.querySelector(".graph-ui .globe-ctl input[type=checkbox]").click(); await tick(300);
+  const dialog4 = d.querySelector(".globe-dialog");
+  if (!/^The registry: 2 projects/.test(dialog4?.querySelector("h3")?.textContent || "")) errors.push("globe: the registry switched on again should offer farther and, again, gone: " + dialog4?.querySelector("h3")?.textContent);
+  [...(dialog4?.querySelectorAll("button") || [])].find((b) => b.textContent === "load them")?.click(); await tick(400);
+  g = window.__g();
+  if (!g.nodes.some((n) => n.kind === "project" && n.hop === "registry")) errors.push("globe: the registry switched on again did not bring its project back");
+  // a move to a project the globe brought in: it is the centre now, drawn once — not again as a neighbour
+  {
+    const farHub = window.__g().nodes.find((n) => n.kind === "project" && n.label === "acme/far");
+    if (farHub?.walk) { farHub.walk(); await tick(500);
+      const hubs2 = window.__g().nodes.filter((n) => n.kind === "project").map((n) => n.label);
+      if (hubs2.includes("acme/far")) errors.push("globe: after the move to acme/far it is drawn again as a neighbour of itself: " + hubs2.join());
+      if (!/acme---far/.test(d.title)) errors.push("globe: the move to acme/far did not happen: " + d.title);
+      window.history.back(); await tick(500);
+      if (!/acme---refs/.test(d.title)) errors.push("globe: back did not return to refs: " + d.title);
+      window.location.hash = "#globe"; window.dispatchEvent(new window.Event("hashchange")); await tick(300);
+    } else errors.push("globe: no walkable acme/far hub");
+  }
+  // clear drops the globe's repositories, friends stay
+  [...d.querySelectorAll(".graph-ui .globe-ctl button")].find((b) => b.textContent === "clear")?.click(); await tick(300);
+  g = window.__g();
+  if (g.nodes.some((n) => n.kind === "project" && n.hop != null)) errors.push("globe: clear left globe repositories in the graph");
+  if (!g.nodes.some((n) => n.kind === "project" && n.friend)) errors.push("globe: clear took the friends away too");
+  // hops off: the project alone — no friends, no family, no path
+  const selOff = d.querySelector(".graph-ui .globe-ctl select"); selOff.value = "0"; selOff.dispatchEvent(new window.Event("change")); await tick(300);
+  g = window.__g();
+  if (g.nodes.some((n) => n.kind === "project")) errors.push("globe: at off the graph should hold the project alone, got hubs: " + g.nodes.filter((n) => n.kind === "project").map((n) => n.label).join());
+  if (!g.nodes.some((n) => n.kind === "topic" && !n.ext)) errors.push("globe: at off the project's own topics are gone");
+  window.close();
+}
+{
+  // copy link: on a published page the page's own address; on a local one the project's published dashboard
+  const suite = { ...FILES["https://acme.github.io/suite/state.json"], exported: true };
+  const embed = (s) => html.replace("<script>", `<script>window.__KTW_STATE__ = ${JSON.stringify(s).replace(/</g, "\\u003c")};</script><script>`);
+  let window = await open(`https://acme.github.io/suite/keep-the-why-dashboard/#entry/${SUITE_ID}`, embed(suite));
+  await tick(300);
+  let b = window.document.querySelector(".reader .share-btn");
+  report.shareOnPages = b?.title.split("\n")[1];
+  if (report.shareOnPages !== `https://acme.github.io/suite/keep-the-why-dashboard/#entry/${SUITE_ID}`) errors.push("copy link: on a published page it should be the page's address: " + b?.title);
+  window.close();
+  window = await open(`http://localhost:8765/#entry/${SUITE_ID}`, embed({ ...suite, project: { ...suite.project, dashboard_state: "https://acme.github.io/suite/keep-the-why-dashboard/state.json" } }));
+  await tick(300);
+  b = window.document.querySelector(".reader .share-btn");
+  report.shareOnLocal = b?.title.split("\n")[1];
+  if (report.shareOnLocal !== `https://acme.github.io/suite/keep-the-why-dashboard/#entry/${SUITE_ID}`) errors.push("copy link: on a local page it should be the published dashboard's address: " + b?.title);
   window.close();
 }
 console.log(JSON.stringify(report, null, 1));

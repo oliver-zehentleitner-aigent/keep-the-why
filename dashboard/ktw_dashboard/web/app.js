@@ -62,7 +62,15 @@ const LOADED = new Map(); // url -> { bytes, kind, at }
 const bytesOf = (text) => { try { return new TextEncoder().encode(text).length; } catch { return String(text).length; } };
 const fmtBytes = (b) => (b >= 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(2)} MB` : b >= 1024 ? `${(b / 1024).toFixed(1)} KB` : `${b} B`);
 function noteLoaded(url, text, kind) {
-  LOADED.set(String(url), { bytes: bytesOf(text), kind: kind || (/state\.json/.test(url) ? "state" : /\.keep-the-why/.test(url) ? "config" : "other"), at: Date.now() });
+  kind = kind || (/state\.body\.json/.test(url) ? "bodies" : /state\.json/.test(url) ? "state" : /\.keep-the-why/.test(url) ? "config" : "other");
+  const r = { bytes: bytesOf(text), kind, at: Date.now() };
+  // a state says which versions made it: the project's context-schema (the Keep the Why version it is on),
+  // the dashboard that exported it, the linter that parsed it; a .keep-the-why names its context-schema
+  try {
+    if (kind === "state") { const s = JSON.parse(text); r.project = s.project?.id || ""; r.schema = s.project?.schema || ""; r.dashboard = s.dashboard || ""; r.linter = s.linter || ""; r.lean = typeof s.bodies === "string"; }
+    else if (kind === "config") { r.schema = configLine(text, "context-schema") || ""; r.project = configLine(text, "id") || ""; }
+  } catch { /* not JSON, or not a state: the size and address still count */ }
+  LOADED.set(String(url), r);
   renderLoaded();
 }
 const loadedTotals = () => { let bytes = 0, states = 0; for (const r of LOADED.values()) { bytes += r.bytes; if (r.kind === "state") states++; } return { bytes, states, files: LOADED.size }; };
@@ -75,8 +83,10 @@ function renderLoaded() {
 function fillLoadedPop(pop) {
   const rows = [...LOADED.entries()].sort((a, b) => b[1].bytes - a[1].bytes);
   const { bytes, states, files } = loadedTotals();
+  const versions = (r) => (r.kind === "state" ? [r.schema ? `ktw ${r.schema}` : null, r.dashboard ? `dashboard ${r.dashboard}` : null, r.linter ? `lint ${r.linter}` : null, r.lean ? "bodies beside it" : null] : [r.schema ? `ktw ${r.schema}` : null]).filter(Boolean).join(" · ");
   setKids(pop, el("div", { class: "loaded-head" }, `${plural(files, "file")} loaded — ${plural(states, "state.json")} — ${fmtBytes(bytes)}`),
-    ...rows.map(([url, r]) => el("div", { class: "loaded-row" }, el("span", { class: "size" }, fmtBytes(r.bytes)), el("span", { class: "kind" }, r.kind), el("a", { href: url, target: "_blank", rel: "noopener", title: url }, url))));
+    ...rows.map(([url, r]) => el("div", { class: "loaded-row" }, el("span", { class: "size" }, fmtBytes(r.bytes)), el("span", { class: "kind" }, r.kind),
+      el("span", { class: "what" }, r.project ? el("b", {}, r.project) : null, versions(r) ? [el("br"), el("span", { class: "note" }, versions(r))] : null, el("br"), el("a", { href: url, target: "_blank", rel: "noopener", title: url }, url)))));
 }
 function loadedUi() {
   const box = el("span", { id: "loaded" });
@@ -112,6 +122,7 @@ async function loadPublicState(canonical, root) {
     else if (!/^https:\/\//.test(url)) result = { error: `dashboard-state is not an https URL: ${url}`, raw };
     else {
       const state = normalizeState(JSON.parse(await fetchForeign(url)));
+      state.__url = url; // where it came from: its bodies, if kept beside it, resolve against this
       // an export names the project it was made from; one that claims another repository is not shown as this one
       const claimed = state.project?.canonical;
       // a fork's export: made in a checkout whose origin is the cited repository, declaring the repository it was
@@ -123,6 +134,23 @@ async function loadPublicState(canonical, root) {
     }
   } catch (err) { result = { error: `could not fetch the export (${err?.message || "network or CORS refused"})`, raw }; }
   return result;
+}
+// An export since dashboard 0.6.0 keeps its entries' bodies in state.body.json beside state.json (`bodies` names
+// it) — three quarters of the file, read only when an entry is shown. The graph, the globe and the registry
+// never need them; the centre, the merged family's search and the thought reader do, and ask here first.
+// An older export carries its bodies inline and has no `bodies` field; nothing to fetch then.
+const BODIES = new Map(); // state -> Promise
+function ensureBodies(state) {
+  if (!state || typeof state.bodies !== "string" || !state.__url) return Promise.resolve(state);
+  if (state.__bodies) return state.__bodies;
+  const url = new URL(state.bodies, state.__url).href;
+  state.__bodies = fetchForeign(url).then((text) => {
+    const got = JSON.parse(text).bodies || {};
+    for (const e of state.entries) { const b = got[e.id]; if (b != null) e.body = b && typeof b === "object" ? b : { text: String(b || ""), reason: "" }; }
+    state.bodiesLoaded = true;
+    return state;
+  }).catch((err) => { state.bodiesError = err?.message || "could not fetch the bodies"; return state; });
+  return state.__bodies;
 }
 const publicHref = (canonical, root = "", hash = "#overview") => `${location.pathname}?public=${encodeURIComponent(canonical)}${root ? `&root=${encodeURIComponent(root)}` : ""}${hash}`;
 
@@ -297,7 +325,7 @@ function renderSidebar() {
       el("i", { class: `dot ${e.evidence} ${e.status}` }), el("span", {}, e.title.replace(/`/g, ""))));
     tree.append(d);
   }
-  $("#tree-count").textContent = `${S.topics.length} · ${plural(S.entries.length, "entry").replace("entrys", "entries")}`;
+  $("#tree-count").textContent = `${S.topics.length} · ${plural(S.entries.length, "entry")}`;
   $("#queue-count").textContent = queueTotal() || "";
   // filters
   const fill = (id, key, values, label) => {
@@ -350,7 +378,7 @@ function viewOverview(main) {
 }
 function topicCard(t) {
   return el("a", { class: "topic-card", href: `#topic/${t.file}` },
-    el("div", { class: "tt" }, t.title, el("span", { class: "count" }, plural(t.entries, "entry").replace("entrys", "entries"))),
+    el("div", { class: "tt" }, t.title, el("span", { class: "count" }, plural(t.entries, "entry"))),
     t.project ? el("div", { class: "note" }, t.project) : null,
     el("div", { class: "td" }, t.index_line || el("span", { class: "note" }, "not described in index.md")),
     stack(t.evidence, EV_ORDER),
@@ -457,6 +485,28 @@ function refLine(ref, label) {
   if (ref.file) return el("div", { class: "ref" }, label ? el("b", {}, label) : null, topicOf(ref.file) ? el("a", { href: `#topic/${ref.file}` }, ref.locator) : ref.locator, el("span", { class: "note mono" }, ` · ${ref.uuid || ""}`), el("span", { class: "note warn" }, " · Id not found here — the locator may be stale"), date);
   return el("div", { class: "ref" }, label ? el("b", {}, label) : null, ref.text || "");
 }
+// The address to share an entry by: on a published page (an export, public mode) the page's own address; on
+// the live server — a local address nobody else can open — the project's published dashboard, from its
+// dashboard-state line, when it has one; the local address only as a last resort, and then said so.
+function shareUrlOf(e) {
+  const local = /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|\[?::1\]?$)/.test(location.hostname) || location.protocol === "file:";
+  const here = location.href.split("#")[0] + entryHref(e);
+  if (PUBLISHED() && !local) return { url: here, where: "this page" };
+  const st = e.project ? null : (SELF?.project?.dashboard_state || S?.project?.dashboard_state || "");
+  if (st && /^https:\/\//.test(st)) return { url: st.replace(/state\.json$/, "") + entryHref(e), where: "the project's published dashboard" };
+  return { url: here, where: local ? "this machine only — the project publishes no dashboard" : "this page" };
+}
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch { /* no clipboard API: the old way */ }
+  const ta = el("textarea", { style: "position:fixed;opacity:0" }); ta.value = text; document.body.append(ta); ta.select();
+  let ok = false; try { ok = document.execCommand("copy"); } catch {} ta.remove(); return ok;
+}
+function shareButton(e) {
+  const s = shareUrlOf(e);
+  const b = el("button", { type: "button", class: "share-btn", title: `copy a link to this entry — ${s.where}:\n${s.url}`,
+    onclick: async () => { const ok = await copyText(s.url); b.textContent = ok ? "✓ copied" : "copy failed"; b.classList.toggle("done", ok); setTimeout(() => { b.textContent = "⧉ copy link"; b.classList.remove("done"); }, 1800); } }, "⧉ copy link");
+  return b;
+}
 function viewEntry(main, id) {
   const e = entryOf(id);
   if (!e && isUuid(id) && (LIVE() || (PUBLISHED() && canonicalOf(S.project)))) return viewEntryElsewhere(main, id);
@@ -466,7 +516,7 @@ function viewEntry(main, id) {
   const t = topicOf(e.file);
   INLINE_PROJECT = e.project || null;
   const r = el("div", { class: `reader ${e.status}` },
-    el("div", { class: "crumbs" }, el("a", { href: "#overview" }, "Overview"), " / ", el("a", { href: `#topic/${e.file}` }, t?.title || e.file), ` / line ${e.line}`),
+    el("div", { class: "crumbs" }, el("a", { href: "#overview" }, "Overview"), " / ", el("a", { href: `#topic/${e.file}` }, t?.title || e.file), ` / line ${e.line}`, shareButton(e)),
     el("h1", { html: inline(e.title) }),
     el("div", { class: "fields" }, ...entryPills(e), e.source ? pill(`Source: ${e.source}`, "") : null, e.verification ? pill(`Verification: ${e.verification.split(/\s[—-]\s/)[0]}`, "") : null),
     el("div", { class: "body", html: renderMarkdown(e.body.text || "_(no body)_") }),
@@ -494,7 +544,7 @@ function findEntry(ref) {
     ...Object.values(FRIENDS.loaded).filter((r) => r?.state).flatMap((r) => (r.members || [r]).map((m) => ({ state: m.state, name: m.name, href: m.href }))),
     ...TRAIL.map((t) => ({ state: t.state, name: t.name, href: (e) => t.url + entryHref(e) })),
   ];
-  for (const p of pools) { const e = (p.state.entries || []).find((x) => x.uuid === ref || x.id === ref); if (e) return { e, href: p.href ? p.href(e) : "#graph", where: p.name, own: false }; }
+  for (const p of pools) { const e = (p.state.entries || []).find((x) => x.uuid === ref || x.id === ref); if (e) return { e, href: p.href ? p.href(e) : "#graph", where: p.name, own: false, origin: p }; }
   return null;
 }
 function thoughtLink(a, b) {
@@ -514,6 +564,9 @@ function thoughtTimeline(steps, ins) {
 }
 function viewThought(main, refs) {
   const steps = refs.map(findEntry);
+  // a step from another project may come from a lean export: its body is fetched, and the view renders again
+  const lean = steps.filter((f) => f?.origin?.state && typeof f.origin.state.bodies === "string" && !f.origin.state.bodiesLoaded && !f.origin.state.bodiesError);
+  if (lean.length) Promise.all(lean.map((f) => ensureBodies(f.origin.state))).then(() => { if (location.hash.startsWith("#thought/")) render(); });
   // an entry of a friend is found once the friends are in: they load with a graph, and the view renders again
   if (steps.some((f) => !f) && FRIENDS_AUTO && !FRIENDS.on && !FRIENDS.loading) buildGraph();
   const links = steps.map((f, i) => (i ? thoughtLink(steps[i - 1], f) : null));
@@ -877,7 +930,7 @@ function renderDetailsEntry(e) {
 function renderDetailsDefault() {
   const d = $("#details"); d.replaceChildren();
   const route = location.hash.slice(1) || "overview";
-  if (route === "graph" || route === "graph/family") {
+  if (route === "graph" || route === "graph/family" || route === "globe") {
     d.append(el("div", { id: "thoughts" }));
     renderThoughts(familyGraphShown() ? (fgraph && Date.now() - fgraph.at < 30000 ? fgraph : null) : graph);
     d.append(el("h3", {}, "Legend"), el("div", { class: "legend-list" },
@@ -940,10 +993,10 @@ function miniGraph(d, ctx) {
       onclick: () => { MINI = up; FRIENDS.load = true; setFriendsAuto(true); render(); } }, n ? `friends (${n})` : "friends")));
     return requestAnimationFrame(() => runGraph(canvas, ctx.entry ? buildSubgraph(ctx.entry) : buildTopicSubgraph(ctx.topic), opts));
   }
-  if (mode === "project") { const g = buildGraph(ctx.entry?.project || ctx.topic?.project || null); const f = miniFriends(g); if (f) box.append(f); fillFilters(g); return requestAnimationFrame(() => runGraph(canvas, g, opts)); }
+  if (mode === "project") { const g = buildGraph(ctx.entry?.project || ctx.topic?.project || null); fillFilters(g); /* friends are in the gear's groups */ return requestAnimationFrame(() => runGraph(canvas, g, opts)); }
   // family: the family graph's nodes, in a view of its own (its own zoom, entries shown)
   const note = el("span", { class: "mini-hint", style: "top:28px;bottom:auto" }, "loading the family…"); box.append(note);
-  const show = (fg) => { note.remove(); if (!canvas.isConnected) return; const f = miniFriends(fg); if (f) box.append(f); const mg = { ...fg, scale: 1, ox: 0, oy: 0, showEntries: SHOW_ENTRIES, showLabels: true, raf: null, wake: null, alpha: Math.max(fg.alpha, 0.3) }; fillFilters(mg); runGraph(canvas, mg, opts); };
+  const show = (fg) => { note.remove(); if (!canvas.isConnected) return; const mg = { ...fg, scale: 1, ox: 0, oy: 0, showEntries: SHOW_ENTRIES, showLabels: true, raf: null, wake: null, alpha: Math.max(fg.alpha, 0.3) }; fillFilters(mg); runGraph(canvas, mg, opts); };
   if (fgraph && Date.now() - fgraph.at < 30000) requestAnimationFrame(() => show(fgraph));
   else buildFamilyGraph().then(show);
 }
@@ -1164,7 +1217,7 @@ function setFamilyNeighbours(on) { FAMILY_NB_ON = on; try { localStorage.setItem
 // merges search, queues and counts: "off" (the project alone, with friends and path), "linked" (the
 // members beside it with the entries linked here), "all" (the family graph, every member whole).
 const graphFamily = () => (!canFamily() ? "none" : !FAMILY_NB_ON ? "off" : FAMILY_ENTRIES ? "all" : "linked");
-const familyGraphShown = () => graphFamily() === "all";
+const familyGraphShown = () => graphFamily() === "all" && !(GLOBE.view && GLOBE.hops === 0); // the globe at off shows the project alone
 function autoFamily() {
   if (!FAMILY_NB_ON || !canFamily() || FAMILY_NB.groups || FAMILY_NB.loading) return;
   FAMILY_NB.loading = true;
@@ -1189,7 +1242,7 @@ function loadFriend(f) {
   if (FRIENDS.loaded[k]) return Promise.resolve(FRIENDS.loaded[k]);
   return (FRIENDS.pending[k] ||= (async () => {
     let r = null;
-    if (LIVE()) {
+    if (LIVE() && f.uuids?.length) {
       try {
         const res = await fetch(`/api/entry?uuid=${encodeURIComponent(f.uuids[0])}${PROJECT ? `&project=${encodeURIComponent(PROJECT)}` : ""}`, { cache: "no-store" });
         if (res.ok) {
@@ -1268,8 +1321,9 @@ function friendUnits(g) {
   const units = new Map();
   const add = (f, via) => {
     const r = FRIENDS.loaded[fkey(f.canonical)];
-    if (!r?.state || onPath(f.canonical)) return;
-    const members = FRIEND_FAMILIES ? r.members || [r] : [r];
+    const centre = fkey(canonicalOf(SELF?.project));
+    if (!r?.state || onPath(f.canonical) || fkey(f.canonical) === centre) return; // the centre is drawn as itself, never again as a neighbour
+    const members = (FRIEND_FAMILIES ? r.members || [r] : [r]).filter((m) => fkey(m.canonical) !== centre || m === r);
     const k = unitKey(members);
     if (!units.has(k)) units.set(k, { k, r, members, uuids: new Set(), via });
     const u = units.get(k); if (via === "friend") u.via = "friend";
@@ -1277,10 +1331,12 @@ function friendUnits(g) {
   };
   if (FRIENDS.on) (g.friends || []).forEach((f) => add(f, "friend"));
   for (const f of CHAIN.extra.values()) add(f, "chain"); // reached by following a thought
+  for (const f of GLOBE.extra.values()) { add(f, "globe"); const u = units.get(unitKey((FRIENDS.loaded[fkey(f.canonical)]?.members) || [FRIENDS.loaded[fkey(f.canonical)]])); if (u && u.via === "globe") u.hop = f.registry ? "registry" : f.hop; }
   return [...units.values()];
 }
 function addFriendLayer(g, prev) {
   const items = [];
+  if (GLOBE.view && GLOBE.hops === 0) return; // the globe at off: the project alone
   const trail = pathShown() ? TRAIL.filter((t) => !sameCentreAsGraph(g, t)) : [];
   trail.forEach((t, i) => items.push({
     k: `trail:${t.key}`, kind: "trail", color: PALETTE[(i + 2) % PALETTE.length], cited: PATH_ENTRIES ? null : "linked", // a path step is a neighbour like a friend: its own "all their entries" opens it
@@ -1296,7 +1352,7 @@ function addFriendLayer(g, prev) {
     topic: (m) => (m.centre ? (file) => moveTo({ centre: m.centre, state: m.state }, `#topic/${file}`) : null),
   });
   friendUnits(g).forEach((u, i) => items.push({
-    k: u.k, kind: "friend", chain: u.via === "chain", color: friendColor(i), cited: (FRIEND_ENTRIES && (FRIEND_FAM_ENTRIES || u.members.length === 1)) || FRIENDS.expanded.has(u.k) ? null : u.uuids, members: u.members,
+    k: u.k, kind: "friend", chain: u.via === "chain" || u.via === "globe", hop: u.via === "globe" ? u.hop : null, color: friendColor(i), cited: (FRIEND_ENTRIES && (FRIEND_FAM_ENTRIES || u.members.length === 1)) || FRIENDS.expanded.has(u.k) ? null : u.uuids, members: u.members,
     allFor: (m) => (m === u.members[0] ? FRIEND_ENTRIES : FRIEND_FAM_ENTRIES), kin: (m) => m !== u.members[0], // the cited repository first, then its family
     hub: () => toggleFriend(u.k),
     entry: (m) => (m.centre ? (e) => moveTo({ centre: m.centre, state: m.state }, entryHref(e)) : null),
@@ -1363,7 +1419,7 @@ function addLinkedLayer(g, prev, items) {
       const off = it.members.length > 1 ? { x: centre.x + 110 * Math.cos((2 * Math.PI * j) / it.members.length), y: centre.y + 110 * Math.sin((2 * Math.PI * j) / it.members.length) } : centre;
       // the hub expands a friend (or goes back along the path); its name goes to that project
       const walk = it.kind === "trail" ? it.hub : m.centre ? () => moveTo({ centre: m.centre, state: m.state }, "#graph") : m.open ? () => go(m.open) : null;
-      const hub = add({ id: `f:${it.k}:${m.key}`, kind: "project", friend: it.kind === "friend", chain: !!it.chain, trail: it.kind === "trail", family: it.kind === "family", label: m.name, canonical: m.canonical, r: it.kind === "family" ? 13 : j === 0 ? 13 : 10, color: mcol, href: m.open || "#graph", action: it.hub, walk }, off);
+      const hub = add({ id: `f:${it.k}:${m.key}`, kind: "project", friend: it.kind === "friend", chain: !!it.chain, hop: it.hop ?? null, trail: it.kind === "trail", family: it.kind === "family", label: m.name, canonical: m.canonical, r: it.kind === "family" ? 13 : j === 0 ? 13 : 10, color: mcol, href: m.open || "#graph", action: it.hub, walk }, off);
       if (selfHub && it.kind === "family" && m.role === "child") links.push({ s: index[hub.id], t: index[selfHub.id], kind: "family", len: 260 });
       if (selfHub && it.kind === "family" && m.role === "parent") links.push({ s: index[selfHub.id], t: index[hub.id], kind: "family", len: 260 });
       hubs[m.key] = index[hub.id];
@@ -1466,6 +1522,7 @@ function setCentre(c, state) {
   graph = null; fgraph = null; TREE = null; TREE_AT = 0; TREE_ASKED = false; PUBLIC_TREE = null; LAST_POOL = null;
   FRIENDS.on = false; FRIENDS.expanded.clear(); THOUGHT_PIN = null; MINI = null; CHAIN.extra.clear(); CHAIN.tried.clear();
   FAMILY_NB = { groups: null, missing: [], loading: false }; // the family beside the graph is the new centre's
+  GLOBE.extra.clear(); GLOBE.failed.clear(); GLOBE.done = 0; GLOBE.registry = false; // the globe's waves were counted from the old centre; what was fetched stays in memory
   if (MODE === "public") state.exported = true;
   connectLive();
   const sel = $("#project-select");
@@ -1483,7 +1540,7 @@ function moveTo(t, hash = "#graph", { push = true } = {}) {
   else if (KEEP_PATH) { TRAIL = TRAIL.filter((x) => x.key !== here.key); TRAIL.push(here); }
   else TRAIL = [];
   if (push) history.pushState({ ktw: target.key }, "", target.url + hash);
-  setCentre(target.centre, target.state);
+  ensureBodies(target.state).then(() => setCentre(target.centre, target.state));
 }
 // Back and forward: a step inside this centre is a hash change (rendered
 // there); a step to another centre goes there in place when its state is in
@@ -1682,6 +1739,119 @@ async function followChains(pick) {
     }
   } finally { CHAIN.busy = false; if (fgraph) fgraph.at = 0; render(); }
 }
+// ---------------------------------------------------------------- globe
+// The globe: from what the page has loaded, every repository cited outside it, in waves — hop 1 is what the
+// loaded entries cite, hop 2 what those cite, and so on, up to ten — each wave asked for with its count, since
+// the next wave can only be counted once the last one is in. Optionally the registry: every project listed
+// in keepthewhy.com's registry, loaded as a wave of its own. Nothing of this is kept per browser: every load
+// from another host is a click, and a reload starts without it.
+const REGISTRY_URL = "https://keepthewhy.com/registry/index.json";
+const GLOBE = { view: false, hops: 1, extra: new Map(), failed: new Map(), busy: false, registry: false, registryUrl: REGISTRY_URL, done: 0, log: [] }; // failed: canonical key -> { canonical, error, hop }
+function loadedCanonicals() {
+  // what the page shows beside the project — not everything it ever fetched: a repository dropped from the
+  // globe (clear, the registry switched off) is offered again, its state coming from memory
+  const out = new Set([fkey(canonicalOf(S?.project))]);
+  for (const m of familyMembers()) out.add(fkey(m.canonical));
+  for (const t of TRAIL) out.add(fkey(t.canonical));
+  const unit = (k) => { const r = FRIENDS.loaded[k]; if (r?.state) { out.add(k); for (const m of r.members || []) out.add(fkey(m.canonical)); } };
+  if (FRIENDS.on) for (const f of graph?.friends || fgraph?.friends || []) unit(fkey(f.canonical));
+  for (const k of CHAIN.extra.keys()) unit(k);
+  for (const k of GLOBE.extra.keys()) unit(k);
+  return out;
+}
+// what the loaded entries cite outside everything loaded — the next wave
+function globeCandidates() {
+  const have = loadedCanonicals(); const out = new Map();
+  const scan = (entries) => { for (const e of entries || []) for (const x of entryRefs(e)) { if (!x.remote) continue; const k = fkey(x.remote); if (have.has(k) || FRIENDS.loaded[k]?.error) continue; if (!out.has(k)) out.set(k, { canonical: x.remote.replace(/\/+$/, ""), uuids: new Set() }); out.get(k).uuids.add(x.uuid); } };
+  scan(S?.entries); for (const m of familyMembers()) scan(m.state?.entries);
+  for (const r of Object.values(FRIENDS.loaded)) if (r?.state) { scan(r.state.entries); for (const m of r.members || []) if (m !== r) scan(m.state?.entries); }
+  return [...out.values()].map((c) => ({ ...c, uuids: [...c.uuids] }));
+}
+// a small dialog in the page: what would load, how many files, yes or no
+function globeDialog({ title, lines, note }) {
+  return new Promise((resolve) => {
+    const close = (v) => { box.remove(); resolve(v); };
+    const box = el("div", { class: "globe-dialog" }, el("div", { class: "globe-card" },
+      el("h3", {}, title), note ? el("p", { class: "note" }, note) : null,
+      el("div", { class: "globe-list" }, ...lines.map((l) => el("div", {}, l))),
+      el("div", { class: "globe-actions" }, el("button", { type: "button", class: "link-btn", onclick: () => close(false) }, "no, stop here"), el("button", { type: "button", class: "primary", onclick: () => close(true) }, "load them"))));
+    document.body.append(box);
+  });
+}
+async function globeRun(hops) {
+  if (GLOBE.busy) return;
+  GLOBE.busy = true; render();
+  try {
+    for (let hop = GLOBE.done + 1; hop <= hops; hop++) {
+      const cands = globeCandidates();
+      if (!cands.length) { GLOBE.log.push(`hop ${hop}: nothing left to load — the web ends here`); break; }
+      const yes = await globeDialog({ title: `Hop ${hop}: ${plural(cands.length, "repository")}`, note: `${plural(cands.length * 2, "file")} — a .keep-the-why and a state.json each${FRIEND_FAMILIES ? ", plus their families, if any (friends families is on)" : ""} — from their hosts, in the browser.`, lines: cands.map((c) => `${repoLabel(c.canonical)} — cited by ${plural(c.uuids.length, "entry")}`) });
+      if (!yes) break;
+      await Promise.all(cands.map(loadFriend));
+      let ok = 0; for (const c of cands) { const k = fkey(c.canonical); const r = FRIENDS.loaded[k]; if (r?.state) { GLOBE.extra.set(k, { ...c, hop }); GLOBE.failed.delete(k); ok++; } else GLOBE.failed.set(k, { canonical: c.canonical, error: r?.error || "could not be loaded", hop }); }
+      GLOBE.done = hop; GLOBE.log.push(`hop ${hop}: ${ok} of ${cands.length} loaded`);
+      globeRefit();
+      if (fgraph) fgraph.at = 0; render();
+    }
+  } finally { GLOBE.busy = false; if (fgraph) fgraph.at = 0; render(); }
+}
+async function globeRegistry() {
+  if (GLOBE.busy) return;
+  GLOBE.busy = true; render();
+  try {
+    const idx = JSON.parse(await fetchForeign(GLOBE.registryUrl));
+    const have = loadedCanonicals();
+    // a project that failed before is offered again — much of that is temporary; its old error is forgotten for the try
+    const list = (idx.projects || []).filter((p) => p.canonical && !have.has(fkey(p.canonical)));
+    for (const p of list) { const k = fkey(p.canonical); if (FRIENDS.loaded[k]?.error) { delete FRIENDS.loaded[k]; delete FRIENDS.pending[k]; delete PUBLIC_STATES[`${p.canonical}|`]; } }
+    if (!list.length) { GLOBE.log.push("registry: everything listed is already here"); GLOBE.registry = true; return; }
+    const yes = await globeDialog({ title: `The registry: ${plural(list.length, "project")}`, note: `${plural(list.length * 2, "file")} — a .keep-the-why and a state.json each${FRIEND_FAMILIES ? ", plus their families, if any" : ""} — from their hosts, in the browser. The registry is ${GLOBE.registryUrl}, checked ${idx.checked || "—"}.`, lines: list.map((p) => `${repoLabel(p.canonical)}${p.id ? ` — ${p.id}` : ""}${p.entries != null ? ` · ${plural(p.entries, "entry")}` : ""}${p.failed_since ? ` · not answering since ${p.failed_since}, tried anyway` : ""}`) });
+    if (!yes) return;
+    const cands = list.map((p) => ({ canonical: p.canonical, uuids: [] }));
+    await Promise.all(cands.map(loadFriend));
+    let ok = 0; for (const c of cands) { const k = fkey(c.canonical); const r = FRIENDS.loaded[k]; if (r?.state) { GLOBE.extra.set(k, { ...c, hop: 0, registry: true }); GLOBE.failed.delete(k); ok++; } else GLOBE.failed.set(k, { canonical: c.canonical, error: r?.error || "could not be loaded", hop: "registry" }); }
+    GLOBE.registry = true; GLOBE.log.push(`registry: ${ok} of ${list.length} loaded`);
+    globeRefit();
+  } catch (err) { GLOBE.log.push(`registry: could not be read (${err?.message || "network"})`); }
+  finally { GLOBE.busy = false; if (fgraph) fgraph.at = 0; render(); }
+}
+// The way into the globe: what it does, and that nothing loads by itself — the graph starts as the project
+// alone and grows only by a choice. "Don't show this again" is kept per browser, a convenience and nothing more.
+let GLOBE_INTRO_SHOWN = false;
+const globeIntroOff = () => { try { return localStorage.getItem("ktw-globe-intro") === "off"; } catch { return false; } };
+function globeIntro() {
+  if (GLOBE_INTRO_SHOWN || globeIntroOff() || !GLOBE.view) return;
+  GLOBE_INTRO_SHOWN = true;
+  const never = el("input", { type: "checkbox" });
+  const close = () => { if (never.checked) { try { localStorage.setItem("ktw-globe-intro", "off"); } catch {} } box.remove(); };
+  const box = el("div", { class: "globe-dialog globe-intro", onclick: (ev) => { if (ev.target === box) close(); } }, el("div", { class: "globe-card" },
+    el("h3", {}, "🌐 The globe"),
+    el("p", {}, "This project's graph, full width — and from here as far out as you choose. Nothing loads by itself: the graph grows only when you ask, with the controls at the top left."),
+    el("div", { class: "globe-list" },
+      el("p", {}, el("b", {}, "Hops"), " — choose 1 to 10, then ", el("i", {}, "go"), ". Hop 1 is every repository the loaded entries cite outside the page, hop 2 what those cite, and so on. Before each wave a dialog lists the repositories and files it would fetch; you load them or stop there. ", el("i", {}, "off"), " shows this project alone."),
+      el("p", {}, el("b", {}, "registry"), " — every project listed in the Keep the Why registry (keepthewhy.com/registry), loaded as a wave of its own, asked for the same way: projects that cite nothing of yours, and the ones that cite you. The ⓘ beside it says how a project gets listed."),
+      el("p", {}, el("b", {}, "clear"), " drops what the globe loaded; friends, family and path stay.")),
+    el("div", { class: "globe-actions" }, el("label", { class: "note", style: "margin-right:auto" }, never, " don't show this again"), el("button", { type: "button", class: "primary", onclick: close }, "got it"))));
+  document.body.append(box);
+}
+// what a wave brought in may lie outside the view: frame the whole graph again, whatever the reader had moved
+function globeRefit() { for (const x of [graph, fgraph]) if (x) { x.userMoved = false; x.alpha = Math.max(x.alpha, 0.5); } }
+function globeClear() { globeRefit(); GLOBE.extra.clear(); GLOBE.failed.clear(); GLOBE.done = 0; GLOBE.registry = false; GLOBE.log = []; if (fgraph) fgraph.at = 0; render(); }
+function globeUi(g) {
+  if (!GLOBE.view) return null;
+  const sel = el("select", { title: "how many hops out from what is loaded — each wave is asked for with its count", onchange: (ev) => { GLOBE.hops = Number(ev.target.value); if (GLOBE.hops === 0) globeClear(); else render(); } }, ...Array.from({ length: 11 }, (_, i) => el("option", { value: String(i), selected: i === GLOBE.hops }, i === 0 ? "off" : `${i} hop${i === 1 ? "" : "s"}`)));
+  const go = el("button", { type: "button", class: "link-btn", disabled: GLOBE.busy || GLOBE.hops <= GLOBE.done, title: "load the next waves, one asked after the other", onclick: () => globeRun(GLOBE.hops) }, GLOBE.busy ? "loading…" : GLOBE.done ? `go on (${GLOBE.done} done)` : "go");
+  const reg = el("label", { title: `every project listed in the registry — ${GLOBE.registryUrl}` }, el("input", { type: "checkbox", checked: GLOBE.registry, disabled: GLOBE.busy, onchange: (ev) => { if (ev.target.checked) globeRegistry(); else { for (const [k, f] of GLOBE.extra) if (f.registry) GLOBE.extra.delete(k); GLOBE.registry = false; render(); } } }), "registry");
+  // an ⓘ beside the switch: what the registry is, and that one line in a pull request puts a project on it
+  const info = el("span", { class: "globe-info", tabindex: "0" }, "ⓘ",
+    el("span", { class: "globe-info-box" },
+      el("b", {}, "The registry"),
+      el("p", {}, "A list of repositories with a published Keep the Why dashboard export, kept in the keep-the-why repository and built into an index the globe can load as a wave of its own. Nothing needs it: the globe finds repositories by their citations. The registry is for being found from a project that cites nothing of yours — and for seeing who cites you."),
+      el("p", {}, "To be listed, open a pull request that adds one line to ", el("code", {}, "registry/projects.txt"), ": your repository's canonical URL. A workflow follows its ", el("code", {}, ".keep-the-why"), " to the ", el("code", {}, "dashboard-state"), " export and checks that the export names your repository — move the export later and the listing follows. A family is listed by its root project: its members come with it through their parent/children lines (with friends families on)."),
+      el("p", {}, el("a", { href: "https://keepthewhy.com/registry/", target: "_blank", rel: "noopener" }, "keepthewhy.com/registry"), " · ", el("a", { href: "https://github.com/oliver-zehentleitner/keep-the-why/blob/main/registry/projects.txt", target: "_blank", rel: "noopener" }, "registry/projects.txt on GitHub"))));
+  const clear = GLOBE.extra.size ? el("button", { type: "button", class: "link-btn", title: "drop everything the globe loaded; friends, family and path stay", onclick: globeClear }, "clear") : null;
+  return el("span", { class: "ui-group globe-ctl" }, el("a", { class: "globe-mark", href: "https://keepthewhy.com/registry/", target: "_blank", rel: "noopener", title: "the registry — what the globe can load, and how to be listed" }, "🌐"), sel, go, reg, info, clear);
+}
 const followAll = () => followChains((g) => { const t = graphThoughts(g); return [...t.thoughts, ...t.open].flatMap((c) => c.ends); });
 // one chain, found again after each hop by its newest entry's Id
 function followThought(t, then) {
@@ -1732,13 +1902,15 @@ function renderThoughts(g) {
     ...open.map(row));
 }
 function friendsLegend(g) {
-  if (!FRIENDS.on && !CHAIN.extra.size) return [];
+  if (!FRIENDS.on && !CHAIN.extra.size && !GLOBE.extra.size && !GLOBE.failed.size) return [];
   const out = friendUnits(g).map((u, i) => el("span", { class: "friend", title: `friend: ${u.r.canonical}${u.members.length > 1 ? ` — a family of ${u.members.length}, shown whole` : ""} — its hub shows the entries cited there; a click on a hub shows all of it, a click on the name goes there` },
     el("i", { class: "dot", style: `background:transparent;border:2px dashed ${friendColor(i)};width:10px;height:10px` }),
     el("a", { href: u.r.open, onclick: (ev) => { if (!u.r.centre) return; ev.preventDefault(); moveTo({ centre: u.r.centre, state: u.r.state }, "#graph"); } }, u.r.name),
     u.members.length > 1 ? el("span", { class: "note" }, ` · family of ${u.members.length}`) : (u.r.members || []).length > 1 ? el("span", { class: "note" }, ` · family of ${u.r.members.length}, not shown`) : null,
     u.via === "chain" ? el("span", { class: "note" }, " · via a thought") : null));
   for (const f of g.friends || []) { const r = FRIENDS.loaded[fkey(f.canonical)]; if (r && !r.state) out.push(el("span", { class: "warn", title: r.error }, `${repoLabel(r.canonical)} not loaded`)); }
+  // the globe's waves and the registry: what could not be loaded is named, not dropped — often it is back tomorrow
+  if (GLOBE.view) for (const f of GLOBE.failed.values()) out.push(el("span", { class: "warn", title: f.error }, `${repoLabel(f.canonical)} not loaded · ${f.hop === "registry" ? "registry" : `hop ${f.hop}`}`));
   return out;
 }
 // Every project the graph holds, one line each, from its hub nodes: this project first, then the path's
@@ -1786,7 +1958,7 @@ function projectsLegend(g) {
     out.push(el("span", { class: n.friend ? "friend" : "family", style: depth ? `padding-left:${depth * 14}px` : "", title: kind(n), onmouseenter: () => { g.spot = projectNodes(g, n); g.alpha = Math.max(g.alpha, 0.02); g.wake?.(); }, onmouseleave: () => { g.spot = null; g.alpha = Math.max(g.alpha, 0.02); g.wake?.(); } }, el("i", { class: "dot", style: `${ring(n)}width:10px;height:10px` }), name,
       notShown ? el("span", { class: "note" }, ` · family of ${notShown}, not shown`) : null,
       forkOf ? el("span", { class: "note", title: `the export names ${forkOf} as its canonical and was made in a checkout of ${u.r.canonical}` }, " · fork of ", el("a", { href: forkOf, target: "_blank", rel: "noopener" }, repoLabel(forkOf))) : null,
-      n.chain ? el("span", { class: "note" }, " · via a thought") : null));
+      n.hop != null ? el("span", { class: "note" }, n.hop === "registry" ? " · from the registry" : ` · hop ${n.hop}`) : n.chain ? el("span", { class: "note" }, " · via a thought") : null));
   }
   return out;
 }
@@ -1806,7 +1978,9 @@ function familyLegend(g) {
 function graphControlGroups(g, family) {
   const fui = friendsUi(g);
   const famUi = familyUi(g);
+  const globe = globeUi(g);
   return [
+    globe,
     el("span", { class: "ui-group" }, el("label", {}, el("input", { type: "checkbox", checked: g.showEntries, onchange: (ev) => { g.showEntries = ev.target.checked; setShowEntries(ev.target.checked); g.alpha = 0.5; g.wake?.(); } }), "entries"), labelsUi(g, "project", "this project's topics and entries")),
     famUi ? el("span", { class: "ui-group" }, famUi, FAMILY_NB_ON ? labelsUi(g, "family", "the family's projects") : null) : null,
     fui ? el("span", { class: "ui-group" }, fui) : null,
@@ -1822,7 +1996,7 @@ function graphControlGroups(g, family) {
 let TREE_ASKED = false;
 function viewGraph(main) {
   // live: the whole family tree is known before anything counts as a friend — the server's own API, no other host
-  if (LIVE() && !TREE && !TREE_ASKED) { TREE_ASKED = true; fetchTree().then((t) => { if (t && location.hash === "#graph") render(); }); }
+  if (LIVE() && !TREE && !TREE_ASKED) { TREE_ASKED = true; fetchTree().then((t) => { if (t && /^#(graph|globe)$/.test(location.hash)) render(); }); }
   const family = familyGraphShown();
   const wrap = el("div", { class: "graph-wrap" });
   main.append(wrap);
@@ -1846,13 +2020,13 @@ function viewGraph(main) {
       const n = g.nodes.find((x) => (c.entry && x.entry && (x.entry === c.entry || (c.entry.uuid && x.entry.uuid === c.entry.uuid))) || (c.topic && x.kind === "topic" && x.file === c.topic.file));
       if (n) { g.ox = -n.x * g.scale; g.oy = -n.y * g.scale; g.userMoved = true; }
     }
-    runGraph(canvas, g, { fit: family });
+    runGraph(canvas, g, { fit: family || GLOBE.view }); // the family graph and the globe keep everything in view
     renderThoughts(g);
   };
   if (!family) return fill(buildGraph());
   if (fgraph && Date.now() - fgraph.at < 30000) return fill(fgraph); // a live update re-renders: no refetch
   wrap.append(el("p", { class: "center" }, "Loading the family…"));
-  buildFamilyGraph().then((g) => { if (wrap.isConnected && location.hash === "#graph" && familyGraphShown()) fill(g); });
+  buildFamilyGraph().then((g) => { if (wrap.isConnected && /^#(graph|globe)$/.test(location.hash) && familyGraphShown()) fill(g); });
 }
 const go = (href) => { if (href.startsWith("#")) location.hash = href; else location.href = href; };
 // The graph turns very slowly in its plane — one turn in about six minutes —
@@ -2091,6 +2265,7 @@ let PUBLIC_TREE = null; // the tree read from published exports, public mode
 async function publicTree() {
   if (PUBLIC_TREE) return PUBLIC_TREE;
   PUBLIC_TREE = await publicTreeFrom({ state: SELF, canonical: canonicalOf(S.project), root: MY_ROOT(), name: S.project.id || S.project.name, href: (e) => entryHref(e) });
+  await Promise.all(PUBLIC_TREE.groups.map((g) => ensureBodies(g.state))); // merged into search and lists: the bodies are needed
   return PUBLIC_TREE;
 }
 // The family tree around one published project, read from the members'
@@ -2200,7 +2375,7 @@ async function viewSearch(main, linkScope, q) {
   const rows = searchRows(pool, q);
   const shown = rows.filter(({ e }) => matches(e)).length;
   const projectsHit = new Set(rows.map((r) => r.g)).size;
-  sub.textContent = `${plural(rows.length, "entry").replace("entrys", "entries")} in ${plural(projectsHit, "project")}` +
+  sub.textContent = `${plural(rows.length, "entry")} in ${plural(projectsHit, "project")}` +
     (scope === "family" ? ` · ${plural(pool.groups.length, "project")} searched` : "") +
     (terms.length > 1 ? ` · all of: ${terms.join(", ")}` : "") +
     (filterActive() ? ` · ${shown} match the sidebar filters, the rest dimmed` : "") +
@@ -2281,11 +2456,14 @@ function render() {
   const main = $("#main"); main.replaceChildren();
   const route = location.hash.slice(1) || "overview";
   selected = null;
+  GLOBE.view = route === "globe"; $("#app").classList.toggle("globe", GLOBE.view); // the globe: the graph alone, full width
+  if (GLOBE.view) setTimeout(globeIntro, 0); else GLOBE_INTRO_SHOWN = false; // explained on the way in, once per visit
   $("#details").dataset.pane = "other";
   if (!route.startsWith("graph")) { const bar = pathBar(); if (bar) main.append(bar); } // the graph carries it as an overlay
   if (route === "overview") { viewOverview(main); renderDetailsDefault(); }
   else if (route === "graph/family") { setScope("family", { rerender: false }); setFamilyNeighbours(true); setFamilyEntries(true); history.replaceState(null, "", "#graph"); viewGraph(main); renderDetailsDefault(); } // an old link to the family graph: the family whole, in the graph and in the scope
   else if (route === "graph") { viewGraph(main); renderDetailsDefault(); }
+  else if (route === "globe") { viewGraph(main); renderDetailsDefault(); }
   else if (route === "timeline") { viewTimeline(main); renderDetailsDefault(); }
   else if (route === "authors") { viewAuthors(main); renderDetailsDefault(); }
   else if (route === "queues") { viewQueues(main); renderDetailsDefault(); }
@@ -2357,7 +2535,8 @@ function applyState(state) {
     el("span", {}, MODE === "public" ? `public export · generated ${S.generated}` : S.exported ? `exported ${S.generated}` : `state ${S.generated}`),
     el("span", { id: "counts" }, `${S.entries.length} entries · ${S.topics.length} topics · ${S.authors.length} authors`),
     loadedUi(),
-    el("span", { class: "grow" }, el("a", { href: "https://keepthewhy.com", target: "_blank", rel: "noopener" }, "keepthewhy.com")));
+    el("span", { class: "grow" }, el("a", { href: "https://keepthewhy.com", target: "_blank", rel: "noopener" }, "keepthewhy.com")),
+    el("a", { class: "globe-egg", href: "#globe", title: "the globe" }, "🌐"));
   renderLoaded();
   FAMILY = null;
   if (LIVE()) $("#nav-projects").hidden = false;
