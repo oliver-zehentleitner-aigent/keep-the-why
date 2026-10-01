@@ -945,7 +945,7 @@ function renderDetailsDefault() {
       el("span", {}, el("i", { class: "dot", style: "background:transparent;border:1.5px solid var(--fg3)" }), "superseded — hollow"),
       el("span", {}, el("i", { class: "dot", style: "background:var(--bg);border:1.5px solid var(--open)" }), "ring — open, needs review, pending"),
       el("span", {}, "solid line — a reference between topics; dotted — membership"),
-      el("span", {}, el("i", { class: "dot", style: "background:transparent;border:2px dashed var(--fg3);width:10px;height:10px" }), "friend — a repository cited outside the family, loaded with friends (N) in the graph; a click on its hub shows all of it"),
+      el("span", {}, el("i", { class: "dot", style: "background:transparent;border:2px dashed var(--fg3);width:10px;height:10px" }), "friend — a repository cited outside the family, loaded with the graph; a click on its hub or name goes there"),
       el("span", {}, el("i", { class: "dot", style: "background:transparent;border:2px dotted var(--fg3);width:10px;height:10px" }), "path — a project you walked through to get here, numbered in order; a click goes back there")),
       el("h3", {}, "Keys"), el("p", { class: "note" }, el("kbd", {}, "/"), " search · ", el("kbd", {}, "g"), " graph · ", el("kbd", {}, "o"), " overview · ", el("kbd", {}, "q"), " queues · ", el("kbd", {}, "t"), " timeline · ", el("kbd", {}, "a"), " authors · ", el("kbd", {}, "l"), " findings"));
     return;
@@ -1148,7 +1148,7 @@ const color0 = () => getComputedStyle(document.documentElement).getPropertyValue
 // else the repository's published export), one level deep — a friend's own
 // friends are not followed. A friend is linked into the graph, never merged:
 // search, queues, counts and the other views stay with the project or family.
-// Its hub shows the entries cited there; a click on the hub shows all of it.
+// Its hub shows the entries cited there; a click on the hub goes there, as its name does.
 const FRIENDS = { on: false, loaded: {}, pending: {}, expanded: new Set(), load: false, loading: false };
 // Loaded as soon as a graph shows them, by default (few projects have many
 // friends yet); *friends* unchecked turns that off, kept per browser — then a
@@ -1313,7 +1313,9 @@ function toggleFriend(k) {
 // to each other, both ways, a reference counting only when it names one of
 // the unit's repositories and an Id there. Called by buildGraph and
 // buildFamilyGraph after their own nodes.
-const unitKey = (members) => members.map((m) => m.key).sort().join(" ");
+// a unit is the repositories it holds — by canonical and root, not by how they were loaded: the same family
+// read once from this machine (live keys) and once from published exports (public keys) is one unit
+const unitKey = (members) => members.map((m) => `${fkey(m.canonical)}|${m.root || ""}`).sort().join(" ");
 // an entry's See and Superseded by, each { uuid, remote, kind }
 const entryRefs = (e) => [...(e.see || []).map((x) => x && { uuid: x.uuid, remote: x.remote, kind: "see" }), e.superseded_by ? { ...parseSupersededBy(e.superseded_by), kind: "superseded" } : null].filter((x) => x?.uuid);
 function friendUnits(g) {
@@ -1417,7 +1419,7 @@ function addLinkedLayer(g, prev, items) {
     it.members.forEach((m, j) => {
       const mcol = m.color || col;
       const off = it.members.length > 1 ? { x: centre.x + 110 * Math.cos((2 * Math.PI * j) / it.members.length), y: centre.y + 110 * Math.sin((2 * Math.PI * j) / it.members.length) } : centre;
-      // the hub expands a friend (or goes back along the path); its name goes to that project
+      // the hub and its name both go to that project (back along the path for a step of it)
       const walk = it.kind === "trail" ? it.hub : m.centre ? () => moveTo({ centre: m.centre, state: m.state }, "#graph") : m.open ? () => go(m.open) : null;
       const hub = add({ id: `f:${it.k}:${m.key}`, kind: "project", friend: it.kind === "friend", chain: !!it.chain, hop: it.hop ?? null, trail: it.kind === "trail", family: it.kind === "family", label: m.name, canonical: m.canonical, r: it.kind === "family" ? 13 : j === 0 ? 13 : 10, color: mcol, href: m.open || "#graph", action: it.hub, walk }, off);
       if (selfHub && it.kind === "family" && m.role === "child") links.push({ s: index[hub.id], t: index[selfHub.id], kind: "family", len: 260 });
@@ -1763,8 +1765,11 @@ function loadedCanonicals() {
 function globeCandidates() {
   const have = loadedCanonicals(); const out = new Map();
   const scan = (entries) => { for (const e of entries || []) for (const x of entryRefs(e)) { if (!x.remote) continue; const k = fkey(x.remote); if (have.has(k) || FRIENDS.loaded[k]?.error) continue; if (!out.has(k)) out.set(k, { canonical: x.remote.replace(/\/+$/, ""), uuids: new Set() }); out.get(k).uuids.add(x.uuid); } };
+  // from what is drawn — the project, its family, the path's steps, the units beside it — not from everything
+  // ever fetched: a project walked away from is not where the next hop starts
   scan(S?.entries); for (const m of familyMembers()) scan(m.state?.entries);
-  for (const r of Object.values(FRIENDS.loaded)) if (r?.state) { scan(r.state.entries); for (const m of r.members || []) if (m !== r) scan(m.state?.entries); }
+  if (pathShown()) for (const t of TRAIL) scan(t.state?.entries);
+  if (graph) for (const u of friendUnits(graph)) for (const m of u.members) scan(m.state?.entries);
   return [...out.values()].map((c) => ({ ...c, uuids: [...c.uuids] }));
 }
 // a small dialog in the page: what would load, how many files, yes or no
@@ -1903,7 +1908,7 @@ function renderThoughts(g) {
 }
 function friendsLegend(g) {
   if (!FRIENDS.on && !CHAIN.extra.size && !GLOBE.extra.size && !GLOBE.failed.size) return [];
-  const out = friendUnits(g).map((u, i) => el("span", { class: "friend", title: `friend: ${u.r.canonical}${u.members.length > 1 ? ` — a family of ${u.members.length}, shown whole` : ""} — its hub shows the entries cited there; a click on a hub shows all of it, a click on the name goes there` },
+  const out = friendUnits(g).map((u, i) => el("span", { class: "friend", title: `friend: ${u.r.canonical}${u.members.length > 1 ? ` — a family of ${u.members.length}, shown whole` : ""} — its hub shows the entries cited there; a click on its hub or its name goes there` },
     el("i", { class: "dot", style: `background:transparent;border:2px dashed ${friendColor(i)};width:10px;height:10px` }),
     el("a", { href: u.r.open, onclick: (ev) => { if (!u.r.centre) return; ev.preventDefault(); moveTo({ centre: u.r.centre, state: u.r.state }, "#graph"); } }, u.r.name),
     u.members.length > 1 ? el("span", { class: "note" }, ` · family of ${u.members.length}`) : (u.r.members || []).length > 1 ? el("span", { class: "note" }, ` · family of ${u.r.members.length}, not shown`) : null,
@@ -1962,6 +1967,8 @@ function projectsLegend(g) {
   }
   return out;
 }
+// the path's line, explained where it is drawn: it is the way walked, not a relation between the projects
+const pathLegend = (g) => (pathShown() && TRAIL.some((t) => !sameCentreAsGraph(g, t)) ? [el("span", { class: "path-legend", title: "the projects you came through, in the order walked; the line says nothing about how they relate" }, "···› the path — the way you walked here, not a citation")] : []);
 function familyLegend(g) {
   if (g !== graph) return [];
   const fam = familyMembers();
@@ -2006,13 +2013,13 @@ function viewGraph(main) {
     const legend = family
       ? el("div", { class: "graph-legend" },
         ...projectsLegend(g),
-        el("span", {}, `${plural(g.across, "reference")} across projects`),
+        el("span", {}, `${plural(g.across, "reference")} across projects`), ...pathLegend(g),
         g.missing.length ? el("span", { class: "warn", title: g.missing.map(({ member: m, reason }) => `${m.name}: ${reason}`).join("\n") }, `${plural(g.missing.length, "member")} not available here`) : null, ...friendsLegend(g).filter((x) => x.classList.contains("warn")))
       : el("div", { class: "graph-legend" },
         el("span", {}, el("i", { class: "dot", style: "background:var(--accent);width:12px;height:12px" }), "topic (size = entries)"),
         el("span", {}, el("i", { class: "dot confirmed" }), "confirmed"), el("span", {}, el("i", { class: "dot inferred" }), "inferred"), el("span", {}, el("i", { class: "dot unknown" }), "unknown"),
         el("span", {}, el("i", { class: "dot", style: "background:transparent;border:1.5px solid var(--fg3)" }), "superseded"),
-        el("span", {}, "— reference · ··· membership"), ...projectsLegend(g), ...familyLegend(g).filter((x) => x.classList.contains("warn") || x.classList.contains("note")), ...friendsLegend(g).filter((x) => x.classList.contains("warn")));
+        el("span", {}, "— reference · ··· membership"), ...pathLegend(g), ...projectsLegend(g), ...familyLegend(g).filter((x) => x.classList.contains("warn") || x.classList.contains("note")), ...friendsLegend(g).filter((x) => x.classList.contains("warn")));
     wrap.replaceChildren(canvas, ui, legend, ...[pathBar()].filter(Boolean), el("div", { class: "graph-hint" }, family ? "family — a project's name goes there, in place · drag nodes · wheel zoom · drag background to pan" : "drag nodes · wheel zoom · drag background to pan · click to open"));
     // arriving from the side pane's graph: centred on the entry or topic it showed
     if (GRAPH_CENTER) {
@@ -2064,8 +2071,11 @@ function runGraph(canvas, g, opts = {}) {
     hover = pick(px, py); canvas.style.cursor = hover ? "pointer" : "grab";
   };
   canvas.onmousedown = (ev) => { const r = canvas.getBoundingClientRect(); const px = ev.clientX - r.left, py = ev.clientY - r.top; moved = false; g.userMoved = true; nameDown = pickName(px, py); if (nameDown) return; const n = pick(px, py); if (n) drag = n; else pan = { px, py, ox: g.ox, oy: g.oy }; canvas.classList.add("grabbing"); };
-  const open = (n) => (n.action ? n.action() : go(n.href));
-  const walkTo = (n) => (n.walk ? n.walk() : go(n.href));
+  // a project's hub and its name do the same: go there, in place — the circle used to expand a friend (now the
+  // switches' job) or open an overview, and a click on a foreign hub seemed to do nothing. This project's own
+  // hub is where the reader already is: a click on it does nothing.
+  const walkTo = (n) => (n.self ? null : n.walk ? n.walk() : go(n.href));
+  const open = (n) => (n.kind === "project" ? walkTo(n) : n.action ? n.action() : go(n.href));
   window.addEventListener("mouseup", () => { if (nameDown) { const n = nameDown; nameDown = null; walkTo(n); return; } if (drag && !moved) open(drag); drag = null; pan = null; canvas.classList.remove("grabbing"); });
   canvas.onmouseleave = () => { hover = null; hoverName = null; };
   canvas.onwheel = (ev) => { ev.preventDefault(); g.userMoved = true; const r = canvas.getBoundingClientRect(); const px = ev.clientX - r.left - W / 2, py = ev.clientY - r.top - H / 2; const f = Math.exp(-ev.deltaY * 0.0012); const ns = Math.min(6, Math.max(0.15, g.scale * f)); const k = ns / g.scale; g.ox = px - (px - g.ox) * k; g.oy = py - (py - g.oy) * k; g.scale = ns; };
@@ -2141,7 +2151,7 @@ function runGraph(canvas, g, opts = {}) {
     const stepNode = STEP_FOCUS ? ns.find((n) => n.kind === "entry" && (n.entry?.uuid === STEP_FOCUS || n.id === STEP_FOCUS)) : null;
     if (stepNode) neigh.add(stepNode);
     const onThought = (l) => !!th && (l.kind === "see" || l.kind === "superseded") && (th.pairs.has(`${g.nodes[l.s].id}|${g.nodes[l.t].id}`) || th.pairs.has(`${g.nodes[l.t].id}|${g.nodes[l.s].id}`));
-    const LW = { topic: 1.6, ref: 1, family: 2.6, see: 1.5, xtopic: 1.5, superseded: 1.3, trail: 2.2 };
+    const LW = { topic: 1.6, ref: 1, family: 2.6, see: 1.5, xtopic: 1.5, superseded: 1.3, trail: 1.4 };
     const DASH = { member: [2, 3], hub: [2, 3], family: [9, 6], superseded: [5, 4], trail: [2, 6] };
     for (const l of g.links) {
       if (!linkOn(l)) continue;
@@ -2150,6 +2160,13 @@ function runGraph(canvas, g, opts = {}) {
       ctx.lineWidth = (LW[l.kind] || 0.6) / g.scale; ctx.setLineDash((DASH[l.kind] || []).map((v) => v / g.scale));
       const base = l.kind === "see" || l.kind === "xtopic" ? (l.color || color("--accent2")) : l.kind === "superseded" || l.kind === "family" || l.kind === "trail" ? color("--fg3") : color("--line");
       ctx.strokeStyle = hi ? (l.kind === "see" || l.kind === "xtopic" ? color("--fg") : color("--accent2")) : base; ctx.globalAlpha = (focus || th || sp) && !hi ? (th ? 0.12 : 0.25) : l.kind === "see" || l.kind === "xtopic" ? 0.85 : 1; if (onThought(l)) ctx.lineWidth = 3 / g.scale; ctx.stroke();
+      // the path is the way walked, not a citation: an arrow at its middle points the way it went, toward where the reader is now
+      if (l.kind === "trail") {
+        const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, ang = Math.atan2(b.y - a.y, b.x - a.x), s = 9 / g.scale;
+        ctx.setLineDash([]); ctx.beginPath(); ctx.moveTo(mx + Math.cos(ang) * s, my + Math.sin(ang) * s);
+        ctx.lineTo(mx + Math.cos(ang + 2.5) * s, my + Math.sin(ang + 2.5) * s); ctx.lineTo(mx + Math.cos(ang - 2.5) * s, my + Math.sin(ang - 2.5) * s); ctx.closePath();
+        ctx.fillStyle = ctx.strokeStyle; ctx.fill();
+      }
     }
     ctx.setLineDash([]);
     const drawOrder = sp ? [...ns.filter((n) => !sp.has(n)), ...ns.filter((n) => sp.has(n))] : ns; // the spotted project on top
@@ -2459,7 +2476,7 @@ function render() {
   GLOBE.view = route === "globe"; $("#app").classList.toggle("globe", GLOBE.view); // the globe: the graph alone, full width
   if (GLOBE.view) setTimeout(globeIntro, 0); else GLOBE_INTRO_SHOWN = false; // explained on the way in, once per visit
   $("#details").dataset.pane = "other";
-  if (!route.startsWith("graph")) { const bar = pathBar(); if (bar) main.append(bar); } // the graph carries it as an overlay
+  if (!route.startsWith("graph") && route !== "globe") { const bar = pathBar(); if (bar) main.append(bar); } // the graph and the globe carry it as an overlay
   if (route === "overview") { viewOverview(main); renderDetailsDefault(); }
   else if (route === "graph/family") { setScope("family", { rerender: false }); setFamilyNeighbours(true); setFamilyEntries(true); history.replaceState(null, "", "#graph"); viewGraph(main); renderDetailsDefault(); } // an old link to the family graph: the family whole, in the graph and in the scope
   else if (route === "graph") { viewGraph(main); renderDetailsDefault(); }

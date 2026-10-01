@@ -317,15 +317,21 @@ const report = {};
   if (fam !== "docs>acme/suite,plugin>web,web>acme/suite") errors.push("friends: the family's own parent lines are missing: " + fam);
   // the plugin's See to the suite comes along: a unit shows what its citation chains connect to the cited entries
   if (see.join() !== "Cites elsewhere>Notes are <img s,Cites elsewhere>Release together,Plugins load lazily>Release together") errors.push("friends: See lines to the friends missing: " + see.join());
-  const notesEntries = () => window.__g().nodes.filter((n) => n.kind === "entry" && n.id.startsWith("fe:P:https://github.com/acme/notes|")).length;
+  const notesEntries = () => window.__g().nodes.filter((n) => n.kind === "entry" && n.ext && n.proj === "acme/notes").length;
   // friends entries is on by default: the friend comes whole; off, a hub shows the cited entries, and a click on it expands it again
   if (notesEntries() !== 2) errors.push("friends: a friend should come whole by default, got " + notesEntries());
   if (!/^1 entries/.test(d.getElementById("counts")?.textContent || "1 entries")) errors.push("friends: merged into the counts: " + d.getElementById("counts")?.textContent);
   const fe = d.querySelector(".graph-ui .friends-ctl .friend-entries input"); fe.checked = false; fe.dispatchEvent(new window.Event("change")); await tick(150);
   if (notesEntries() !== 1) errors.push("friends entries off: a hub should show only the cited entries, got " + notesEntries());
-  window.__g().nodes.find((n) => n.friend && n.label === "acme/notes").action(); await tick(100);
-  if (notesEntries() !== 2) errors.push("friends: an expanded hub should show all of the friend's entries, got " + notesEntries());
   fe.checked = true; fe.dispatchEvent(new window.Event("change")); await tick(150);
+  // a click on a hub's circle does what its name does: goes there, in place; the own hub does nothing
+  const gg = window.__g(); const cv = d.querySelector("#main .graph-wrap canvas");
+  const at = (n) => ({ clientX: n.x * gg.scale + gg.ox, clientY: n.y * gg.scale + gg.oy });
+  const clickNode = async (n) => { cv.dispatchEvent(new window.MouseEvent("mousedown", { ...at(n), bubbles: true })); window.dispatchEvent(new window.MouseEvent("mouseup", at(n))); await tick(300); };
+  const own = gg.nodes.find((n) => n.kind === "project" && n.self);
+  if (own) { const h = window.location.hash; await clickNode(own); if (window.location.hash !== h || !/acme---refs/.test(d.title)) errors.push("hub click: the own hub moved the page: " + window.location.hash + " " + d.title); }
+  await clickNode(gg.nodes.find((n) => n.friend && n.label === "acme/notes"));
+  if (window.location.search !== `?public=${encodeURIComponent(`${GH}/notes`)}` || !/acme---notes/.test(d.title)) errors.push("hub click: a click on the friend's circle did not go there: " + window.location.search + " " + d.title);
   window.close();
 }
 {
@@ -358,6 +364,7 @@ const report = {};
   const g = window.__g();
   const trailHub = g?.nodes.find((n) => n.trail);
   if (trailHub?.label !== "1 · acme---refs") errors.push("path: the project walked from is not a hub in the graph: " + trailHub?.label);
+  if (!/the path — the way you walked here, not a citation/.test(d.querySelector(".graph-legend")?.textContent || "")) errors.push("path: the legend does not explain the path's line");
   if (!g?.links.some((l) => l.kind === "see" && g.nodes[l.s].label === "Cites elsewhere")) errors.push("path: the See from the path's project to this one is not drawn");
   if (!/acme---notes/.test(d.title)) errors.push("path: the page did not switch to the friend: " + d.title);
   // back along the path: in place, and the path shortens
@@ -448,7 +455,7 @@ const report = {};
   const window = await open(`http://localhost/?public=${encodeURIComponent(`${GH}/refs`)}#graph`);
   await tick(600);
   const d = window.document;
-  const notes = () => window.__g().nodes.filter((n) => n.kind === "entry" && n.id.startsWith("fe:P:https://github.com/acme/notes|")).length;
+  const notes = () => window.__g().nodes.filter((n) => n.kind === "entry" && n.ext && n.proj === "acme/notes").length;
   const box = d.querySelector(".graph-ui .friends-ctl .friend-entries input");
   if (!box || !box.checked) errors.push("friend entries: no switch in the friends group, or off by default");
   const whole = notes();
@@ -612,6 +619,8 @@ const report = {};
   [...(dialog4?.querySelectorAll("button") || [])].find((b) => b.textContent === "load them")?.click(); await tick(400);
   g = window.__g();
   if (!g.nodes.some((n) => n.kind === "project" && n.hop === "registry")) errors.push("globe: the registry switched on again did not bring its project back");
+  // one path bar on the globe, as on the graph — the overlay, not a second one above it
+  if (d.querySelectorAll(".path-bar").length > 1) errors.push("globe: " + d.querySelectorAll(".path-bar").length + " path bars");
   // a move to a project the globe brought in: it is the centre now, drawn once — not again as a neighbour
   {
     const farHub = window.__g().nodes.find((n) => n.kind === "project" && n.label === "acme/far");
@@ -621,6 +630,10 @@ const report = {};
       if (!/acme---far/.test(d.title)) errors.push("globe: the move to acme/far did not happen: " + d.title);
       window.history.back(); await tick(500);
       if (!/acme---refs/.test(d.title)) errors.push("globe: back did not return to refs: " + d.title);
+      window.history.forward(); await tick(500);
+      window.location.hash = "#globe"; window.dispatchEvent(new window.Event("hashchange")); await tick(300);
+      if (d.querySelectorAll(".path-bar").length !== 1) errors.push("globe with a path: expected one path bar, got " + d.querySelectorAll(".path-bar").length);
+      window.history.back(); await tick(500);
       window.location.hash = "#globe"; window.dispatchEvent(new window.Event("hashchange")); await tick(300);
     } else errors.push("globe: no walkable acme/far hub");
   }
