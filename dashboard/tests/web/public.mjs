@@ -123,10 +123,21 @@ const report = {};
     if (see.join() !== "Plugins load lazily>Release together") errors.push("family graph: the See from the plugin to the suite is missing");
     if (window.document.querySelector("#scope button.on")?.dataset.scope !== "family") errors.push("family graph: the scope switch does not show family");
     if (!/references? across projects/.test(window.document.querySelector(".graph-legend")?.textContent || "")) errors.push("family graph: no family legend");
-    // back to this project: the local graph, from the same switch
+    // the scope switch merges search, queues and counts; the graph has its own family setting — back to the
+    // project graph by the family's "all their entries", the scope untouched
     window.document.querySelector('#scope button[data-scope="project"]').click();
     await tick(100);
-    if (!/topic \(size = entries\)/.test(window.document.querySelector(".graph-legend")?.textContent || "")) errors.push("scope back to this project: the graph did not switch to the local one");
+    if (!window.__fg?.() || !/references? across projects/.test(window.document.querySelector(".graph-legend")?.textContent || "")) errors.push("scope back to this project: the graph changed with the scope, though it has its own family setting");
+    const famAll = window.document.querySelector(".graph-ui .family-ctl .friend-entries input");
+    famAll.checked = false; famAll.dispatchEvent(new window.Event("change")); await tick(200);
+    if (!/topic \(size = entries\)/.test(window.document.querySelector(".graph-legend")?.textContent || "")) errors.push("family 'all their entries' off: the graph did not switch to the project graph");
+    const famLegend = [...window.document.querySelectorAll(".graph-legend .family a")].map((a) => a.textContent);
+    if (famLegend.join() !== "github.com/acme/suite,docs,plugin") errors.push("family 'all their entries' off: the members are not listed beside the project graph: " + famLegend.join());
+    const pg = window.__g();
+    if (!pg.nodes.some((n) => n.kind === "project" && n.self)) errors.push("family beside the project: the project has no hub of its own");
+    if (!pg.links.some((l) => l.kind === "family" && (pg.nodes[l.s].self || pg.nodes[l.t].self))) errors.push("family beside the project: no parent or child line joins the project's hub");
+    const famColours = new Set(pg.nodes.filter((n) => n.kind === "project" && n.ext).map((n) => n.color));
+    if (famColours.size < 2) errors.push("family beside the project: the members share one colour");
   }
   window.close();
 }
@@ -142,10 +153,19 @@ const report = {};
   if (!/Referenced by \(See\)\s*Plugins load lazily · plugin · Design/.test(report.referencedBy || "")) errors.push("entry, scope family: the plugin's See is not listed as a reference: " + report.referencedBy);
   const modes = [...d.querySelectorAll("#details .mini-seg:not(.mini-friends):not(.mini-width) button")].map((b) => b.textContent);
   if (modes.join() !== "near,project,family") errors.push("side-pane graph in public mode: expected near,project,family, got " + modes.join());
-  // on a page without an entry the side pane's graph follows the scope: family here
+  // on a page without an entry the side pane's graph follows the graph's own family setting, not the scope:
+  // the scope merges search, queues and counts; the graph shows the family beside the project (linked) until
+  // its "all their entries" is on — then it is the family graph, whole
   window.location.hash = "#overview"; window.dispatchEvent(new window.Event("hashchange")); await tick(300);
   report.miniOnOverview = d.querySelector("#details .mini-seg:not(.mini-friends):not(.mini-width) button.on")?.textContent;
-  if (report.miniOnOverview !== "family") errors.push("overview with the family scope: the side-pane graph shows " + report.miniOnOverview + ", not family");
+  if (report.miniOnOverview !== "project") errors.push("overview with the family scope: the side-pane graph shows " + report.miniOnOverview + ", not the project with the family beside it");
+  window.location.hash = "#graph"; window.dispatchEvent(new window.Event("hashchange")); await tick(300);
+  const famAll = d.querySelector(".graph-ui .family-ctl .friend-entries input");
+  if (!famAll || famAll.checked) errors.push("graph with the family scope: the family's 'all their entries' is missing or on by default");
+  famAll.checked = true; famAll.dispatchEvent(new window.Event("change")); await tick(400);
+  if (!window.__fg?.()) errors.push("graph: the family's 'all their entries' did not build the family graph");
+  if (!d.querySelector(".graph-ui .family-ctl .friend-entries input")?.checked) errors.push("family graph: the family's 'all their entries' is not shown as on");
+  window.location.hash = "#overview"; window.dispatchEvent(new window.Event("hashchange")); await tick(300);
   const fg = window.__fg?.();
   if (fg && fg.showEntries !== true) errors.push("family graph: entries are not shown by default");
   window.close();
@@ -167,16 +187,28 @@ const report = {};
 }
 {
   // a static export of a family member, as a docs site serves it: no local/public switch, the family scope right there,
-  // and the family merged from the members' published exports — nothing fetched until the family is asked for
+  // and the family merged from the members' published exports. The graph beside the overview draws the family as
+  // neighbours, so the members' exports are fetched with it (0.4.3) — those, and nothing from any other host
   const embedded = JSON.stringify({ ...FILES["https://acme.github.io/web/state.json"], exported: true }).replace(/</g, "\\u003c");
   const page = html.replace("<script>", `<script>window.__KTW_STATE__ = ${embedded};</script><script>`);
   const before = fetched.length;
   const window = await open("http://localhost/web/keep-the-why-dashboard/#overview", page);
   const d = window.document;
-  report.staticFetchedBefore = fetched.length - before;
+  const got = fetched.slice(before);
+  report.staticFetchedBefore = got.length;
   report.staticMode = d.getElementById("mode").hidden ? "hidden" : "shown";
   report.staticScope = d.getElementById("scope").hidden ? "hidden" : "shown";
-  if (report.staticFetchedBefore !== 0) errors.push(`static export, scope this project: ${report.staticFetchedBefore} request(s) before the family was asked for`);
+  const familyHosts = /^https:\/\/(raw\.githubusercontent\.com\/acme\/(suite|plugin|cli)\/|acme\.github\.io\/(suite|plugin|cli)\/)/;
+  const stray = got.filter((u) => !familyHosts.test(u));
+  if (stray.length) errors.push(`static export, scope this project: fetched beyond the family's members — ${stray.join(", ")}`);
+  if (!got.some((u) => /acme\.github\.io\/suite\/state\.json/.test(u))) errors.push("static export, scope this project: the family was not loaded for the graph beside the overview");
+  const famHubs = (window.__g?.()?.nodes || []).filter((n) => n.family).map((n) => n.label).sort();
+  report.staticFamilyHubs = famHubs;
+  if (!famHubs.length) errors.push("static export, scope this project: no family hubs in the graph beside the overview");
+  window.location.hash = "#graph"; window.dispatchEvent(new window.Event("hashchange")); await tick(300);
+  if (!d.querySelector(".graph-ui .family-toggle input")?.checked) errors.push("static export: no family switch in the graph view, or it is off");
+  if (!d.querySelector(".graph-ui .family-ctl .friend-entries input")) errors.push("static export: the family group has no 'all their entries' in the graph view");
+  window.location.hash = "#overview"; window.dispatchEvent(new window.Event("hashchange")); await tick(300);
   if (report.staticMode !== "hidden") errors.push("static export: a local/public switch is shown");
   if (report.staticScope !== "shown") errors.push("static export of a family member: no this-project/family switch");
   d.querySelector('#scope button[data-scope="family"]').click();
@@ -257,6 +289,10 @@ const report = {};
   if (!mini()?.classList.contains("on")) errors.push("friends: the side pane's graph does not show the friends as on");
   await to("#graph");
   for (const name of ["acme/cli not loaded", "acme/impostor not loaded"]) if (!legend.includes(name)) errors.push(`friends: '${name}' missing from the legend`);
+  // the graph's own control says it too, and leads to the Friends view, which names the reason
+  const failedLink = d.querySelector(".friends-ctl .friends-failed");
+  if (!failedLink) errors.push("friends: the graph control does not say that two friends could not be loaded");
+  else if (!/^2 of \d+ not loaded/.test(failedLink.textContent) || failedLink.getAttribute("href") !== "#friends" || !/impostor/.test(failedLink.title)) errors.push(`friends: the not-loaded link reads wrong: '${failedLink.textContent}' → ${failedLink.getAttribute("href")} (${failedLink.title})`);
   const g = window.__g();
   const hubs = g.nodes.filter((n) => n.kind === "project" && n.friend).map((n) => n.label).sort();
   const see = g.links.filter((l) => l.kind === "see").map((l) => `${g.nodes[l.s].label}>${g.nodes[l.t].label.slice(0, 16)}`).sort();
@@ -268,10 +304,14 @@ const report = {};
   // the plugin's See to the suite comes along: a unit shows what its citation chains connect to the cited entries
   if (see.join() !== "Cites elsewhere>Notes are <img s,Cites elsewhere>Release together,Plugins load lazily>Release together") errors.push("friends: See lines to the friends missing: " + see.join());
   const notesEntries = () => window.__g().nodes.filter((n) => n.kind === "entry" && n.id.startsWith("fe:P:https://github.com/acme/notes|")).length;
-  if (notesEntries() !== 1) errors.push("friends: a hub should show only the cited entries, got " + notesEntries());
+  // friends entries is on by default: the friend comes whole; off, a hub shows the cited entries, and a click on it expands it again
+  if (notesEntries() !== 2) errors.push("friends: a friend should come whole by default, got " + notesEntries());
   if (!/^1 entries/.test(d.getElementById("counts")?.textContent || "1 entries")) errors.push("friends: merged into the counts: " + d.getElementById("counts")?.textContent);
-  g.nodes.find((n) => n.friend && n.label === "acme/notes").action(); await tick(100);
+  const fe = d.querySelector(".graph-ui .friends-ctl .friend-entries input"); fe.checked = false; fe.dispatchEvent(new window.Event("change")); await tick(150);
+  if (notesEntries() !== 1) errors.push("friends entries off: a hub should show only the cited entries, got " + notesEntries());
+  window.__g().nodes.find((n) => n.friend && n.label === "acme/notes").action(); await tick(100);
   if (notesEntries() !== 2) errors.push("friends: an expanded hub should show all of the friend's entries, got " + notesEntries());
+  fe.checked = true; fe.dispatchEvent(new window.Event("change")); await tick(150);
   window.close();
 }
 {
@@ -390,17 +430,31 @@ const report = {};
   window.close();
 }
 {
-  // all their entries: every entry of every friend on one switch, off by default
+  // friends entries: every entry of every friend, on by default; off leaves the entries that link here
   const window = await open(`http://localhost/?public=${encodeURIComponent(`${GH}/refs`)}#graph`);
   await tick(600);
   const d = window.document;
   const notes = () => window.__g().nodes.filter((n) => n.kind === "entry" && n.id.startsWith("fe:P:https://github.com/acme/notes|")).length;
-  const box = d.querySelector(".graph-ui .friend-entries input");
-  if (!box || box.checked) errors.push("friend entries: no switch, or on by default");
-  const shown = notes();
+  const box = d.querySelector(".graph-ui .friends-ctl .friend-entries input");
+  if (!box || !box.checked) errors.push("friend entries: no switch in the friends group, or off by default");
+  const whole = notes();
+  box.checked = false; box.dispatchEvent(new window.Event("change")); await tick(150);
+  if (!(notes() < whole)) errors.push(`friend entries: switching off did not reduce notes to the linked ones (${whole} → ${notes()})`);
+  if (window.localStorage.getItem("ktw-friend-entries") !== "linked") errors.push("friend entries: not kept for this browser");
   box.checked = true; box.dispatchEvent(new window.Event("change")); await tick(150);
-  if (!(notes() > shown)) errors.push(`friend entries: switching on did not show more of notes (${shown} → ${notes()})`);
-  if (window.localStorage.getItem("ktw-friend-entries") !== "all") errors.push("friend entries: not kept for this browser");
+  // friends families: a friend's family beside it, on by default; off leaves the cited repository alone
+  const famSwitch = d.querySelector(".graph-ui .friends-ctl .friend-families input");
+  if (!famSwitch || !famSwitch.checked) errors.push("friends families: no switch, or off by default");
+  const suiteHubs = () => window.__g().nodes.filter((n) => n.kind === "project" && n.friend && /acme\/suite|acme---web|plugin|docs/.test(n.label)).length;
+  const withFamilies = suiteHubs();
+  if (!d.querySelector(".graph-ui .friends-ctl .friend-entries + .friend-families, .graph-ui .friends-ctl .friend-families")) errors.push("friends families: the switch is not in the friends group");
+  if (![...d.querySelectorAll(".graph-ui .friends-ctl label")].some((l) => l.textContent === "friends families entries")) errors.push("friends families: no 'friends families entries'");
+  if (![...d.querySelectorAll(".graph-ui .friends-ctl label")].some((l) => l.textContent === "friends families labels")) errors.push("friends families: no 'friends families labels'");
+  famSwitch.checked = false; famSwitch.dispatchEvent(new window.Event("change")); await tick(200);
+  if (!(suiteHubs() < withFamilies) || suiteHubs() !== 1) errors.push(`friends families off: the family is still beside the friend (${withFamilies} → ${suiteHubs()} hubs)`);
+  if (!/family of 4, not shown/.test(d.querySelector(".graph-legend")?.textContent || "")) errors.push("friends families off: the legend does not say the family is not shown");
+  if ([...d.querySelectorAll(".graph-ui .friends-ctl label")].some((l) => l.textContent === "friends families entries")) errors.push("friends families off: 'friends families entries' is still offered");
+  famSwitch.checked = true; famSwitch.dispatchEvent(new window.Event("change")); await tick(200);
   // the Friends page: a card per friend, what cites what
   window.location.hash = "#friends"; window.dispatchEvent(new window.Event("hashchange")); await tick(400);
   const cards = [...d.querySelectorAll(".friend-card h2")].map((h) => h.textContent);

@@ -55,6 +55,36 @@ const PUBLIC_STATES = {}; // `${canonical}|${root}` -> Promise<{state, url} | {e
 // URL, so no referrer and no credentials go with the request, a slow host
 // times out, and an oversized answer is refused before it is parsed.
 const FOREIGN_TIMEOUT_MS = 10000, FOREIGN_MAX_BYTES = 20 * 1024 * 1024;
+// What the page has loaded: every state.json and .keep-the-why, by address, with its size — this project's
+// own state, the family's, the friends', what a See into another repository resolved. The status bar
+// counts the states and sums the bytes; a click lists them. Measured as bytes of the text received.
+const LOADED = new Map(); // url -> { bytes, kind, at }
+const bytesOf = (text) => { try { return new TextEncoder().encode(text).length; } catch { return String(text).length; } };
+const fmtBytes = (b) => (b >= 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(2)} MB` : b >= 1024 ? `${(b / 1024).toFixed(1)} KB` : `${b} B`);
+function noteLoaded(url, text, kind) {
+  LOADED.set(String(url), { bytes: bytesOf(text), kind: kind || (/state\.json/.test(url) ? "state" : /\.keep-the-why/.test(url) ? "config" : "other"), at: Date.now() });
+  renderLoaded();
+}
+const loadedTotals = () => { let bytes = 0, states = 0; for (const r of LOADED.values()) { bytes += r.bytes; if (r.kind === "state") states++; } return { bytes, states, files: LOADED.size }; };
+function renderLoaded() {
+  const box = $("#loaded"); if (!box) return;
+  const { bytes, states } = loadedTotals();
+  const a = box.querySelector("a"); if (a) a.textContent = `${plural(states, "state")} · ${fmtBytes(bytes)}`;
+  const pop = box.querySelector(".loaded-pop"); if (pop) fillLoadedPop(pop);
+}
+function fillLoadedPop(pop) {
+  const rows = [...LOADED.entries()].sort((a, b) => b[1].bytes - a[1].bytes);
+  const { bytes, states, files } = loadedTotals();
+  setKids(pop, el("div", { class: "loaded-head" }, `${plural(files, "file")} loaded — ${plural(states, "state.json")} — ${fmtBytes(bytes)}`),
+    ...rows.map(([url, r]) => el("div", { class: "loaded-row" }, el("span", { class: "size" }, fmtBytes(r.bytes)), el("span", { class: "kind" }, r.kind), el("a", { href: url, target: "_blank", rel: "noopener", title: url }, url))));
+}
+function loadedUi() {
+  const box = el("span", { id: "loaded" });
+  const pop = el("div", { class: "loaded-pop", hidden: true });
+  const a = el("a", { href: "#", title: "what this page has loaded: every state.json and .keep-the-why, with its size and address", onclick: (ev) => { ev.preventDefault(); pop.hidden = !pop.hidden; if (!pop.hidden) fillLoadedPop(pop); } }, "");
+  box.append(a, pop);
+  return box;
+}
 async function fetchForeign(url) {
   const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), FOREIGN_TIMEOUT_MS);
   try {
@@ -63,6 +93,7 @@ async function fetchForeign(url) {
     if (Number(res.headers?.get?.("content-length") || 0) > FOREIGN_MAX_BYTES) throw new Error(`${url} is larger than ${FOREIGN_MAX_BYTES / 1024 / 1024} MB`);
     const text = await res.text();
     if (text.length > FOREIGN_MAX_BYTES) throw new Error(`${url} is larger than ${FOREIGN_MAX_BYTES / 1024 / 1024} MB`);
+    noteLoaded(url, text);
     return text;
   } catch (err) { throw err?.name === "AbortError" ? new Error(`${url} did not answer within ${FOREIGN_TIMEOUT_MS / 1000} s`) : err; }
   finally { clearTimeout(timer); }
@@ -519,7 +550,7 @@ function viewThought(main, refs) {
 // Both read the graph of the scope (this project, or the family), with the
 // friends, the path and the followed chains it has — the same data the Graph
 // view shows, laid out as lists.
-const graphForScope = async () => (scope() === "family" ? buildFamilyGraph() : buildGraph());
+const graphForScope = async () => (familyGraphShown() ? buildFamilyGraph() : buildGraph());
 const projOf = (n) => n.proj || n.entry?.project || SELF?.project?.id || SELF?.project?.name || "";
 const lightAll = (t) => { for (const G of ACTIVE_GRAPHS) lightThought(G, t); };
 async function viewFriends(main) {
@@ -844,9 +875,9 @@ function renderDetailsDefault() {
   const route = location.hash.slice(1) || "overview";
   if (route === "graph" || route === "graph/family") {
     d.append(el("div", { id: "thoughts" }));
-    renderThoughts(scope() === "family" ? (fgraph && Date.now() - fgraph.at < 30000 ? fgraph : null) : graph);
+    renderThoughts(familyGraphShown() ? (fgraph && Date.now() - fgraph.at < 30000 ? fgraph : null) : graph);
     d.append(el("h3", {}, "Legend"), el("div", { class: "legend-list" },
-      scope() === "family" ? [
+      familyGraphShown() ? [
         el("span", {}, el("i", { class: "dot", style: "background:var(--bg);border:3px solid var(--accent);width:12px;height:12px" }), "project — a ring in its colour; its topics take the same colour"),
         el("span", {}, "thick dashed line — parent and child project"),
         el("span", {}, "coloured line — a See between two entries, within a project or across"),
@@ -877,7 +908,7 @@ function miniGraph(d, ctx) {
   const focusId = ctx.entry ? `e:${ctx.entry.id}` : ctx.topic ? `t:${ctx.topic.file}` : null;
   if (narrow()) { d.append(el("h3", {}, "Graph"), el("a", { class: "backlink", href: "#graph" }, "Open the project graph →")); return; }
   const modes = [...(focusId ? ["near"] : []), "project", ...(canFamily() ? ["family"] : [])];
-  const mode = MINI && modes.includes(MINI) ? MINI : focusId ? "near" : scope() === "family" && modes.includes("family") ? "family" : "project";
+  const mode = MINI && modes.includes(MINI) ? MINI : focusId ? "near" : familyGraphShown() && modes.includes("family") ? "family" : "project";
   const box = el("div", { class: `mini ${focusId ? "tall" : "fill"}` });
   const seg = el("span", { class: "mini-seg" }, modes.length > 1 ? modes.map((m) => el("button", { type: "button", class: m === mode ? "on" : "", title: { near: "this entry's or topic's neighbourhood", project: "the whole project", family: "the whole family tree" }[m], onclick: () => { MINI = m; const keep = d.querySelector(".mini"); const h = keep?.previousElementSibling?.tagName === "H3" ? keep.previousElementSibling : null; h?.remove(); keep?.remove(); miniGraph(d, ctx); } }, m)) : el("span", { class: "mini-title" }, "graph"));
   const canvas = el("canvas");
@@ -896,7 +927,7 @@ function miniGraph(d, ctx) {
   if (mode === "near") {
     // friends live at the project level: the control switches there (the family level with the family scope) and loads them
     const n = friendCandidates(S.entries.filter((e) => (e.project || null) === (ctx.entry?.project || ctx.topic?.project || null))).length;
-    const up = modes.includes("family") && scope() === "family" ? "family" : "project";
+    const up = modes.includes("family") && familyGraphShown() ? "family" : "project";
     if (n || hasFamily()) box.append(el("span", { class: "mini-seg mini-friends" }, el("button", { type: "button", title: `show the friends — switches to the ${up} level`,
       onclick: () => { MINI = up; FRIENDS.load = true; setFriendsAuto(true); render(); } }, n ? `friends (${n})` : "friends")));
     return requestAnimationFrame(() => runGraph(canvas, ctx.entry ? buildSubgraph(ctx.entry) : buildTopicSubgraph(ctx.topic), opts));
@@ -946,9 +977,10 @@ const linkedTo = (e, list) => list.filter((x) => x !== e && ((e.uuid && pointsAt
 function buildGraph(project = null) {
   const prev = graph ? Object.fromEntries(graph.nodes.map((n) => [n.id, n])) : {};
   const entries = S.entries.filter((e) => (e.project || null) === project);
-  graph = Object.assign(graph || { scale: 1, ox: 0, oy: 0, showEntries: true, showLabels: true, alpha: 1 }, assemble(S.topics.filter((t) => (t.project || null) === project), entries, prev));
+  graph = Object.assign(graph || { scale: 1, ox: 0, oy: 0, showEntries: SHOW_ENTRIES, showLabels: true, alpha: 1 }, assemble(S.topics.filter((t) => (t.project || null) === project), entries, prev));
   graph.friends = project ? [] : friendCandidates(entries);
   autoFriends(graph);
+  if (!project) autoFamily();
   addFriendLayer(graph, prev);
   graph.alpha = Math.max(graph.alpha, 0.6);
   return graph;
@@ -976,6 +1008,8 @@ function buildSubgraph(e) {
 // its topics and entries around it, parent and child projects joined, and
 // the See and Superseded by lines between entries drawn across projects.
 let fgraph = null; // kept across re-renders so positions survive live updates
+// where a family member is, for a move in place (the path grows, nothing reloads)
+const memberCentre = (m) => (m.role === "self" ? currentCentre() : PUBLISHED() ? { mode: "public", canonical: m.canonical, root: m.root || "" } : { mode: "live", project: m.key });
 const memberLink = (m, hash) => m.role === "self" ? hash : PUBLISHED() ? publicHref(m.canonical, m.root || "", hash) : `${location.pathname}?project=${encodeURIComponent(m.key)}${hash}`;
 async function buildFamilyGraph() {
   const pool = await searchPool("family");
@@ -997,17 +1031,20 @@ async function buildFamilyGraph() {
   // this project keeps the local graph's ids, so the selected entry and the positions carry over
   const tid = (G, file) => (G.key === "self" ? `t:${file}` : `t:${G.key}:${file}`);
   const eid = (G, id) => (G.key === "self" ? `e:${id}` : `e:${G.key}:${id}`);
+  // this project in the middle, the rest of the family around it — after a move to a member, that one is the middle
   const R = groups.length > 1 ? 220 + 45 * groups.length : 0;
   groups.forEach((G, i) => {
-    const ang = (2 * Math.PI * i) / groups.length;
-    const hub = add({ id: `p:${G.key}`, kind: "project", label: G.g.member.name, r: 15, color: G.color, href: memberLink(G.g.member, "#overview"), walk: () => go(memberLink(G.g.member, G.key === "self" ? "#overview" : "#graph")) }, { x: R * Math.cos(ang), y: R * Math.sin(ang) });
+    const ang = (2 * Math.PI * (i - 1)) / Math.max(1, groups.length - 1);
+    const at = G.key === "self" ? { x: 0, y: 0 } : { x: R * Math.cos(ang), y: R * Math.sin(ang) };
+    const hub = add({ id: `p:${G.key}`, kind: "project", self: G.key === "self", label: G.g.member.name, r: 15, color: G.color, href: memberLink(G.g.member, "#overview"),
+      walk: () => (G.key === "self" ? go("#overview") : moveTo({ centre: memberCentre(G.g.member), state: G.state }, "#graph")) }, at);
     for (const t of G.state.topics || []) {
-      const n = add({ id: tid(G, t.file), kind: "topic", label: t.title, file: t.file, color: G.color, r: 8 + Math.sqrt(t.entries || 0) * 2.8, href: memberLink(G.g.member, `#topic/${t.file}`) }, hub);
+      const n = add({ id: tid(G, t.file), kind: "topic", fam: G.key !== "self", label: t.title, file: t.file, color: G.color, r: 8 + Math.sqrt(t.entries || 0) * 2.8, href: memberLink(G.g.member, `#topic/${t.file}`) }, hub);
       links.push({ s: index[hub.id], t: index[n.id], kind: "hub", len: 80 });
     }
     for (const e of G.state.entries || []) {
       const t = nodes[index[tid(G, e.file)]];
-      add({ id: eid(G, e.id), kind: "entry", proj: G.g.member.name, label: e.title, file: e.file, entry: e, r: 4.2, href: G.key === "self" ? entryHref(e) : G.g.href(e) }, t || hub);
+      add({ id: eid(G, e.id), kind: "entry", fam: G.key !== "self", proj: G.g.member.name, label: e.title, file: e.file, entry: e, r: 4.2, href: G.key === "self" ? entryHref(e) : G.g.href(e) }, t || hub);
     }
     for (const e of G.state.entries || []) {
       const me = index[eid(G, e.id)];
@@ -1033,7 +1070,7 @@ async function buildFamilyGraph() {
     const k = `${ts}|${tt}`;
     if (ts != null && tt != null && !topicPairs.has(k)) { topicPairs.add(k); links.push({ s: ts, t: tt, kind: "xtopic", len: 220, color: A.color }); }
   }
-  fgraph = Object.assign(fgraph || { scale: 0.7, ox: 0, oy: 0, showEntries: true, showLabels: true, alpha: 1 }, { nodes, links, index, groups, missing: pool.missing, across, at: Date.now() });
+  fgraph = Object.assign(fgraph || { scale: 0.7, ox: 0, oy: 0, showEntries: SHOW_ENTRIES, showLabels: true, alpha: 1 }, { nodes, links, index, groups, missing: pool.missing, across, at: Date.now() });
   fgraph.friends = friendCandidates(groups.flatMap((G) => G.state.entries || []), [...groups.map((G) => G.canonical), ...pool.missing.map(({ member: m }) => m.canonical)]);
   autoFriends(fgraph);
   addFriendLayer(fgraph, prev);
@@ -1056,8 +1093,41 @@ const FRIENDS = { on: false, loaded: {}, pending: {}, expanded: new Set(), load:
 // click on *friends (N)* loads them.
 let FRIENDS_AUTO = (() => { try { return localStorage.getItem("ktw-friends") !== "off"; } catch { return true; } })();
 // every entry of every friend, not only what links to this graph — off by default, kept per browser
-let FRIEND_ENTRIES = (() => { try { return localStorage.getItem("ktw-friend-entries") === "all"; } catch { return false; } })();
+// "all their entries" per kind of neighbour — friends, the path's steps, the family — each kept per browser
+const readEntriesSetting = (key, dflt = false) => { try { const v = localStorage.getItem(key); return v == null ? dflt : v === "all"; } catch { return dflt; } };
+let FRIEND_ENTRIES = readEntriesSetting("ktw-friend-entries", true); // a friend comes whole by default; the family's and the path's steps come linked
+// a friend that has a family comes with it — the members beside the cited repository — unless this is off; their entries and labels have switches of their own
+let FRIEND_FAMILIES = (() => { try { return localStorage.getItem("ktw-friend-families") !== "off"; } catch { return true; } })();
+function setFriendFamilies(on) { FRIEND_FAMILIES = on; try { localStorage.setItem("ktw-friend-families", on ? "on" : "off"); } catch {} }
+let FRIEND_FAM_ENTRIES = readEntriesSetting("ktw-friend-family-entries");
+function setFriendFamEntries(on) { FRIEND_FAM_ENTRIES = on; try { localStorage.setItem("ktw-friend-family-entries", on ? "all" : "linked"); } catch {} }
+let PATH_ENTRIES = readEntriesSetting("ktw-path-entries");
+let FAMILY_ENTRIES = readEntriesSetting("ktw-family-entries");
 function setFriendEntries(on) { FRIEND_ENTRIES = on; try { localStorage.setItem("ktw-friend-entries", on ? "all" : "linked"); } catch {} }
+function setPathEntries(on) { PATH_ENTRIES = on; try { localStorage.setItem("ktw-path-entries", on ? "all" : "linked"); } catch {} }
+function setFamilyEntries(on) { FAMILY_ENTRIES = on; try { localStorage.setItem("ktw-family-entries", on ? "all" : "linked"); } catch {} }
+// "entries" of the main graph, kept per browser like every other switch in the bar — a move to another centre builds a new graph and must not reset it
+let SHOW_ENTRIES = (() => { try { return localStorage.getItem("ktw-entries") !== "off"; } catch { return true; } })();
+function setShowEntries(on) { SHOW_ENTRIES = on; try { localStorage.setItem("ktw-entries", on ? "on" : "off"); } catch {} }
+// labels per group too — the project's own nodes, the family, the friends, the path — kept per browser, all on by default
+let LABELS = (() => { try { return { project: true, family: true, friends: true, friendsFamilies: true, path: true, ...JSON.parse(localStorage.getItem("ktw-labels") || "{}") }; } catch { return { project: true, family: true, friends: true, friendsFamilies: true, path: true }; } })();
+function setLabels(group, on) { LABELS = { ...LABELS, [group]: on }; try { localStorage.setItem("ktw-labels", JSON.stringify(LABELS)); } catch {} }
+const labelGroupOf = (n) => (n.ext ? (n.unit === "family" ? "family" : String(n.unit || "").startsWith("trail:") ? "path" : n.kin ? "friendsFamilies" : "friends") : n.fam ? "family" : "project");
+const labelsOn = (n) => LABELS[labelGroupOf(n)] !== false;
+const labelsUi = (g, group, what) => el("label", { title: `the names of ${what} — topics, and entries when zoomed in` }, el("input", { type: "checkbox", checked: LABELS[group] !== false, onchange: (ev) => { setLabels(group, ev.target.checked); g.wake?.(); } }), group === "project" ? "labels" : group === "friendsFamilies" ? "friends families labels" : `${group} labels`);
+// the "<group> entries" checkbox, the same for the three groups
+const allEntriesUi = (group, checked, set, what) => el("label", { class: "friend-entries", title: `every entry of ${what}, not only the ones that link to this graph` }, el("input", { type: "checkbox", checked, onchange: (ev) => { set(ev.target.checked); if (fgraph) fgraph.at = 0; render(); } }), group === "friendsFamilies" ? "friends families entries" : `${group} entries`);
+// every switch in the bar at once — motion is not a filter and stays
+function selectAll(g, on) {
+  g.showEntries = on; setShowEntries(on);
+  for (const x of [graph, fgraph]) if (x) x.showEntries = on; // the bar may switch to the other graph on the way (family entries)
+  for (const k of Object.keys(LABELS)) setLabels(k, on);
+  setFamilyNeighbours(on); setFamilyEntries(on);
+  setFriendEntries(on); setFriendFamilies(on); setFriendFamEntries(on); setPathEntries(on);
+  if (on) { setFriendsAuto(true); setKeepPath(true); autoFamily(); autoFriends(g); } else { FRIENDS.on = false; setFriendsAuto(false); setKeepPath(false); }
+  if (fgraph) fgraph.at = 0;
+  render();
+}
 function setFriendsAuto(on) { FRIENDS_AUTO = on; try { localStorage.setItem("ktw-friends", on ? "on" : "off"); } catch {} }
 function autoFriends(g) {
   if (!FRIENDS_AUTO || FRIENDS.loading) return;
@@ -1069,6 +1139,36 @@ function autoFriends(g) {
 } // loaded: key -> {state, name, href(e), topicHref(file), open} | {error}
 const fkey = (c) => String(c || "").replace(/\/+$/, "").toLowerCase();
 const friendColor = (i) => PALETTE[(i + 5) % PALETTE.length];
+const familyColor = () => PALETTE[8];
+// The project's own family as neighbours of the project graph — the parent, the
+// children, the siblings as hubs joined the way the family graph joins them,
+// each with the entries linked to this project (all of them under "all their
+// entries"), the same layer friends and the path use. The family scope stays
+// the merged view (search, queues, counts); this is the lean one. Loaded on
+// its own when the graph is first drawn, like friends — one export per member
+// in public mode, which is the cost to watch as families grow.
+let FAMILY_NB = { groups: null, missing: [], loading: false };
+let FAMILY_NB_ON = (() => { try { return localStorage.getItem("ktw-family-neighbours") !== "off"; } catch { return true; } })(); // the family beside the graph; off per browser
+function setFamilyNeighbours(on) { FAMILY_NB_ON = on; try { localStorage.setItem("ktw-family-neighbours", on ? "on" : "off"); } catch {} }
+// How much of the family the graph shows — the graph's own setting, apart from the scope switch, which
+// merges search, queues and counts: "off" (the project alone, with friends and path), "linked" (the
+// members beside it with the entries linked here), "all" (the family graph, every member whole).
+const graphFamily = () => (!canFamily() ? "none" : !FAMILY_NB_ON ? "off" : FAMILY_ENTRIES ? "all" : "linked");
+const familyGraphShown = () => graphFamily() === "all";
+function autoFamily() {
+  if (!FAMILY_NB_ON || !canFamily() || FAMILY_NB.groups || FAMILY_NB.loading) return;
+  FAMILY_NB.loading = true;
+  setTimeout(() => searchPool("family").then((pool) => { FAMILY_NB.groups = pool.groups.filter((x) => x.member.role !== "self"); FAMILY_NB.missing = pool.missing || []; }).catch(() => { FAMILY_NB.groups = []; })
+    .finally(() => { FAMILY_NB.loading = false; if (graph) graph.alpha = Math.max(graph.alpha, 0.6); if (fgraph) fgraph.at = 0; render(); }), 0); // after the graph that asked is drawn
+}
+// the members beside this project: the loaded ones and the ones not available here; before the load, what the config declares
+// the members beside this project: the loaded ones and the ones not available here; before the load, the tree
+// as the server or the published exports gave it — and no number at all while nothing has been fetched
+const familyCount = () => (FAMILY_NB.groups ? FAMILY_NB.groups.length + (FAMILY_NB.missing?.length || 0) : TREE ? TREE.filter((m) => m.role !== "self").length : PUBLIC_TREE?.groups ? PUBLIC_TREE.groups.filter((x) => x.member.role !== "self").length + (PUBLIC_TREE.missing?.length || 0) : null);
+function familyMembers() {
+  if (!FAMILY_NB_ON || !canFamily() || !FAMILY_NB.groups?.length) return [];
+  return FAMILY_NB.groups.map((x, i) => ({ ...(PUBLISHED() ? publicMember(x.member, x.state) : liveMember(x.member, x.state)), color: PALETTE[(i + 1) % PALETTE.length] })).filter((m) => m.state && !onPath(m.canonical));
+}
 function friendCandidates(entries, family = []) {
   const p = SELF?.project || {}; const base = canonicalOf(p); const root = MY_ROOT();
   const declared = [p.parent, ...(p.children || []).map((c) => c.location)].map((l) => resolveLocation(l, base, root)?.canonical);
@@ -1159,7 +1259,7 @@ function friendUnits(g) {
   const add = (f, via) => {
     const r = FRIENDS.loaded[fkey(f.canonical)];
     if (!r?.state || onPath(f.canonical)) return;
-    const members = r.members || [r];
+    const members = FRIEND_FAMILIES ? r.members || [r] : [r];
     const k = unitKey(members);
     if (!units.has(k)) units.set(k, { k, r, members, uuids: new Set(), via });
     const u = units.get(k); if (via === "friend") u.via = "friend";
@@ -1173,13 +1273,21 @@ function addFriendLayer(g, prev) {
   const items = [];
   const trail = pathShown() ? TRAIL.filter((t) => !sameCentreAsGraph(g, t)) : [];
   trail.forEach((t, i) => items.push({
-    k: `trail:${t.key}`, kind: "trail", color: PALETTE[(i + 2) % PALETTE.length], cited: "linked",
+    k: `trail:${t.key}`, kind: "trail", color: PALETTE[(i + 2) % PALETTE.length], cited: PATH_ENTRIES ? null : "linked", // a path step is a neighbour like a friend: its own "all their entries" opens it
     members: [{ key: t.key, name: `${i + 1} · ${t.name}`, state: t.state, canonical: t.canonical, root: t.state.project?.root || "", href: (e) => t.url + entryHref(e), topicHref: (file) => `${t.url}#topic/${file}`, open: `${t.url}#graph` }],
     hub: () => moveTo(t, "#graph"), entry: () => (e) => moveTo(t, entryHref(e)), topic: () => (file) => moveTo(t, `#topic/${file}`),
     next: i + 1 < trail.length ? `trail:${trail[i + 1].key}` : null,
   }));
+  const fam = g === graph ? familyMembers() : []; // the project graph only: a topic's or an entry's neighbourhood stays its own
+  if (fam.length) items.push({
+    k: "family", kind: "family", color: familyColor(), cited: FAMILY_ENTRIES ? null : "linked", members: fam,
+    hub: null,
+    entry: (m) => (m.centre ? (e) => moveTo({ centre: m.centre, state: m.state }, entryHref(e)) : null),
+    topic: (m) => (m.centre ? (file) => moveTo({ centre: m.centre, state: m.state }, `#topic/${file}`) : null),
+  });
   friendUnits(g).forEach((u, i) => items.push({
-    k: u.k, kind: "friend", chain: u.via === "chain", color: friendColor(i), cited: FRIEND_ENTRIES || FRIENDS.expanded.has(u.k) ? null : u.uuids, members: u.members,
+    k: u.k, kind: "friend", chain: u.via === "chain", color: friendColor(i), cited: (FRIEND_ENTRIES && (FRIEND_FAM_ENTRIES || u.members.length === 1)) || FRIENDS.expanded.has(u.k) ? null : u.uuids, members: u.members,
+    allFor: (m) => (m === u.members[0] ? FRIEND_ENTRIES : FRIEND_FAM_ENTRIES), kin: (m) => m !== u.members[0], // the cited repository first, then its family
     hub: () => toggleFriend(u.k),
     entry: (m) => (m.centre ? (e) => moveTo({ centre: m.centre, state: m.state }, entryHref(e)) : null),
     topic: (m) => (m.centre ? (file) => moveTo({ centre: m.centre, state: m.state }, `#topic/${file}`) : null),
@@ -1203,6 +1311,15 @@ function addLinkedLayer(g, prev, items) {
   for (const it of items) for (const m of it.members) for (const e of m.state.entries || []) if (e.uuid) pool.add(e.uuid);
   const R = 680 + 40 * items.length;
   const placed = [];
+  // with the family beside it, the project is a hub too — its topics on spokes, as in the family graph — so the
+  // parent and child lines have something to join, and the family reads as one shape instead of islands
+  let selfHub = null;
+  if (items.some((it) => it.kind === "family") && !nodes.some((n) => n.kind === "project" && !n.ext)) {
+    const p = SELF?.project || S.project || {};
+    selfHub = add({ id: "p:self", kind: "project", self: true, label: p.id || p.name || "this project", r: 15, color: color0(), href: "#overview" }, { x: 0, y: 0 });
+    selfHub.ext = false; selfHub.unit = null;
+    for (const n of nodes) if (n.kind === "topic" && !n.ext) links.push({ s: index[selfHub.id], t: index[n.id], kind: "hub", len: 90 });
+  }
   items.forEach((it, i) => {
     const col = it.color;
     const canons = new Set(it.members.map((m) => fkey(m.canonical)).filter(Boolean));
@@ -1231,24 +1348,29 @@ function addLinkedLayer(g, prev, items) {
     const hubs = {};
     const entriesShown = [];
     it.members.forEach((m, j) => {
+      const mcol = m.color || col;
       const off = it.members.length > 1 ? { x: centre.x + 110 * Math.cos((2 * Math.PI * j) / it.members.length), y: centre.y + 110 * Math.sin((2 * Math.PI * j) / it.members.length) } : centre;
       // the hub expands a friend (or goes back along the path); its name goes to that project
       const walk = it.kind === "trail" ? it.hub : m.centre ? () => moveTo({ centre: m.centre, state: m.state }, "#graph") : m.open ? () => go(m.open) : null;
-      const hub = add({ id: `f:${it.k}:${m.key}`, kind: "project", friend: it.kind === "friend", chain: !!it.chain, trail: it.kind === "trail", label: m.name, r: j === 0 ? 13 : 10, color: col, href: m.open || "#graph", action: it.hub, walk }, off);
+      const hub = add({ id: `f:${it.k}:${m.key}`, kind: "project", friend: it.kind === "friend", chain: !!it.chain, trail: it.kind === "trail", family: it.kind === "family", label: m.name, r: it.kind === "family" ? 13 : j === 0 ? 13 : 10, color: mcol, href: m.open || "#graph", action: it.hub, walk }, off);
+      if (selfHub && it.kind === "family" && (m.role === "child" || m.role === "parent")) links.push({ s: index[hub.id], t: index[selfHub.id], kind: "family", len: 260 });
       hubs[m.key] = index[hub.id];
-      const own = (m.state.entries || []).filter((e) => !cited || (e.uuid && cited.has(e.uuid)));
+      const allOfM = !cited || !!it.allFor?.(m);
+      const own = (m.state.entries || []).filter((e) => allOfM || (e.uuid && cited.has(e.uuid)));
       const files = new Set(own.map((e) => e.file));
+      const kin = !!it.kin?.(m);
+      hub.kin = kin;
       const tIdx = {};
       for (const t of m.state.topics || []) {
-        if (cited && !files.has(t.file)) continue;
+        if (!allOfM && !files.has(t.file)) continue;
         const act = it.topic(m);
-        const n = add({ id: `ft:${it.k}:${m.key}:${t.file}`, kind: "topic", label: t.title, file: t.file, color: col, r: 7 + Math.sqrt(t.entries || 0) * 2.4, href: m.topicHref ? m.topicHref(t.file) : "#graph", action: act ? () => act(t.file) : null }, hub);
+        const n = add({ id: `ft:${it.k}:${m.key}:${t.file}`, kind: "topic", kin, label: t.title, file: t.file, color: mcol, r: 7 + Math.sqrt(t.entries || 0) * 2.4, href: m.topicHref ? m.topicHref(t.file) : "#graph", action: act ? () => act(t.file) : null }, hub);
         tIdx[t.file] = index[n.id];
         links.push({ s: index[hub.id], t: tIdx[t.file], kind: "hub", len: 70 });
       }
       for (const e of own) {
         const act = it.entry(m);
-        const n = add({ id: `fe:${it.k}:${m.key}:${e.id}`, kind: "entry", proj: m.name, label: e.title, file: e.file, entry: e, r: 4.2, href: m.href ? m.href(e) : "#graph", action: act ? () => act(e) : null }, nodes[tIdx[e.file]] || hub);
+        const n = add({ id: `fe:${it.k}:${m.key}:${e.id}`, kind: "entry", kin, proj: m.name, label: e.title, file: e.file, entry: e, r: 4.2, href: m.href ? m.href(e) : "#graph", action: act ? () => act(e) : null }, nodes[tIdx[e.file]] || hub);
         if (e.uuid) idx[e.uuid] = index[n.id];
         if (tIdx[e.file] != null) links.push({ s: index[n.id], t: tIdx[e.file], kind: "member", len: 40 });
         entriesShown.push(e);
@@ -1329,6 +1451,7 @@ function setCentre(c, state) {
   MODE = c.mode; PUBLIC = c.mode === "public" ? c.canonical : null; PUBLIC_ROOT = c.mode === "public" ? c.root || "" : ""; PROJECT = c.mode === "live" ? c.project || null : null;
   graph = null; fgraph = null; TREE = null; TREE_AT = 0; TREE_ASKED = false; PUBLIC_TREE = null; LAST_POOL = null;
   FRIENDS.on = false; FRIENDS.expanded.clear(); THOUGHT_PIN = null; MINI = null; CHAIN.extra.clear(); CHAIN.tried.clear();
+  FAMILY_NB = { groups: null, missing: [], loading: false }; // the family beside the graph is the new centre's
   if (MODE === "public") state.exported = true;
   connectLive();
   const sel = $("#project-select");
@@ -1393,9 +1516,28 @@ function friendsUi(g) {
     const b = el("button", { class: "link-btn friends-load", title: "load the repositories these entries cite outside the family, now and from here on", onclick: () => { b.disabled = true; b.textContent = "loading friends…"; setFriendsAuto(true); loadFriends(FRIENDS.on ? waiting : list); } }, `friends (${FRIENDS.on ? waiting.length : list.length})`);
     return b;
   }
+  // a friend whose export could not be fetched is loaded with an error and draws nothing — say so
+  // here, where the reader looks for it, and point at the Friends view, which names the reason
+  const failed = list.filter((f) => FRIENDS.loaded[fkey(f.canonical)]?.error);
+  const shown = list.length - failed.length;
   return el("span", { class: "friends-ctl" },
     el("label", { class: "friends-toggle", title: "the repositories these entries cite outside the family — unchecked, they are no longer loaded on their own" }, el("input", { type: "checkbox", checked: true, onchange: () => { FRIENDS.on = false; setFriendsAuto(false); if (fgraph) fgraph.at = 0; render(); } }), "friends"),
-    el("label", { class: "friend-entries", title: "every entry of every friend, not only the ones that link to this graph" }, el("input", { type: "checkbox", checked: FRIEND_ENTRIES, onchange: (ev) => { setFriendEntries(ev.target.checked); if (fgraph) fgraph.at = 0; render(); } }), "all their entries"));
+    failed.length ? el("a", { class: "friends-failed warn", href: "#friends", title: failed.map((f) => `${repoLabel(f.canonical)} — ${FRIENDS.loaded[fkey(f.canonical)].error}`).join("\n") }, `${shown ? `${failed.length} of ${list.length}` : failed.length === 1 ? "the one friend" : `all ${failed.length}`} not loaded ↗`) : null,
+    shown ? allEntriesUi("friends", FRIEND_ENTRIES, setFriendEntries, "every friend") : null,
+    shown ? labelsUi(g, "friends", "the friends") : null,
+    ...(shown && list.some((f) => (FRIENDS.loaded[fkey(f.canonical)]?.members || []).length > 1) ? [
+      el("label", { class: "friend-families", title: FRIEND_FAMILIES ? "a friend's family beside it — unchecked, the cited repository alone" : "show a friend's family beside it" }, el("input", { type: "checkbox", checked: FRIEND_FAMILIES, onchange: (ev) => { setFriendFamilies(ev.target.checked); if (fgraph) fgraph.at = 0; render(); } }), "friends families"),
+      ...(FRIEND_FAMILIES ? [allEntriesUi("friendsFamilies", FRIEND_FAM_ENTRIES, setFriendFamEntries, "every member of a friend's family"), labelsUi(g, "friendsFamilies", "the friends' families")] : []),
+    ] : []));
+}
+// the family beside the project graph: on by default, off per browser (and then not loaded either)
+function familyUi(g) {
+  if (!canFamily()) return null;
+  const merged = g !== graph; // the family graph: every member whole
+  return el("span", { class: "family-ctl" },
+    el("label", { class: "family-toggle", title: FAMILY_NB_ON ? "the family's projects in the graph — unchecked, the project alone, with its friends and path" : "show the family's projects in the graph, with the entries linked here" },
+      el("input", { type: "checkbox", checked: FAMILY_NB_ON, onchange: (ev) => { setFamilyNeighbours(ev.target.checked); if (ev.target.checked) autoFamily(); render(); } }), FAMILY_NB.loading ? "family (loading…)" : familyCount() == null ? "family" : `family (${familyCount()})`),
+    FAMILY_NB_ON && (merged || familyMembers().length) ? allEntriesUi("family", FAMILY_ENTRIES, setFamilyEntries, "every member of the family — the family graph, every member whole") : null);
 }
 // the same control, small, in the corner of the side pane's graph
 function miniFriends(g) {
@@ -1406,9 +1548,10 @@ function miniFriends(g) {
   if (want) { if (!FRIENDS.on || waiting.length) { loadFriends(FRIENDS.on ? waiting : list); return el("span", { class: "mini-seg mini-friends" }, el("button", { type: "button", disabled: true }, "loading…")); } }
   const on = FRIENDS.on && !waiting.length;
   if (FRIENDS.loading && !want) return el("span", { class: "mini-seg mini-friends" }, el("button", { type: "button", disabled: true }, "loading…"));
-  const b = el("button", { type: "button", class: on ? "on" : "", title: on ? "hide the friends — they are no longer loaded on their own" : "load the repositories these entries cite outside the family, now and from here on",
+  const failed = on ? list.filter((f) => FRIENDS.loaded[fkey(f.canonical)]?.error) : [];
+  const b = el("button", { type: "button", class: on ? "on" : "", title: on ? (failed.length ? `${failed.length} of ${list.length} could not be loaded — the Friends view names the reason` : "hide the friends — they are no longer loaded on their own") : "load the repositories these entries cite outside the family, now and from here on",
     onclick: () => { if (on) { FRIENDS.on = false; setFriendsAuto(false); if (fgraph) fgraph.at = 0; render(); } else { b.disabled = true; b.textContent = "loading…"; setFriendsAuto(true); loadFriends(FRIENDS.on ? waiting : list); } } },
-    on ? "friends" : `friends (${FRIENDS.on ? waiting.length : list.length})`);
+    on ? (failed.length ? `friends (${failed.length} not loaded)` : "friends") : `friends (${FRIENDS.on ? waiting.length : list.length})`);
   return el("span", { class: "mini-seg mini-friends" }, b);
 }
 // ---------------------------------------------------------------- thoughts
@@ -1482,7 +1625,7 @@ const span = (t) => (t.ins?.from ? (t.ins.from === t.ins.to ? t.ins.from : `${t.
 const shortLabel = (n) => { const t = (n?.label || "").replace(/`/g, ""); return t.length > 34 ? t.slice(0, 32) + "…" : t; };
 // the thoughts an entry is a step of, with its place in each
 function entryThoughts(e) {
-  const g = scope() === "family" && fgraph && Date.now() - fgraph.at < 30000 ? fgraph : graph && !e.project ? graph : buildGraph(e.project || null);
+  const g = familyGraphShown() && fgraph && Date.now() - fgraph.at < 30000 ? fgraph : graph && !e.project ? graph : buildGraph(e.project || null);
   const same = (n) => n.entry === e || (e.uuid && n.entry?.uuid === e.uuid);
   const all = graphChains(g), min = thoughtMin(all);
   return all.filter((t) => t.steps.length >= min || t.ends.length).map((t) => ({ t, i: t.steps.findIndex(same) })).filter((x) => x.i >= 0);
@@ -1499,7 +1642,7 @@ function graphThoughts(g) {
 // chain is loaded, not its friends; it is drawn like a friend, marked as
 // reached through a thought.
 const CHAIN = { extra: new Map(), tried: new Set(), busy: false }; // canonical key -> { canonical, uuids }
-const graphNow = async () => (scope() === "family" ? buildFamilyGraph() : buildGraph());
+const graphNow = async () => (familyGraphShown() ? buildFamilyGraph() : buildGraph());
 async function loadEnds(ends) {
   const own = new Set([fkey(canonicalOf(SELF?.project)), ...((fgraph?.groups || []).map((G) => fkey(G.canonical)))]);
   const fresh = [];
@@ -1557,7 +1700,7 @@ function renderThoughts(g) {
     const key = t.ids.join("|"); const on = key === THOUGHT_PIN;
     return el("div", { class: `thought ${on ? "on" : ""} ${t.ends.length ? "open" : ""}` },
       el("button", { type: "button", class: "thought-head", title: t.steps.map((n) => n.label).join("\n→ ") + (t.ends.length ? `\n… goes on in ${repos(t.ends).join(", ")}` : ""),
-        onmouseenter: () => { if (!THOUGHT_PIN) lightThought(g, t); }, onmouseleave: () => { if (!THOUGHT_PIN) lightThought(g, null); },
+        onmouseenter: () => lightThought(g, t), onmouseleave: () => lightThought(g, held), // a held thought gives way while another is pointed at, and comes back
         onclick: () => { THOUGHT_PIN = on ? null : key; renderThoughts(g); } },
         el("span", { class: "count" }, String(t.steps.length)), `${short(t.steps[0])} → ${short(t.steps[t.steps.length - 1])}`, t.evolution ? el("span", { class: "pill" }, "evolution") : null, ...insightPills(t)),
       el("a", { class: "thought-read", href: thoughtHref(t), title: "read the whole thought — every entry in order, in full" }, "read ›"),
@@ -1579,38 +1722,89 @@ function friendsLegend(g) {
   const out = friendUnits(g).map((u, i) => el("span", { class: "friend", title: `friend: ${u.r.canonical}${u.members.length > 1 ? ` — a family of ${u.members.length}, shown whole` : ""} — its hub shows the entries cited there; a click on a hub shows all of it, a click on the name goes there` },
     el("i", { class: "dot", style: `background:transparent;border:2px dashed ${friendColor(i)};width:10px;height:10px` }),
     el("a", { href: u.r.open, onclick: (ev) => { if (!u.r.centre) return; ev.preventDefault(); moveTo({ centre: u.r.centre, state: u.r.state }, "#graph"); } }, u.r.name),
-    u.members.length > 1 ? el("span", { class: "note" }, ` · family of ${u.members.length}`) : null,
+    u.members.length > 1 ? el("span", { class: "note" }, ` · family of ${u.members.length}`) : (u.r.members || []).length > 1 ? el("span", { class: "note" }, ` · family of ${u.r.members.length}, not shown`) : null,
     u.via === "chain" ? el("span", { class: "note" }, " · via a thought") : null));
   for (const f of g.friends || []) { const r = FRIENDS.loaded[fkey(f.canonical)]; if (r && !r.state) out.push(el("span", { class: "warn", title: r.error }, `${repoLabel(r.canonical)} not loaded`)); }
+  return out;
+}
+// Every project the graph holds, one line each, from its hub nodes: this project first, then the path's
+// steps, the family, the friends with their families — each with the ring the canvas draws for it, the
+// name a link that goes there in place. The hubs carry what the legend needs, so what is listed is
+// exactly what is drawn.
+// the nodes a project hub stands for: its topics and entries, by the ids the layers give them
+function projectNodes(g, hub) {
+  const out = new Set([hub]);
+  const m = hub.id.match(/^f:(.+):([^:]+)$/); // a layer's hub: f:<unit>:<member key>
+  const pre = m ? [`ft:${m[1]}:${m[2]}:`, `fe:${m[1]}:${m[2]}:`] : hub.id.startsWith("p:") && hub.id !== "p:self" ? [`t:${hub.id.slice(2)}:`, `e:${hub.id.slice(2)}:`] : null;
+  for (const n of g.nodes) {
+    if (n.kind === "project") continue;
+    if (pre ? pre.some((x) => n.id.startsWith(x)) : !n.ext && !n.fam) out.add(n);
+  }
+  return out;
+}
+function projectsLegend(g) {
+  const p = S?.project || {};
+  const hubs = g.nodes.filter((n) => n.kind === "project");
+  const out = [];
+  if (!hubs.some((n) => n.self)) out.push(el("span", { class: "family" }, el("i", { class: "dot", style: "background:var(--accent);width:10px;height:10px" }), el("b", {}, p.id || p.name || "this project")));
+  const kind = (n) => (n.self ? "this project" : n.trail ? "a step of the path" : n.chain ? "reached by a thought" : n.friend ? (n.kin ? "a friend's family member" : "a friend") : "family");
+  const ring = (n) => (n.self ? `background:${n.color};` : `background:transparent;border:2px ${n.chain ? "dashed" : n.friend ? "dashed" : n.trail ? "dotted" : "solid"} ${n.color};`);
+  const units = new Map(friendUnits(g).map((u) => [u.k, u]));
+  for (const n of hubs) {
+    const name = n.self ? el("b", {}, n.label) : el("a", { href: n.href || "#graph", title: `${kind(n)} — go there`, onclick: (ev) => { if (!n.walk) return; ev.preventDefault(); n.walk(); } }, n.label);
+    const u = n.friend && !n.kin ? units.get(n.unit) : null;
+    const notShown = u && u.members.length === 1 && (u.r.members || []).length > 1 ? u.r.members.length : 0;
+    out.push(el("span", { class: n.friend ? "friend" : "family", title: kind(n), onmouseenter: () => { g.spot = projectNodes(g, n); g.alpha = Math.max(g.alpha, 0.02); g.wake?.(); }, onmouseleave: () => { g.spot = null; g.alpha = Math.max(g.alpha, 0.02); g.wake?.(); } }, el("i", { class: "dot", style: `${ring(n)}width:10px;height:10px` }), name,
+      notShown ? el("span", { class: "note" }, ` · family of ${notShown}, not shown`) : null,
+      n.chain ? el("span", { class: "note" }, " · via a thought") : null));
+  }
+  return out;
+}
+function familyLegend(g) {
+  if (g !== graph) return [];
+  const fam = familyMembers();
+  // each member with its ring colour, as the family graph's legend has it; the name goes there
+  const out = fam.map((m) => el("span", { class: "family", title: `family: ${m.role || "member"} — its hub shows the entries linked to this project; a click on the name goes there` },
+    el("i", { class: "dot", style: `background:transparent;border:2px solid ${m.color || familyColor()};width:10px;height:10px` }),
+    el("a", { href: m.open || "#graph", onclick: (ev) => { if (!m.centre) return; ev.preventDefault(); moveTo({ centre: m.centre, state: m.state }, "#graph"); } }, m.name)));
+  if (FAMILY_NB.loading) out.push(el("span", { class: "note" }, "loading the family…"));
+  if (FAMILY_NB.missing?.length && canFamily()) out.push(el("span", { class: "warn", title: FAMILY_NB.missing.map(({ member: m, reason }) => `${m.name}: ${reason}`).join("\n") }, `${plural(FAMILY_NB.missing.length, "member")} not available here`));
   return out;
 }
 let TREE_ASKED = false;
 function viewGraph(main) {
   // live: the whole family tree is known before anything counts as a friend — the server's own API, no other host
   if (LIVE() && !TREE && !TREE_ASKED) { TREE_ASKED = true; fetchTree().then((t) => { if (t && location.hash === "#graph") render(); }); }
-  const family = scope() === "family";
+  const family = familyGraphShown();
   const wrap = el("div", { class: "graph-wrap" });
   main.append(wrap);
   const fill = (g) => {
     const canvas = el("canvas");
     const fui = friendsUi(g);
+    const famUi = familyUi(g);
     // the controls in groups: what is drawn · friends · walking and motion · reset
     const ui = el("div", { class: "graph-ui" },
-      el("span", { class: "ui-group" }, el("label", {}, el("input", { type: "checkbox", checked: g.showEntries, onchange: (ev) => { g.showEntries = ev.target.checked; g.alpha = 0.5; g.wake?.(); } }), "entries"), el("label", {}, el("input", { type: "checkbox", checked: g.showLabels, onchange: (ev) => { g.showLabels = ev.target.checked; g.wake?.(); } }), "labels")),
+      el("span", { class: "ui-group" }, el("label", {}, el("input", { type: "checkbox", checked: g.showEntries, onchange: (ev) => { g.showEntries = ev.target.checked; setShowEntries(ev.target.checked); g.alpha = 0.5; g.wake?.(); } }), "entries"), labelsUi(g, "project", "this project's topics and entries")),
+      famUi ? el("span", { class: "ui-group" }, famUi, FAMILY_NB_ON ? labelsUi(g, "family", "the family's projects") : null) : null,
       fui ? el("span", { class: "ui-group" }, fui) : null,
-      el("span", { class: "ui-group" }, el("label", { title: "keep the path while you walk from project to project — the projects you came through stay in the graph" }, el("input", { type: "checkbox", checked: keepPath(), onchange: (ev) => { setKeepPath(ev.target.checked); render(); } }), "path"), el("label", { title: "the graph turns very slowly; it stops while you point at it" }, el("input", { type: "checkbox", checked: driftOn(), onchange: (ev) => { setDrift(ev.target.checked); g.wake?.(); } }), "motion")),
+      el("span", { class: "ui-group" }, el("label", { title: "keep the path while you walk from project to project — the projects you came through stay in the graph" }, el("input", { type: "checkbox", checked: keepPath(), onchange: (ev) => { setKeepPath(ev.target.checked); render(); } }), "path"),
+        ...(pathShown() && TRAIL.some((t) => !sameCentreAsGraph(g, t)) ? [allEntriesUi("path", PATH_ENTRIES, setPathEntries, "every step of the path"), labelsUi(g, "path", "the path's projects")] : [])),
+      el("span", { class: "ui-group" }, el("label", { title: "the graph turns very slowly; it stops while you point at it" }, el("input", { type: "checkbox", checked: driftOn(), onchange: (ev) => { setDrift(ev.target.checked); g.wake?.(); } }), "motion")),
+      el("span", { class: "ui-group" },
+        el("button", { class: "link-btn", title: "every switch in this bar on", onclick: () => selectAll(g, true) }, "select all"),
+        el("button", { class: "link-btn", title: "every switch in this bar off — the project's topics alone", onclick: () => selectAll(g, false) }, "unselect all")),
       el("span", { class: "ui-group" }, el("button", { class: "link-btn graph-reset", title: "fit the graph and let go of every node you placed", onclick: () => { g.scale = family ? 0.7 : 1; g.ox = 0; g.oy = 0; g.userMoved = false; for (const n of g.nodes) { n.fixed = false; } g.alpha = 1; g.wake?.(); } }, "reset")),
     );
     const legend = family
       ? el("div", { class: "graph-legend" },
-        g.groups.map((G) => el("span", {}, el("i", { class: "dot", style: `background:${G.color};width:10px;height:10px` }), G.g.member.name)),
+        ...projectsLegend(g),
         el("span", {}, `${plural(g.across, "reference")} across projects`),
-        g.missing.length ? el("span", { class: "warn", title: g.missing.map(({ member: m, reason }) => `${m.name}: ${reason}`).join("\n") }, `${plural(g.missing.length, "member")} not available here`) : null, ...friendsLegend(g))
+        g.missing.length ? el("span", { class: "warn", title: g.missing.map(({ member: m, reason }) => `${m.name}: ${reason}`).join("\n") }, `${plural(g.missing.length, "member")} not available here`) : null, ...friendsLegend(g).filter((x) => x.classList.contains("warn")))
       : el("div", { class: "graph-legend" },
         el("span", {}, el("i", { class: "dot", style: "background:var(--accent);width:12px;height:12px" }), "topic (size = entries)"),
         el("span", {}, el("i", { class: "dot confirmed" }), "confirmed"), el("span", {}, el("i", { class: "dot inferred" }), "inferred"), el("span", {}, el("i", { class: "dot unknown" }), "unknown"),
         el("span", {}, el("i", { class: "dot", style: "background:transparent;border:1.5px solid var(--fg3)" }), "superseded"),
-        el("span", {}, "— reference · ··· membership"), ...friendsLegend(g));
+        el("span", {}, "— reference · ··· membership"), ...projectsLegend(g), ...familyLegend(g).filter((x) => x.classList.contains("warn") || x.classList.contains("note")), ...friendsLegend(g).filter((x) => x.classList.contains("warn")));
     wrap.replaceChildren(canvas, ui, legend, ...[pathBar()].filter(Boolean), el("div", { class: "graph-hint" }, family ? "family — a project opens its overview · drag nodes · wheel zoom · drag background to pan" : "drag nodes · wheel zoom · drag background to pan · click to open"));
     // arriving from the side pane's graph: centred on the entry or topic it showed
     if (GRAPH_CENTER) {
@@ -1624,7 +1818,7 @@ function viewGraph(main) {
   if (!family) return fill(buildGraph());
   if (fgraph && Date.now() - fgraph.at < 30000) return fill(fgraph); // a live update re-renders: no refetch
   wrap.append(el("p", { class: "center" }, "Loading the family…"));
-  buildFamilyGraph().then((g) => { if (wrap.isConnected && location.hash === "#graph" && scope() === "family") fill(g); });
+  buildFamilyGraph().then((g) => { if (wrap.isConnected && location.hash === "#graph" && familyGraphShown()) fill(g); });
 }
 const go = (href) => { if (href.startsWith("#")) location.hash = href; else location.href = href; };
 // The graph turns very slowly in its plane — one turn in about six minutes —
@@ -1731,9 +1925,11 @@ function runGraph(canvas, g, opts = {}) {
     ctx.clearRect(0, 0, W, H);
     ctx.save(); ctx.translate(W / 2 + g.ox, H / 2 + g.oy); ctx.scale(g.scale, g.scale);
     const th = g.thought;
-    const focus = th ? null : hover || (opts.focusId && g.index[opts.focusId] != null ? g.nodes[g.index[opts.focusId]] : null) || (!mini && selected ? g.nodes[g.index[`e:${selected}`]] : null);
+    const sp = th ? null : g.spot; // a project pointed at in the legend: its nodes stay, the rest fades
+    const focus = th || sp ? null : hover || (opts.focusId && g.index[opts.focusId] != null ? g.nodes[g.index[opts.focusId]] : null) || (!mini && selected ? g.nodes[g.index[`e:${selected}`]] : null);
     const neigh = new Set(); if (focus) { neigh.add(focus); for (const l of g.links) { if (!linkOn(l)) continue; if (g.nodes[l.s] === focus) neigh.add(g.nodes[l.t]); if (g.nodes[l.t] === focus) neigh.add(g.nodes[l.s]); } }
     if (th) for (const n of th.nodes) neigh.add(n);
+    if (sp) for (const n of sp) neigh.add(n);
     const stepNode = STEP_FOCUS ? ns.find((n) => n.kind === "entry" && (n.entry?.uuid === STEP_FOCUS || n.id === STEP_FOCUS)) : null;
     if (stepNode) neigh.add(stepNode);
     const onThought = (l) => !!th && (l.kind === "see" || l.kind === "superseded") && (th.pairs.has(`${g.nodes[l.s].id}|${g.nodes[l.t].id}`) || th.pairs.has(`${g.nodes[l.t].id}|${g.nodes[l.s].id}`));
@@ -1741,15 +1937,16 @@ function runGraph(canvas, g, opts = {}) {
     const DASH = { member: [2, 3], hub: [2, 3], family: [9, 6], superseded: [5, 4], trail: [2, 6] };
     for (const l of g.links) {
       if (!linkOn(l)) continue;
-      const a = g.nodes[l.s], b = g.nodes[l.t]; const hi = (focus && (a === focus || b === focus)) || onThought(l);
+      const a = g.nodes[l.s], b = g.nodes[l.t]; const hi = (focus && (a === focus || b === focus)) || onThought(l) || (sp && sp.has(a) && sp.has(b));
       ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
       ctx.lineWidth = (LW[l.kind] || 0.6) / g.scale; ctx.setLineDash((DASH[l.kind] || []).map((v) => v / g.scale));
       const base = l.kind === "see" || l.kind === "xtopic" ? (l.color || color("--accent2")) : l.kind === "superseded" || l.kind === "family" || l.kind === "trail" ? color("--fg3") : color("--line");
-      ctx.strokeStyle = hi ? (l.kind === "see" || l.kind === "xtopic" ? color("--fg") : color("--accent2")) : base; ctx.globalAlpha = (focus || th) && !hi ? (th ? 0.12 : 0.25) : l.kind === "see" || l.kind === "xtopic" ? 0.85 : 1; if (onThought(l)) ctx.lineWidth = 3 / g.scale; ctx.stroke();
+      ctx.strokeStyle = hi ? (l.kind === "see" || l.kind === "xtopic" ? color("--fg") : color("--accent2")) : base; ctx.globalAlpha = (focus || th || sp) && !hi ? (th ? 0.12 : 0.25) : l.kind === "see" || l.kind === "xtopic" ? 0.85 : 1; if (onThought(l)) ctx.lineWidth = 3 / g.scale; ctx.stroke();
     }
     ctx.setLineDash([]);
-    for (const n of ns) {
-      const faded = ((focus || th) && !neigh.has(n)) || dim(n);
+    const drawOrder = sp ? [...ns.filter((n) => !sp.has(n)), ...ns.filter((n) => sp.has(n))] : ns; // the spotted project on top
+    for (const n of drawOrder) {
+      const faded = ((focus || th || sp) && !neigh.has(n)) || dim(n);
       ctx.globalAlpha = faded ? 0.18 : 1;
       ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
       if (n.kind === "project") { ctx.fillStyle = color("--bg"); ctx.fill(); ctx.lineWidth = 3.5 / g.scale; ctx.strokeStyle = n.color; if (n.chain) ctx.setLineDash([8 / g.scale, 3 / g.scale, 2 / g.scale, 3 / g.scale]); else if (n.friend) ctx.setLineDash([5 / g.scale, 3 / g.scale]); else if (n.trail) ctx.setLineDash([1.5 / g.scale, 3 / g.scale]); ctx.stroke(); ctx.setLineDash([]); ctx.beginPath(); ctx.arc(n.x, n.y, n.r * 0.38, 0, Math.PI * 2); ctx.fillStyle = n.color; ctx.fill(); }
@@ -1759,14 +1956,16 @@ function runGraph(canvas, g, opts = {}) {
       if (n === stepNode) { ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(n.x, n.y, n.r + 7 / g.scale, 0, Math.PI * 2); ctx.lineWidth = 3 / g.scale; ctx.strokeStyle = color("--accent2"); ctx.stroke(); ctx.beginPath(); ctx.arc(n.x, n.y, n.r + 12 / g.scale, 0, Math.PI * 2); ctx.lineWidth = 1 / g.scale; ctx.stroke(); }
     }
     ctx.globalAlpha = 1;
-    const anyLabels = g.showLabels || focus || th || stepNode;
+    const anyLabels = (g.showLabels && Object.values(LABELS).some(Boolean)) || focus || th || stepNode;
     g.nameBoxes = [];
     {
       ctx.font = `${(mini ? 11 : 12) / g.scale}px ${color("--font") || "sans-serif"}`; ctx.textAlign = "center"; ctx.textBaseline = "top";
       for (const n of ns) {
         const hubName = n.kind === "project";
-        if (!hubName && !anyLabels) continue;
-        const show = n === stepNode || (th && th.nodes.has(n)) ? true : hubName ? true : n.kind === "topic" ? (mini ? neigh.has(n) || n === focus || g.nodes.filter((x) => x.kind === "topic").length <= 12 : g.showLabels || neigh.has(n)) : (focus && (neigh.has(n) || n === focus)) || (!mini && g.showLabels && g.scale > 1.6);
+        if (sp) { if (!sp.has(n)) continue; if (!hubName && n.kind !== "topic" && !(g.scale > 1.6)) continue; } // a spotted project: its names alone
+        if (!hubName && !anyLabels && !sp) continue;
+        const lab = sp ? true : g.showLabels && labelsOn(n);
+        const show = sp || n === stepNode || (th && th.nodes.has(n)) ? true : hubName ? true : n.kind === "topic" ? (mini ? neigh.has(n) || n === focus || g.nodes.filter((x) => x.kind === "topic").length <= 12 : lab || neigh.has(n)) : (focus && (neigh.has(n) || n === focus)) || (!mini && lab && g.scale > 1.6);
         if (!show) continue;
         const faded = (focus || th) && !neigh.has(n) && n !== focus; if (faded && !hubName) continue;
         const lbl = n.label.replace(/`/g, ""); const txt = lbl.length > 48 ? lbl.slice(0, 46) + "…" : lbl;
@@ -1847,8 +2046,9 @@ const MEMBER_STATES = {}; // project key -> { at, p: Promise<{state}|{error}> },
 function memberState(key) {
   const c = MEMBER_STATES[key];
   if (c && Date.now() - c.at < 30000) return c.p;
-  const p = fetch(`/api/state.json?project=${encodeURIComponent(key)}`, { cache: "no-store" })
-    .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+  const url = `/api/state.json?project=${encodeURIComponent(key)}`;
+  const p = fetch(url, { cache: "no-store" })
+    .then(async (r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); const text = await r.text(); noteLoaded(new URL(url, location.href).href, text, "state"); return JSON.parse(text); })
     .then((st) => ({ state: normalizeState(st) }), (err) => ({ error: `could not load its state (${err?.message || "server gone"})` }));
   MEMBER_STATES[key] = { at: Date.now(), p };
   return p;
@@ -2050,7 +2250,7 @@ function render() {
   $("#details").dataset.pane = "other";
   if (!route.startsWith("graph")) { const bar = pathBar(); if (bar) main.append(bar); } // the graph carries it as an overlay
   if (route === "overview") { viewOverview(main); renderDetailsDefault(); }
-  else if (route === "graph/family") { setScope("family", { rerender: false }); history.replaceState(null, "", "#graph"); viewGraph(main); renderDetailsDefault(); }
+  else if (route === "graph/family") { setScope("family", { rerender: false }); setFamilyNeighbours(true); setFamilyEntries(true); history.replaceState(null, "", "#graph"); viewGraph(main); renderDetailsDefault(); } // an old link to the family graph: the family whole, in the graph and in the scope
   else if (route === "graph") { viewGraph(main); renderDetailsDefault(); }
   else if (route === "timeline") { viewTimeline(main); renderDetailsDefault(); }
   else if (route === "authors") { viewAuthors(main); renderDetailsDefault(); }
@@ -2122,7 +2322,9 @@ function applyState(state) {
     el("span", { id: "pkg-lint" }, el("a", { href: "https://pypi.org/project/keep-the-why-lint/", target: "_blank", rel: "noopener", title: "keep-the-why-lint on PyPI" }, `keep-the-why-lint ${S.linter}`)),
     el("span", {}, MODE === "public" ? `public export · generated ${S.generated}` : S.exported ? `exported ${S.generated}` : `state ${S.generated}`),
     el("span", { id: "counts" }, `${S.entries.length} entries · ${S.topics.length} topics · ${S.authors.length} authors`),
+    loadedUi(),
     el("span", { class: "grow" }, el("a", { href: "https://keepthewhy.com", target: "_blank", rel: "noopener" }, "keepthewhy.com")));
+  renderLoaded();
   FAMILY = null;
   if (LIVE()) $("#nav-projects").hidden = false;
   setupMode(); markScope();
@@ -2275,9 +2477,9 @@ async function boot() {
     return;
   }
   setupProjects();
-  if (window.__KTW_STATE__) applyState(normalizeState(window.__KTW_STATE__));
+  if (window.__KTW_STATE__) { noteLoaded(location.href.split("#")[0], JSON.stringify(window.__KTW_STATE__), "state"); applyState(normalizeState(window.__KTW_STATE__)); }
   else {
-    try { applyState(normalizeState(await (await fetch(api("/api/state.json"), { cache: "no-store" })).json())); }
+    try { const text = await (await fetch(api("/api/state.json"), { cache: "no-store" })).text(); noteLoaded(new URL(api("/api/state.json"), location.href).href, text, "state"); applyState(normalizeState(JSON.parse(text))); }
     catch (err) { $("#main").append(el("p", { class: "center" }, PROJECT ? `No state for project "${PROJECT}" — unknown id or unknown location.` : "Could not load the state — is the server running?")); }
   }
   connectLive();
