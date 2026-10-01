@@ -48,7 +48,7 @@ const FILES = {
   "https://raw.githubusercontent.com/acme/far/HEAD/.keep-the-why": config("acme---far", ["- dashboard-state: https://acme.github.io/far/state.json"]),
   "https://acme.github.io/far/state.json": state("acme---far", { canonical: `${GH}/far` }, [entry("Far away", "Cited from notes.", { uuid: FAR_ID, status: "needs-review", git: { created: { date: "2026-08-10" } }, see: [{ remote: `${GH}/farther`, uuid: FARTHER_ID, date: "2026-09-29" }] })]),
   // the registry: a list of published states, read by the globe
-  "https://keepthewhy.com/registry/index.json": JSON.stringify({ checked: "2026-10-01", projects: [{ canonical: `${GH}/farther`, state: "https://acme.github.io/farther/state.json", id: "acme---farther", entries: 1 }, { canonical: `${GH}/refs`, state: "https://acme.github.io/refs/state.json", id: "acme---refs", entries: 1 }] }),
+  "https://keepthewhy.com/registry/index.json": JSON.stringify({ checked: "2026-10-01", projects: [{ canonical: `${GH}/farther`, state: "https://acme.github.io/farther/state.json", id: "acme---farther", entries: 1 }, { canonical: `${GH}/gone`, state: "https://acme.github.io/gone/state.json", id: "acme---gone", entries: 3, error: "HTTP Error 404", failed_since: "2026-09-30" }, { canonical: `${GH}/refs`, state: "https://acme.github.io/refs/state.json", id: "acme---refs", entries: 1 }] }),
   "https://raw.githubusercontent.com/acme/farther/HEAD/.keep-the-why": config("acme---farther", ["- dashboard-state: https://acme.github.io/farther/state.json"]),
   "https://acme.github.io/farther/state.json": state("acme---farther", { canonical: `${GH}/farther` }, [entry("The origin", "Where it started.", { uuid: FARTHER_ID, evidence: "inferred", git: { created: { date: "2026-08-01" } } })]),
   // an export that claims to be another repository's
@@ -584,18 +584,20 @@ const report = {};
   d.querySelector(".graph-ui .globe-ctl input[type=checkbox]").click(); await tick(300);
   const dialog3 = d.querySelector(".globe-dialog");
   report.globeRegistry = dialog3?.querySelector("h3")?.textContent;
-  if (!/^The registry: 1 project/.test(report.globeRegistry || "")) errors.push("globe: the registry should offer acme/farther alone: " + report.globeRegistry);
+  if (!/^The registry: 2 projects/.test(report.globeRegistry || "")) errors.push("globe: the registry should offer farther and gone: " + report.globeRegistry);
+  if (!/acme\/gone — acme---gone · 3 entries · not answering since 2026-09-30, tried anyway/.test(dialog3?.textContent || "")) errors.push("globe: the dialog does not mark gone as not answering: " + dialog3?.textContent?.slice(0, 300));
   [...dialog3.querySelectorAll("button")].find((b) => b.textContent === "load them")?.click(); await tick(600);
   g = window.__g(); hubs = g.nodes.filter((n) => n.kind === "project" && n.hop != null).map((n) => `${n.label}:${n.hop}`).sort();
   if (hubs.join() !== "acme/far:1,acme/farther:registry") errors.push("globe: after the registry the graph should hold far (hop 1) and farther (registry): " + hubs.join());
   if (!/from the registry/.test(d.querySelector(".graph-legend")?.textContent || "")) errors.push("globe: the legend does not say 'from the registry'");
+  if (!/acme\/gone not loaded · registry/.test(d.querySelector(".graph-legend")?.textContent || "")) errors.push("globe: a registry project that did not load is not named in the legend");
   // the registry switched off and on again offers its projects again (their states come from memory)
   d.querySelector(".graph-ui .globe-ctl input[type=checkbox]").click(); await tick(300);
   g = window.__g(); hubs = g.nodes.filter((n) => n.kind === "project" && n.hop === "registry").map((n) => n.label);
   if (hubs.length) errors.push("globe: the registry switched off left its projects in the graph: " + hubs.join());
   d.querySelector(".graph-ui .globe-ctl input[type=checkbox]").click(); await tick(300);
   const dialog4 = d.querySelector(".globe-dialog");
-  if (!/^The registry: 1 project/.test(dialog4?.querySelector("h3")?.textContent || "")) errors.push("globe: the registry switched on again offers nothing: " + dialog4?.querySelector("h3")?.textContent);
+  if (!/^The registry: 2 projects/.test(dialog4?.querySelector("h3")?.textContent || "")) errors.push("globe: the registry switched on again should offer farther and, again, gone: " + dialog4?.querySelector("h3")?.textContent);
   [...(dialog4?.querySelectorAll("button") || [])].find((b) => b.textContent === "load them")?.click(); await tick(400);
   g = window.__g();
   if (!g.nodes.some((n) => n.kind === "project" && n.hop === "registry")) errors.push("globe: the registry switched on again did not bring its project back");
@@ -609,6 +611,23 @@ const report = {};
   g = window.__g();
   if (g.nodes.some((n) => n.kind === "project")) errors.push("globe: at off the graph should hold the project alone, got hubs: " + g.nodes.filter((n) => n.kind === "project").map((n) => n.label).join());
   if (!g.nodes.some((n) => n.kind === "topic" && !n.ext)) errors.push("globe: at off the project's own topics are gone");
+  window.close();
+}
+{
+  // copy link: on a published page the page's own address; on a local one the project's published dashboard
+  const suite = { ...FILES["https://acme.github.io/suite/state.json"], exported: true };
+  const embed = (s) => html.replace("<script>", `<script>window.__KTW_STATE__ = ${JSON.stringify(s).replace(/</g, "\\u003c")};</script><script>`);
+  let window = await open(`https://acme.github.io/suite/keep-the-why-dashboard/#entry/${SUITE_ID}`, embed(suite));
+  await tick(300);
+  let b = window.document.querySelector(".reader .share-btn");
+  report.shareOnPages = b?.title.split("\n")[1];
+  if (report.shareOnPages !== `https://acme.github.io/suite/keep-the-why-dashboard/#entry/${SUITE_ID}`) errors.push("copy link: on a published page it should be the page's address: " + b?.title);
+  window.close();
+  window = await open(`http://localhost:8765/#entry/${SUITE_ID}`, embed({ ...suite, project: { ...suite.project, dashboard_state: "https://acme.github.io/suite/keep-the-why-dashboard/state.json" } }));
+  await tick(300);
+  b = window.document.querySelector(".reader .share-btn");
+  report.shareOnLocal = b?.title.split("\n")[1];
+  if (report.shareOnLocal !== `https://acme.github.io/suite/keep-the-why-dashboard/#entry/${SUITE_ID}`) errors.push("copy link: on a local page it should be the published dashboard's address: " + b?.title);
   window.close();
 }
 console.log(JSON.stringify(report, null, 1));
