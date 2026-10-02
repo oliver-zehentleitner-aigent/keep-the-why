@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Fixed
+
+- `keep-the-why-dashboard` 0.6.10: the thought being read is held in the graph beside the reader however the reader was reached. *read ›* used to keep the highlight only when the thought had been clicked first; without that click — or on a link or a reload — the graph showed everything undimmed and the thought only lit while an entry was pointed at.
+
 ## [0.19.0] - 2026-10-02
 
 ### Added
