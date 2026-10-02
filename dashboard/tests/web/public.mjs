@@ -463,6 +463,16 @@ const report = {};
   if (!(notes() < whole)) errors.push(`friend entries: switching off did not reduce notes to the linked ones (${whole} → ${notes()})`);
   if (window.localStorage.getItem("ktw-friend-entries") !== "linked") errors.push("friend entries: not kept for this browser");
   box.checked = true; box.dispatchEvent(new window.Event("change")); await tick(150);
+  // the state monitor: one line per project — the lean friend says so, its bodies not loaded yet, a link to its dashboard
+  d.querySelector("#loaded > a").click(); await tick(50);
+  const monRows = [...d.querySelectorAll(".loaded-pop .loaded-row")].map((r) => r.textContent.replace(/\s+/g, " "));
+  report.monitor = monRows;
+  const notesRow = [...d.querySelectorAll(".loaded-pop .loaded-row")].find((r) => /acme---notes/.test(r.textContent));
+  if (!notesRow || !/lean, bodies beside it/.test(notesRow.textContent) || !/bodies not loaded/.test(notesRow.textContent)) errors.push("monitor: the lean friend's row does not say lean / bodies not loaded: " + notesRow?.textContent);
+  if (notesRow?.querySelector("a.dash")?.getAttribute("href") !== "https://acme.github.io/notes/") errors.push("monitor: no dashboard link for notes: " + notesRow?.querySelector("a.dash")?.getAttribute("href"));
+  if (!/\.keep-the-why/.test(notesRow?.textContent || "")) errors.push("monitor: notes' .keep-the-why is not on its row");
+  if (!/this page/.test(monRows[0] || "")) errors.push("monitor: the first row is not this page's own: " + monRows[0]);
+  d.querySelector("#loaded > a").click(); await tick(50);
   // friends families: a friend's family beside it, on by default; off leaves the cited repository alone
   const famSwitch = d.querySelector(".graph-ui .friends-ctl .friend-families input");
   if (!famSwitch || !famSwitch.checked) errors.push("friends families: no switch, or off by default");
@@ -663,6 +673,13 @@ const report = {};
   await tick(300);
   b = window.document.querySelector(".reader .share-btn");
   report.shareOnLocal = b?.title.split("\n")[1];
+  // the badges beside the search: the static one and the two live ones from the published export, ready to paste
+  const items = [...window.document.querySelectorAll("#badges-pop .badge-item")];
+  const md = items.map((x) => x.querySelector(".badge-field input")?.value);
+  report.badges = md;
+  if (items.length !== 3) errors.push("badges: expected three, got " + items.length);
+  if (md[1] !== "[![Keep the Why · live](https://acme.github.io/suite/keep-the-why-dashboard/badge-entries.svg)](https://acme.github.io/suite/keep-the-why-dashboard/)") errors.push("badges: the live badge's Markdown is wrong: " + md[1]);
+  if (!/<a href="https:\/\/acme\.github\.io\/suite\/keep-the-why-dashboard\/"><img alt="keep the why" src="https:\/\/acme\.github\.io\/suite\/keep-the-why-dashboard\/badge-entries-flat\.svg"><\/a>/.test(items[2]?.querySelectorAll(".badge-field input")[1]?.value || "")) errors.push("badges: the flat badge's HTML is wrong");
   if (report.shareOnLocal !== `https://acme.github.io/suite/keep-the-why-dashboard/#entry/${SUITE_ID}`) errors.push("copy link: on a local page it should be the published dashboard's address: " + b?.title);
   window.close();
 }
