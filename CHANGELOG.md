@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Changed
+
+- Eval suite: two expectation texts said more than the skill does. `capture-confirmation-automatic-still-asks-substantive-question` now says that under `automatic` the entry is written and the factual question comes in the same reply — the order step 5's second modifier prescribes — and what Evidence may claim; `local-lint-ask-does-not-install-unasked` no longer requires an existing topic file updated in place (that is `continuous-capture-basic`'s measure) or the install command in the question. Re-graded on the stored fix-branch series: both cases 3/3, from 0/3 and 1/3.
+
 ### Added
 
 - `keep-the-why-dashboard` 0.6.8: the state monitor shows what did not come back, not only what did. The status bar adds *⚠ N failed* in the warning colour and opens the monitor at the failures; the monitor's header links them (*⚠ N not loaded ↓*); a block at the bottom lists each failed fetch — the repository, which file (config, state, bodies, registry index), the reason as the dashboard words it (*network error or blocked by CORS*, *HTTP 404*, *no dashboard-state line*, an export that claims another repository) and the address to open by hand. A fetch that later succeeds leaves the list.
