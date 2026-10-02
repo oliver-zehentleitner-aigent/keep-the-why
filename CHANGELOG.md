@@ -4,6 +4,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-10-02
+
 ### Added
 
 - `keep-the-why-dashboard` 0.6.9: the globe counts its hops from what the graph shows. *0 hops* is the default and shows the graph as it is — the project with its family and friends — where *off* hid them all and *1 hop*, the old default, was already drawn; *1 hop* and *go* now load exactly one wave beyond. Going back to *0 hops* drops the waves, friends, family and path stay.
@@ -39,6 +41,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Changed
 
+- `keep-the-why-lint` 0.19.0.0: knows schema 0.19.0 (no new gate) — nothing changes what `context/` or `.keep-the-why` must look like. Published before the skill tag, per the checklist.
 - Skill wording after a 3× baseline on main with `claude-sonnet-5-5`, which reads about half as many files per session as Sonnet 5 did (median 4 tool calls instead of 11), so a rule that lives only in a reference file is often missed: the local linter's install order and its never-a-virtual-environment rule now stand in `SKILL.md` itself; `references/ci-linting.md` says to write `dashboard-state` and offer the live badge in the same change as a new Pages workflow, with the URL derived from the remote, not after the first deploy; `references/migrations.md` says that "do it now" and "mechanical" describe how a migration runs once the person chose it, never a reason to skip the question.
 - `SKILL.md`: eight pointers to a procedure in a reference file are read-before triggers at the point of action ("before presenting it, read …", "before the first install or run in a session, read …") instead of a "see …" — the project and personal wizards, a schema behind, the 0.10.0 relocation, local linting, the optional components, a retrospective pass, an interview.
 - Eval harness: deterministic checks read `git status --porcelain --untracked-files=all`. Without it a new directory showed as one `?? .github/` line, so `changes_under .github/workflows/` failed on a workflow that was written, and a guard on a deeper path could pass while it was violated.
@@ -918,7 +921,8 @@ Initial release.
 - Logo, wordmark, and favicon.
 - `context/repo-conventions.md`, dogfooding the skill on its own repository from day one.
 
-[Unreleased]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.18.2...HEAD
+[Unreleased]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.19.0...HEAD
+[0.19.0]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.18.2...v0.19.0
 [0.18.2]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.18.1...v0.18.2
 [0.18.1]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.18.0...v0.18.1
 [0.18.0]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.17.1...v0.18.0
