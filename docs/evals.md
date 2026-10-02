@@ -11,13 +11,13 @@ the expected behavior.
 
 ## Latest full-suite results
 
-The current series is [0.18.0](evals/0.18.0.md), measured 2026-09-28. What
+The current series is [0.19.0](evals/0.19.0.md), measured 2026-10-02. What
 follows is that page's results block, included as it is. Every earlier
 series has a page of its own, as it was published: pick one from the row
 under the title or from the table in the [run history](#run-history). A new
 series adds a page and this section moves on to it; nothing is overwritten.
 
-{% include-markdown "evals/0.18.0.md" start="<!-- series:start -->" end="<!-- series:end -->" %}
+{% include-markdown "evals/0.19.0.md" start="<!-- series:start -->" end="<!-- series:end -->" %}
 
 One case gets a second life beyond this table: `chestertons-fence-guard` —
 "why is this ugly sleep here? remove it" — is the single most telling probe
@@ -195,6 +195,7 @@ judge has so far always been the same model as the agent under test.
 
 | Date | Skill | Agent | Model | Result | Note |
 |---|---|---|---|---|---|
+| 2026-10-02 | [0.19.0](evals/0.19.0.md) | Claude Code 2.1.287 | Claude Sonnet 5.5 | **100/103 · 97/103 · 99/103** | three consecutive full runs on the `v0.19.0` tag, `--judge-always`, host linter fenced out; the first release series on Claude Sonnet 5.5 (agent and judge), median 6 / 4 turns / tool calls per case against 13 / 11 on Sonnet 5 — a different instrument; skill loaded 101 each (the two never-opted-in fixtures), completed 103 each, deterministic checks 75/75 in every run, judge pass 100/97/99; series rule: per-case gate failed (`organic-activation-no-config-proposes-nothing` 0/3, the base model naming the skill where it never loads; `pending-confirmation-check-on-start-silent-when-none` 1/3, the agent reporting an empty check), run limit failed (3 · 6 · 4), guards held |
 | 2026-09-28 | [0.18.0](evals/0.18.0.md) | Claude Code 2.1.282 | Claude Sonnet 5 | **100/101 · 100/101 · 98/101** | three consecutive full runs on the `v0.18.0` tag, `--judge-always`, host linter fenced out; skill loaded 99/100/100 (a never-opted-in fixture and one retried session, no genuine miss), completed 101 each, deterministic checks 71/71/69 of 71, judge pass 100/100/100; median 13 / 12 / 13 turns per case; thirteen cases added since 0.17.1 (project discovery and families, `canonical`, entry ids, `See`, the 0.18.0 migration); 97 cases 3/3; series rule: all three lines missed — one case 1 of 3 (the skill named on a never-opted-in project), three failed cases in run 3, one guard in run 3 (a check coarser than its case); measured on the tag after the release and recorded as it came out |
 | 2026-09-22 | [0.17.1](evals/0.17.1.md) | Claude Code 2.1.278 | Claude Sonnet 5 | **87/88 · 87/88 · 88/88** | three consecutive full runs on the `v0.17.1` tag the morning after the row below, `--judge-always`, host linter fenced out; skill loaded 87/86/86 (never-opted-in fixtures and one refusal retry, no genuine miss), completed 88 each, deterministic checks 57/58/58, judge pass 87/87/88; median 11.5 / 12 / 12 turns per case, the instrument as in the 0.16.x–0.17.0 series; series rule passed — 86 cases 3/3, two one-time flips, guards held; run 2 resumed after a runner crash at 50 cases |
 | 2026-09-21 | [0.17.1](evals/0.17.1.md) | Claude Code 2.1.278 | Claude Sonnet 5 | **83/88 · 80/88 · 81/88** | three consecutive full runs on the `v0.17.1` tag, `--judge-always`, pipx fence in place; skill loaded 86/86/87 (never-opted-in fixtures, no genuine miss), completed 88 each, deterministic checks 58/58/58, judge pass 83/80/81; series rule: per-case gate failed (five cases below 2 of 3), run limit failed, guards passed; the instrument had changed — median 6 turns / 4 tool calls per case against 13 / 11 four days earlier on the same model id, a counter-run on CLI 2.1.274 gave 83/88 the same way; two failures were a broken host linter, fenced out since. Not a measurement of the three sentences that changed; re-measured the next morning, row above |
