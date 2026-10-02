@@ -447,6 +447,9 @@ const report = {};
   const window = await open(`http://localhost/?public=${encodeURIComponent(`${GH}/refs`)}#thought/${NOTES_ID},5a1e5a1e-0000-4000-8000-000000000004`);
   await tick(600);
   const d = window.document;
+  // reached without a click on the thought in the graph: the graph beside the reader holds it all the same
+  report.readerHeld = window.__g()?.thought?.nodes?.size || 0;
+  if (!report.readerHeld) errors.push("thought view: the thought being read is not held in the graph beside it");
   const beyond = d.querySelector(".thought-beyond")?.textContent || "";
   if (!/Before its origin, it goes on in acme\/far/.test(beyond)) errors.push("thought view: no note that the chain goes on in acme/far: " + beyond);
   d.querySelector(".thought-beyond button")?.click(); await tick(1500);
