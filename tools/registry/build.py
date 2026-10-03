@@ -11,7 +11,12 @@ relation. A line that never
 loaded fails the build (a new line in a pull request, a typo); a listed
 repository whose export stops answering stays as last seen, marked ``error``
 and ``failed_since``, for GRACE_DAYS before it is dropped — much of that is
-temporary. Standard library only; ``--check`` validates without writing.
+temporary. The lines stay in A-Z order — a pull request adding one out of
+order fails the check, so additions never collide in one place. Standard
+library only. ``--check`` validates without writing (pull requests);
+``--publish`` writes for the docs build: the previous index comes from
+``--previous URL`` (the published one), and a line that cannot be listed is
+left out with a warning instead of failing the site's deploy.
 """
 
 import json
@@ -117,20 +122,40 @@ def check(canonical):
 GRACE_DAYS = 30  # a listed export that stops answering stays, marked, this long before it is dropped
 
 
-def previous():
-    """The index as last written: what a failing line is allowed to keep."""
+def previous(url=None):
+    """The index as last published: what a failing line is allowed to keep. The index is a build
+    artifact, not a committed file, so the docs build reads the published one (``--previous URL``).
+    """
     try:
-        data = json.loads(TARGET.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+        text = fetch(url) if url else TARGET.read_text(encoding="utf-8")
+        data = json.loads(text)
+    except (OSError, ValueError, urllib.error.URLError):
         return {}
     return {p["canonical"].lower(): p for p in data.get("projects", [])}
+
+
+def out_of_order(urls):
+    """The first pair of lines that breaks A-Z order (case-insensitive), or None."""
+    for a, b in zip(urls, urls[1:]):
+        if b.lower() < a.lower():
+            return a, b
+    return None
 
 
 def main(argv):
     lines = [l.strip() for l in SOURCE.read_text(encoding="utf-8").splitlines()]
     urls = [normalize(l) for l in lines if l and not l.startswith("#")]
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    before = previous()
+    publish = "--publish" in argv
+    prev_url = argv[argv.index("--previous") + 1] if "--previous" in argv else None
+    order = out_of_order(urls)
+    if order and not publish:
+        print(
+            f"::error title=registry, not in A-Z order::{order[1]} belongs before {order[0]} — "
+            "registry/projects.txt is kept sorted A-Z (case-insensitive)"
+        )
+        return 1
+    before = previous(prev_url)
     projects, failed, stale = [], [], []
     for url in urls:
         try:
@@ -176,6 +201,11 @@ def main(argv):
             )
     for url, since, err in stale:
         print(f"::warning title=registry, not answering since {since}::{url} — {err}")
+    if failed and publish:
+        # the site's deploy goes on: the line is left out, the warning says why
+        for url, err in failed:
+            print(f"::warning title=registry, left out::{url} — {err}")
+        failed = []
     if failed:
         for url, err in failed:
             print(f"::error title=registry::{url} — {err}")
