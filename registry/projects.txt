@@ -2,6 +2,7 @@
 # one canonical repository URL per line (as in .keep-the-why's `canonical`).
 #
 # To be listed, open a pull request that adds your repository's canonical URL.
+# Lines are kept in A-Z order (case-insensitive); the check fails otherwise.
 # The registry workflow reads the repository's .keep-the-why at HEAD, follows its
 # `dashboard-state` line to the export, and checks that the export names this
 # repository — then writes docs/registry/index.json, which the dashboard's globe
@@ -16,13 +17,13 @@
 # nothing of yours.
 https://github.com/oliver-zehentleitner/keep-the-why
 https://github.com/oliver-zehentleitner/repo-native-project-memory
-https://github.com/oliver-zehentleitner/unicorn-binance-suite
-https://github.com/oliver-zehentleitner/unicorn-binance-websocket-api
-https://github.com/oliver-zehentleitner/unicorn-binance-rest-api
-https://github.com/oliver-zehentleitner/unicorn-binance-local-depth-cache
-https://github.com/oliver-zehentleitner/unicorn-binance-trailing-stop-loss
-https://github.com/oliver-zehentleitner/unicorn-binance-depth-cache-cluster
-https://github.com/oliver-zehentleitner/unicorn-fy
 https://github.com/oliver-zehentleitner/ubdcc-dashboard
-https://github.com/zyvop/zyvop-cli
+https://github.com/oliver-zehentleitner/unicorn-binance-depth-cache-cluster
+https://github.com/oliver-zehentleitner/unicorn-binance-local-depth-cache
+https://github.com/oliver-zehentleitner/unicorn-binance-rest-api
+https://github.com/oliver-zehentleitner/unicorn-binance-suite
+https://github.com/oliver-zehentleitner/unicorn-binance-trailing-stop-loss
+https://github.com/oliver-zehentleitner/unicorn-binance-websocket-api
+https://github.com/oliver-zehentleitner/unicorn-fy
 https://github.com/rapt0p7/scenegrid-console
+https://github.com/zyvop/zyvop-cli

@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Changed
+
+- Registry: the index (`keepthewhy.com/registry/index.json`) is built into the site by the docs workflow on every deploy and weekly, no longer committed — the workflow's push to the protected `main` was rejected whenever the index changed, so a merged listing (#596) did not reach the globe. The previous published index feeds the 30-day grace; a line that cannot be listed is left out with a warning instead of failing the deploy. The registry workflow checks pull requests only. `registry/projects.txt` is kept in A–Z order, and the check fails on a line out of order.
+
 ### Fixed
 
 - `keep-the-why-dashboard` 0.6.10: the thought being read is held in the graph beside the reader however the reader was reached. *read ›* used to keep the highlight only when the thought had been clicked first; without that click — or on a link or a reload — the graph showed everything undimmed and the thought only lit while an entry was pointed at.
