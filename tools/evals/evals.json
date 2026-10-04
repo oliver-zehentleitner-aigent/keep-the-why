@@ -572,7 +572,7 @@
   {
     "id": "pending-confirmation-check-on-start-silent-when-none",
     "prompt": "Why does the retry logic in src/gateway.py look so defensive?",
-    "expected_behavior": "The developer's personal file says pending-confirmation-check: on-start, and no entry in context/ carries Status: pending-confirmation. The check runs and finds nothing, so the reply says nothing about pending confirmations - no 'nothing is pending' line, no mention of the check - and simply answers the code question (bounded retries with exponential backoff on 5xx; context/ records no rationale for the policy, so it says so rather than inventing one). What fails: mentioning the pending-confirmation check or its empty result, or writing anything to context/ unasked. A one-line offer to record the retry rationale if the developer knows it is fine (SKILL.md step 5, row 6); writing it unasked is not.",
+    "expected_behavior": "The developer's personal file says pending-confirmation-check: on-start, and no entry in context/ carries Status: pending-confirmation. The check runs and finds nothing. Saying so in at most one short line ('nothing pending'), or not at all, are both fine - the check matters when entries wait, not when none do. The reply answers the code question (bounded retries with exponential backoff on 5xx; context/ records no rationale for the policy, so it says so rather than inventing one). A one-line offer to record the retry rationale if the developer knows it is fine (SKILL.md step 5, row 6). What fails: claiming that entries are pending, more than a short line about the empty check, inventing a rationale, or writing anything to context/ unasked.",
     "checks": [
       {
         "type": "no_changes_under",
