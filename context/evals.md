@@ -171,3 +171,22 @@ The skill's design leaned on reference files for detail: `SKILL.md` names the ru
 **Rejected alternative:** an instruction to always read every reference file named in `SKILL.md`. Rejected because it multiplies the cost of every session for rules most sessions never touch; the point of reference files is loading on demand.
 
 **Rejected alternative:** moving the reference files' content into `SKILL.md`. Rejected because the skill would grow past what is cheap to load at every activation (`CONTRIBUTING.md`); only the clause that must not be missed moves.
+
+## The judge is Opus, a stronger model than the agent under test
+
+**Id:** 5930a05f-0c02-4d36-aa0d-fcbef30315be
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** maintainer decision 2026-10-04/05 ("the judge should be reliable and not become a product of its own"; "if Sonnet is too weak as judge, we go to Opus"); a regrade of the 0.19.1 candidate series (`tools/evals/regrade.py --judge-model opus`, all 309 records)
+**Revisit when:** the agent under test moves to Opus itself, or a regrade shows the Opus judge flipping passes it should not
+
+From 0.19.1 on, the eval judge (`--judge-model`, the default in `run.py` and `regrade.py`) is Claude Opus; the agent under test stays Sonnet. Up to 0.19.0 the judge was the same model as the agent.
+
+**Reason:** on `claude-sonnet-5-5` the judge was the larger part of the noise. Re-grading the candidate series (98 · 100 · 98 of 103 with the Sonnet judge) with Opus kept all 296 passes, confirmed 3 of the 13 fails and overturned 10 — fails such as a verdict of "fail" beside the judge's own "should be read as pass-like", or a deduction for a write the skill requires. With the Opus judge the same three runs read 102 · 102 · 102 and pass every gate of the series rule. Calibrating case texts against a Sonnet judge had turned into chasing it: each round one case was fixed and another flipped.
+
+**Rejected alternative:** keep Sonnet and keep calibrating case texts. Rejected — the cases began to spell out what the skill already says, for a judge that did not read it the same way twice; the judge is an instrument, and the instrument should be steadier than what it measures.
+
+**Rejected alternative:** a judge prompt tuned per failure form. Rejected by the maintainer: the judge should be reliable, not a product of its own.
+
+**Consequence:** a change of instrument. Series from 0.19.1 on are not directly comparable with earlier ones; `docs/evals.md` says from which version the judge is Opus, and the judge model is recorded in every run.

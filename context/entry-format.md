@@ -106,6 +106,8 @@ An unattended session — a scheduled cloud agent, an autonomous loop, a CI job 
 
 **Consequence:** `context-schema`-relevant, same tier as the Type-field additions above: the linter accepts the value from 0.13.0 on and reports `E113` below it. Not a backfill — existing entries keep their Status. Two optional settings, both defaulting to the previous behavior, so nothing changes for a project that writes neither.
 
+**Consequence (2026-10-04, maintainer decision):** with the check on and nothing pending, at most one short "nothing pending" line is fine, or nothing at all. It used to be strict silence. The check matters when entries wait, and that part stays as strict as before. Measured on `claude-sonnet-5-5`, the model reported an empty check in about half the sessions whatever the wording (silence as a prohibition, as a positive rule, with its reason). A rule the model keeps breaking where the break costs nothing made the eval case measure variance, not behaviour that matters.
+
 ## `context/index.md` carries a fixed `0`–`9`, `A`–`Z` heading skeleton, empty headings included
 
 **Id:** 8aa88a2b-764e-4529-a340-0fe82309f880
