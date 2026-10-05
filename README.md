@@ -1,4 +1,5 @@
 [![GitHub Release](https://img.shields.io/github/v/release/oliver-zehentleitner/keep-the-why?filter=v*&sort=semver&label=github)](https://github.com/oliver-zehentleitner/keep-the-why/releases)
+[![npm keep-the-why](https://img.shields.io/npm/v/keep-the-why.svg?label=npm%20keep-the-why)](https://www.npmjs.com/package/keep-the-why)
 [![PyPI](https://img.shields.io/pypi/v/keep-the-why-lint.svg?label=pypi%20keep-the-why-lint)](https://pypi.org/project/keep-the-why-lint/)
 [![PyPI](https://img.shields.io/pypi/v/keep-the-why-dashboard.svg?label=pypi%20keep-the-why-dashboard)](https://pypi.org/project/keep-the-why-dashboard/)
 [![License](https://img.shields.io/github/license/oliver-zehentleitner/keep-the-why.svg?color=blue)](https://keepthewhy.com/license/)
