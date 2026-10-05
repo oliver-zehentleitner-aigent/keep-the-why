@@ -10,6 +10,10 @@ A list of repositories with a published Keep the Why dashboard export, kept in [
 
 **Nothing needs it.** The dashboard finds other repositories by their citations: a `See` into another repository, a friend, a family member, a thought that goes on elsewhere. The registry adds the one thing citations cannot give — being found from a project that cites nothing of yours — and the reverse direction: who cites you.
 
+## In the dashboard
+
+The globe — the [🌐](https://keepthewhy.com/dashboard/live/#globe) at the end of the status bar — opens the graph alone, full width, and loads repositories in waves: hop 1 is what the loaded entries cite outside the page, hop 2 what those cite, up to ten, each wave asked for with its count and its list before anything is fetched. *registry* loads every listed project as a wave of its own, asked for the same way. Nothing of it is kept per browser: every load from another host is a click, and a reload starts without it.
+
 ## To be listed
 
 Say to your agent "list this project in the Keep the Why registry" — it knows the steps, and it opens the pull request only when you ask. By hand: open a pull request that adds one line to `registry/projects.txt`, in A–Z order (the check fails otherwise): your repository's canonical URL — the `canonical` line of its `.keep-the-why`, e.g. `https://github.com/owner/repo`. Nothing else: the `registry` workflow reads the repository's `.keep-the-why` at `HEAD`, follows its `dashboard-state` line to the export (the [dashboard page](../dashboard.md#show-a-proposal-before-it-is-merged) says how an export is published), and checks that the export names this repository. Move the export later and the listing follows — only `dashboard-state` changes. The export's host must let other sites read it (CORS, `Access-Control-Allow-Origin`); GitHub Pages does by default, and the check warns when the header is missing — see [what an export is made of](../dashboard.md#what-an-export-is-made-of).
@@ -36,7 +40,3 @@ What this is and is not:
 - **An export that is not answering** (the 30-day grace above) adds no citations to that build.
 - **Bounded.** A repository URL becomes a path only as exactly three plain segments (`host/owner/repo`; a nested GitLab group is not one), and an export counts with its first 500 cross-project citations.
 - **Sorted throughout** — files, citations and keys — so two builds differ only where the citations did.
-
-## In the dashboard
-
-The globe — the [🌐](https://keepthewhy.com/dashboard/live/#globe) at the end of the status bar — opens the graph alone, full width, and loads repositories in waves: hop 1 is what the loaded entries cite outside the page, hop 2 what those cite, up to ten, each wave asked for with its count and its list before anything is fetched. *registry* loads every listed project as a wave of its own, asked for the same way. Nothing of it is kept per browser: every load from another host is a click, and a reload starts without it.
