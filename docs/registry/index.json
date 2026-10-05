@@ -1,21 +1,21 @@
 {
  "registry": "https://keepthewhy.com/registry/",
  "source": "https://github.com/oliver-zehentleitner/keep-the-why/blob/main/registry/states.txt",
- "checked": "2026-10-01",
+ "checked": "2026-10-05",
  "projects": [
   {
    "canonical": "https://github.com/oliver-zehentleitner/keep-the-why",
    "state": "https://keepthewhy.com/dashboard/live/state.json",
    "id": "oliver-zehentleitner---keep-the-why",
    "name": "keep-the-why",
-   "schema": "0.18.2",
-   "dashboard": "0.6.1",
-   "linter": "0.18.2.0",
-   "entries": 115,
+   "schema": "0.19.0",
+   "dashboard": "0.6.16",
+   "linter": "0.19.0.0",
+   "entries": 127,
    "topics": 10,
    "parent": "",
    "children": 0,
-   "generated": "2026-10-01T11:48:00Z"
+   "generated": "2026-10-05T11:22:31Z"
   },
   {
    "canonical": "https://github.com/oliver-zehentleitner/repo-native-project-memory",
@@ -23,13 +23,13 @@
    "id": "oliver-zehentleitner---repo-native-project-memory",
    "name": "repo-native-project-memory",
    "schema": "0.18.2",
-   "dashboard": "0.4.6",
-   "linter": "0.18.2.0",
+   "dashboard": "0.6.13",
+   "linter": "0.19.0.0",
    "entries": 6,
    "topics": 1,
    "parent": "",
    "children": 0,
-   "generated": "2026-10-01T10:20:55Z"
+   "generated": "2026-10-05T07:36:23Z"
   },
   {
    "canonical": "https://github.com/oliver-zehentleitner/ubdcc-dashboard",
@@ -37,13 +37,13 @@
    "id": "oliver-zehentleitner---ubdcc-dashboard",
    "name": "ubdcc-dashboard",
    "schema": "0.18.2",
-   "dashboard": "0.6.0",
-   "linter": "0.18.2.0",
+   "dashboard": "0.6.16",
+   "linter": "0.19.0.0",
    "entries": 3,
    "topics": 2,
    "parent": "https://github.com/oliver-zehentleitner/unicorn-binance-depth-cache-cluster",
    "children": 0,
-   "generated": "2026-10-01T11:34:00Z"
+   "generated": "2026-10-05T10:50:06Z"
   },
   {
    "canonical": "https://github.com/oliver-zehentleitner/unicorn-binance-depth-cache-cluster",
@@ -51,13 +51,13 @@
    "id": "oliver-zehentleitner---unicorn-binance-depth-cache-cluster",
    "name": "unicorn-binance-depth-cache-cluster",
    "schema": "0.18.2",
-   "dashboard": "0.4.6",
-   "linter": "0.18.2.0",
+   "dashboard": "0.6.13",
+   "linter": "0.19.0.0",
    "entries": 4,
    "topics": 2,
    "parent": "https://github.com/oliver-zehentleitner/unicorn-binance-suite",
    "children": 1,
-   "generated": "2026-10-01T10:22:58Z"
+   "generated": "2026-10-05T07:38:53Z"
   },
   {
    "canonical": "https://github.com/oliver-zehentleitner/unicorn-binance-local-depth-cache",
@@ -65,13 +65,13 @@
    "id": "oliver-zehentleitner---unicorn-binance-local-depth-cache",
    "name": "unicorn-binance-local-depth-cache",
    "schema": "0.18.2",
-   "dashboard": "0.4.6",
-   "linter": "0.18.2.0",
+   "dashboard": "0.6.13",
+   "linter": "0.19.0.0",
    "entries": 5,
    "topics": 2,
    "parent": "https://github.com/oliver-zehentleitner/unicorn-binance-suite",
    "children": 0,
-   "generated": "2026-10-01T10:22:25Z"
+   "generated": "2026-10-05T07:38:47Z"
   },
   {
    "canonical": "https://github.com/oliver-zehentleitner/unicorn-binance-rest-api",
@@ -79,13 +79,13 @@
    "id": "oliver-zehentleitner---unicorn-binance-rest-api",
    "name": "unicorn-binance-rest-api",
    "schema": "0.18.2",
-   "dashboard": "0.4.6",
-   "linter": "0.18.2.0",
+   "dashboard": "0.6.13",
+   "linter": "0.19.0.0",
    "entries": 5,
    "topics": 3,
    "parent": "https://github.com/oliver-zehentleitner/unicorn-binance-suite",
    "children": 0,
-   "generated": "2026-10-01T10:22:00Z"
+   "generated": "2026-10-05T07:38:57Z"
   },
   {
    "canonical": "https://github.com/oliver-zehentleitner/unicorn-binance-suite",
@@ -93,13 +93,13 @@
    "id": "oliver-zehentleitner---unicorn-binance-suite",
    "name": "unicorn-binance-suite",
    "schema": "0.18.2",
-   "dashboard": "0.6.0",
-   "linter": "0.18.2.0",
+   "dashboard": "0.6.16",
+   "linter": "0.19.0.0",
    "entries": 10,
    "topics": 4,
    "parent": "",
    "children": 6,
-   "generated": "2026-10-01T11:33:50Z"
+   "generated": "2026-10-05T10:58:41Z"
   },
   {
    "canonical": "https://github.com/oliver-zehentleitner/unicorn-binance-trailing-stop-loss",
@@ -107,13 +107,13 @@
    "id": "oliver-zehentleitner---unicorn-binance-trailing-stop-loss",
    "name": "unicorn-binance-trailing-stop-loss",
    "schema": "0.18.2",
-   "dashboard": "0.6.0",
-   "linter": "0.18.2.0",
+   "dashboard": "0.6.16",
+   "linter": "0.19.0.0",
    "entries": 6,
    "topics": 4,
    "parent": "https://github.com/oliver-zehentleitner/unicorn-binance-suite",
    "children": 0,
-   "generated": "2026-10-01T11:34:07Z"
+   "generated": "2026-10-05T10:50:13Z"
   },
   {
    "canonical": "https://github.com/oliver-zehentleitner/unicorn-binance-websocket-api",
@@ -121,13 +121,13 @@
    "id": "oliver-zehentleitner---unicorn-binance-websocket-api",
    "name": "unicorn-binance-websocket-api",
    "schema": "0.18.2",
-   "dashboard": "0.6.0",
-   "linter": "0.18.2.0",
+   "dashboard": "0.6.16",
+   "linter": "0.19.0.0",
    "entries": 21,
    "topics": 4,
    "parent": "https://github.com/oliver-zehentleitner/unicorn-binance-suite",
    "children": 0,
-   "generated": "2026-10-01T11:34:12Z"
+   "generated": "2026-10-05T10:50:13Z"
   },
   {
    "canonical": "https://github.com/oliver-zehentleitner/unicorn-fy",
@@ -135,13 +135,13 @@
    "id": "oliver-zehentleitner---unicorn-fy",
    "name": "unicorn-fy",
    "schema": "0.18.2",
-   "dashboard": "0.4.6",
-   "linter": "0.18.2.0",
+   "dashboard": "0.6.13",
+   "linter": "0.19.0.0",
    "entries": 6,
    "topics": 2,
    "parent": "https://github.com/oliver-zehentleitner/unicorn-binance-suite",
    "children": 0,
-   "generated": "2026-10-01T10:23:07Z"
+   "generated": "2026-10-05T07:36:45Z"
   },
   {
    "canonical": "https://github.com/zyvop/zyvop-cli",
@@ -149,13 +149,13 @@
    "id": "zyvop---zyvop-cli",
    "name": "zyvop-cli",
    "schema": "0.18.1",
-   "dashboard": "0.4.0",
-   "linter": "0.18.1.0",
+   "dashboard": "0.6.5",
+   "linter": "0.18.2.0",
    "entries": 10,
    "topics": 3,
    "parent": "",
    "children": 0,
-   "generated": "2026-09-30T11:14:35Z"
+   "generated": "2026-10-01T13:42:17Z"
   }
  ]
 }
