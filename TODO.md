@@ -2,7 +2,7 @@
 
 Open work that is not a bug and not a design question — those go to
 [issues](https://github.com/oliver-zehentleitner/keep-the-why/issues).
-Last reviewed: 2026-09-30.
+Last reviewed: 2026-10-05.
 
 ## In progress
 
@@ -12,11 +12,14 @@ Last reviewed: 2026-09-30.
 
 ### Pending
 
-- [ ] **`docs/security.md` against the skills.sh audits** of 0.18.2, once the
+- [ ] **`docs/security.md` against the skills.sh audits** of 0.20.0, once the
   three auditors have re-audited (release checklist step 12).
 
 ## Ideas
 
+- **Antigravity: a verified autostart example.** A user runs the skill in
+  Antigravity and at first missed the start-path setup; `references/autostart.md`
+  has no verified Antigravity entry yet. Verify with a real session, then add it.
 - **HOL badges** — parked with the other HOL follow-ups.
 - **Dashboard, next:** diff two states (two commits, or an export against
   the working tree); `Revisit when` triggers grouped by the file they point

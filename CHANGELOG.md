@@ -4,6 +4,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-10-05
+
 ### Added
 
 - README: a line above the website link, after *Tested with* — *Installable with one command on Claude Code, Codex, GitHub Copilot, Cursor, OpenClaw, Hermes Agent, Cline, OpenCode, Pi, Antigravity and 60+ more agents* — linking the install section; the agents as plain text, no logos, since most vendors' marks need written permission. The agent lists in the README, on the landing page (*How it works*) and on the installation page name OpenClaw, Hermes Agent and Cline as well.
@@ -18,6 +20,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Changed
 
+- `keep-the-why-lint` 0.20.0.0: knows schema 0.20.0 (no new gate) — nothing changes what `context/` or `.keep-the-why` must look like. Published before the skill tag, per the checklist.
 - Installation page: the sentence to give the agent is a code block with a copy button, wrapped like prose.
 - Installation page: the opening paragraph is replaced by one line — *Installable with one command on Claude Code, Pi, Codex, GitHub Copilot, Cursor, OpenClaw, Hermes Agent, Cline, OpenCode, Antigravity and 60+ more agents*, the agents with an install route of their own linking their section, *with one command* the skills CLI. What it said is on the landing page and in the page's own trust section — and its last clause, that the skill installs neither the linter nor the dashboard, no longer held: with the default `local-lint: auto` the skill installs the linter from PyPI.
 - Site navigation: *Why this project is built this way* moves up above *Evals*. *Why I built this* is no longer in the menu; the page stays, linked from the README.
@@ -951,7 +954,8 @@ Initial release.
 - Logo, wordmark, and favicon.
 - `context/repo-conventions.md`, dogfooding the skill on its own repository from day one.
 
-[Unreleased]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.19.0...HEAD
+[Unreleased]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.20.0...HEAD
+[0.20.0]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.18.2...v0.19.0
 [0.18.2]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.18.1...v0.18.2
 [0.18.1]: https://github.com/oliver-zehentleitner/keep-the-why/compare/v0.18.0...v0.18.1
