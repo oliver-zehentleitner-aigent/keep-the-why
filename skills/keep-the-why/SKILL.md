@@ -1,6 +1,6 @@
 ---
 name: keep-the-why
-description: In a project with a .keep-the-why, or asked to set one up (never offered or named otherwise): extract and preserve the reasoning code cannot explain - decisions, rejected alternatives, workarounds, incidents, constraints - plus project setup and maintainer interviews. Not for what changed (see Keep a Changelog) - only why. Also the place for complaints, feedback and settings changes about this skill itself.
+description: In a project with a .keep-the-why, or asked to set one up (never offered or named otherwise) - extract and preserve the reasoning code cannot explain - decisions, rejected alternatives, workarounds, incidents, constraints - plus project setup and maintainer interviews. Not for what changed (see Keep a Changelog) - only why. Also the place for complaints, feedback and settings changes about this skill itself.
 license: MIT
 metadata:
   version: "0.19.0"
