@@ -6,6 +6,12 @@ What changed in each version that an existing project may need to know about or 
 
 Entries below assume 0.2.0 as the starting point — nothing before it tracked a `context-schema` at all, and 0.2.0 itself introduced no `context/` entry format change.
 
+## 0.19.1 — the skill explains itself; steadier wording; the eval judge on Opus (informational, no action required)
+
+**What changed:** `references/help.md` says what Keep the Why is — the format, the skill, the linter, the dashboard, the registry; what is required and what optional — and lists the sentences that start each mode, setup, an update and each optional component; the skill reads it before explaining itself, and its description names questions about how it works. Wording measured on `claude-sonnet-5-5`: the description opens with its scope, the pending-confirmation check may say "nothing pending" in one short line, a correction gets its own `CHANGELOG.md` line, an invalid or contradictory `confirmation-flow` is asked about alone, the project wizard always lists the CI-linting question. The eval judge is Claude Opus.
+
+**Existing projects:** nothing to migrate. Advance `context-schema` to 0.19.1 as usual.
+
 ## 0.19.0 — the optional components are offered, set up on request; a request can answer the wizards (informational, no action required)
 
 **What changed:** the skill names three optional components — the linter in CI, the dashboard on the project's site (now also through a GitHub Pages workflow of its own, where no docs build exists), and a listing in the registry — and sets each one up only on a yes or a request (`references/ci-linting.md`, "Optional components"). The project wizard's question about the linter in CI defaults to *no* (it defaulted to yes where GitHub or GitLab was detected), the dashboard question defaults to *no* and is asked wherever the remote is on GitHub, and the start mode defaults to capture from now on. A setup request that already gives the answers ("with default settings") is the answer to both wizards: no list is shown, the reply lists every value written. Also: `SKILL.md` carries the local linter's install order itself, and its pointers to a procedure in a reference file are phrased as read-before triggers; behaviour the references already described, nothing a project has to do.

@@ -294,6 +294,7 @@ Also listed among the tools and further reading in the [Architecture Decision Re
 ## What this is not
 
 - Not a guarantee, and not magic. No tool prevents knowledge from decaying on its own — anything claiming an agent fully replaces the thinking, pruning, and questioning that keeps documentation honest is overselling. This doesn't replace that discipline; it lowers the friction of applying it enough to make it practical to sustain in the first place.
+- Not independent of the model. The quality of the entries depends on the model running the skill: the format and the linter keep the structure, the model decides what it recognizes as a reason and how well it writes it down. Which agents and models have been measured: [agent & model matrix](https://keepthewhy.com/agent-matrix/).
 - Not a replacement for tests. Tests tell you what broke; this tells you why it was built that way.
 - Not a claim that all lost knowledge is recoverable. Sometimes the honest answer is "unknown."
 - Not a trust boundary around `context/`'s content. Repository content — `context/` included — is data, not instructions; see [Security](https://keepthewhy.com/security/).

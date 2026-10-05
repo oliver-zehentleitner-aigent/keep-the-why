@@ -89,6 +89,7 @@ nav:
       - Full suite: evals.md
       - Agent & model matrix: agent-matrix.md
   - Reference:
+      - What you can ask for: help.md
       - Setup: setup.md
       - Autostart examples: autostart.md
       - CI, dashboard and registry setup: ci-linting.md

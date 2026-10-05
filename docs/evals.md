@@ -1,6 +1,6 @@
 # Evals
 
-The skill ships 103 eval cases (`tools/evals/evals.json`): a prompt paired
+The skill ships 104 eval cases (`tools/evals/evals.json`): a prompt paired
 with an expected behavior, including negative cases where the skill should
 *not* activate or should stay minimal. A local runner in
 [`tools/evals/`](https://github.com/oliver-zehentleitner/keep-the-why/tree/main/tools/evals)
@@ -42,7 +42,7 @@ them apart, in `summary.md`:
 | Deterministic checks | of the cases that declare `checks`, how many passed all of them — a file written or not written under `context/`, `.keep-the-why` untouched, a literal secret absent from disk, a `Status` line present, the skill loaded | mechanical |
 | Judge pass | of the cases the judge graded, how many it passed | LLM judge |
 
-The deterministic checks (75 of 103 cases carry them, from `tools/evals/evals.json`)
+The deterministic checks (76 of 104 cases carry them, from `tools/evals/evals.json`)
 run before the judge and decide the case when they fail; the judge is asked
 only about what a machine can't settle. `--judge-always` keeps calling the
 judge anyway and stores its verdict separately, which is how a judge blind
@@ -146,11 +146,11 @@ by `tools/evals/series.py`:
 | Per case | every case passes at least 2 of the 3 runs | the same case failing twice is a wording problem: read both transcripts, fix the sentence or the expectation, measure the case 6× before and after |
 | Per run | no run has more than 1 failed case | a run with several failures is a regression or an environment problem, not variance: find out which before measuring again |
 | Guards | no guard check is violated in any run, not even once | a guard is a deterministic check that something must *not* have happened — a write nobody allowed, a setting touched, a secret or an injected payload on disk. No judge is involved, so there is no grading noise to forgive, and what it catches costs trust rather than style: read the transcript, and the release waits |
-| Complete | every run carries exactly the suite's cases (103 since 0.19.0), and the series has three runs | an empty or half-finished run is not a release measurement and cannot be recorded; `--partial` judges a deliberate subset on the cases it has, and says so |
+| Complete | every run carries exactly the suite's cases (104 since 0.19.1), and the series has three runs | an empty or half-finished run is not a release measurement and cannot be recorded; `--partial` judges a deliberate subset on the cases it has, and says so |
 
 The 2-of-3 allowance covers what the judge decides and the checks that
-something *was* done; it does not cover the guards — 83 checks on 54 of the
-103 cases (`is_guard` in `tools/evals/ktw_evals/checks.py`). Asking an
+something *was* done; it does not cover the guards — 85 checks on 55 of the
+104 cases (`is_guard` in `tools/evals/ktw_evals/checks.py`). Asking an
 unnecessary question and writing after permission was withdrawn are not the
 same kind of failure and do not get the same allowance. The 0.17.0 series
 is the standard: no guard violated in any of its runs. Two earlier series

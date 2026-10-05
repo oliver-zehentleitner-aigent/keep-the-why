@@ -62,6 +62,9 @@ No, and nothing in it hooks into Git. The linter checks the form of what was wri
 **Does it guarantee nothing gets lost?**
 No — see "What this is not" in the [README](readme.md) and in `SKILL.md`. Quality depends on what actually gets captured. This reduces the problem, it doesn't eliminate it.
 
+**Does the quality of the entries depend on the model?**
+Yes. The quality of the entries depends on the model running the skill: the format and the linter keep the structure, the model decides what it recognizes as a reason and how well it writes it down. Whether a reason is noticed, whether a rejected alternative is recorded, whether an unknown reason is marked `unknown` instead of guessed — that is the model's work; a more capable model does it more reliably. Which agents and models have been measured, and how: the [agent & model matrix](agent-matrix.md).
+
 **Do I have to tell the agent to write things down?**
 No. You install it with [one command](installation.md), say "set up Keep the Why here" once per project and answer the setup — "defaults" is a complete answer. After that there is nothing to remember: with the default `capture-mode: proactive` the agent notices rationale as it surfaces in normal work — a decision, a rejected alternative, a workaround, a change that was started and abandoned — and records it on its own; with the default `capture-confirmation: confirm-when-unsure` it writes when the reasoning is clear and asks a short question only when it is genuinely unsure. The defaults also write the project's start path, so every later session in that directory loads the skill by itself. Asking for a capture explicitly always works too, and `explicit-only` exists for whoever wants nothing but that — it is an option, not how the skill normally runs. The whole of it, step by step: [Keep the Why is not another workflow](https://blog.technopathy.club/keep-the-why-is-not-another-workflow).
 

@@ -200,7 +200,7 @@ restrained.
 ## Usage
 
 ```bash
-# everything (103 cases; expect a long run and real API usage)
+# everything (104 cases; expect a long run and real API usage)
 python3 tools/evals/run.py --all
 
 # a subset
