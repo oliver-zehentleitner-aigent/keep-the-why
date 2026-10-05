@@ -191,7 +191,7 @@ rule exists only since 0.17.0, and the instrument is named only since
 
 One row per measurement, newest first — the series above with what stood
 out in each, and the runs in between that were not a release series. The
-judge has so far always been the same model as the agent under test.
+judge was the same model as the agent under test up to and including 0.19.0; from 0.19.1 on it is Claude Opus, a stronger model than the Sonnet under test (`context/evals.md`).
 
 | Date | Skill | Agent | Model | Result | Note |
 |---|---|---|---|---|---|

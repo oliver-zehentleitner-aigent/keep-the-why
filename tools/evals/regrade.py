@@ -26,7 +26,7 @@ def main():
         help="which stored records to re-grade (default: fails)",
     )
     ap.add_argument("--times", type=int, default=5, help="re-grades per record")
-    ap.add_argument("--judge-model", default="sonnet")
+    ap.add_argument("--judge-model", default="opus")
     ap.add_argument("--timeout", type=int, default=900)
     ap.add_argument("--parallel", type=int, default=4)
     ap.add_argument(
