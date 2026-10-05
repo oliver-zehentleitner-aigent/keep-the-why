@@ -1322,5 +1322,20 @@
         "path": "registry/"
       }
     ]
+  },
+  {
+    "id": "help-explains-itself-and-lists-the-sentences",
+    "prompt": "How does Keep the Why work, and what can I ask you to do with it?",
+    "expected_behavior": "The project is set up with Keep the Why. The agent reads references/help.md (or answers in line with it) and gives a short explanation - the reasoning behind the code kept as Markdown in context/, versioned with the code; the skill is the one required part, the linter, the dashboard and the registry are optional - followed by the sentences the person can say, grouped: filling context/ (a retrospective pass over history, issues and docs; an interview; free narration; a maintenance check), keeping it current (update the skill, then migrate the project), and the optional components (linter workflow, dashboard on GitHub Pages, registry listing), plus how to look at what is recorded. Since the project is already set up, setup itself is not the first thing offered. Nothing is written: no context/ entry, no setting changed. What fails: writing anything, starting a mode or setting up a component unasked, or an answer that lists no concrete sentences.",
+    "checks": [
+      {
+        "type": "no_changes_under",
+        "path": "context/"
+      },
+      {
+        "type": "file_unchanged",
+        "path": ".keep-the-why"
+      }
+    ]
   }
 ]

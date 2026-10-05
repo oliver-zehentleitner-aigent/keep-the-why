@@ -1,6 +1,6 @@
 ---
 name: keep-the-why
-description: In a project with a .keep-the-why, or asked to set one up (never offered or named otherwise) - extract and preserve the reasoning code cannot explain - decisions, rejected alternatives, workarounds, incidents, constraints - plus project setup and maintainer interviews. Not for what changed (see Keep a Changelog) - only why. Also the place for complaints, feedback and settings changes about this skill itself.
+description: In a project with a .keep-the-why, or asked about it or to set one up (never offered or named otherwise) - extract and preserve the reasoning code cannot explain - decisions, rejected alternatives, workarounds, incidents, constraints - plus project setup and maintainer interviews. Not for what changed (see Keep a Changelog) - only why. Also the place for questions about how this skill works, complaints, feedback and settings changes about it.
 license: MIT
 metadata:
   version: "0.19.0"
@@ -20,6 +20,8 @@ Four modes, all part of the same job:
 2. **Retrospective recovery** — given an existing or legacy repository, reconstruct what the code cannot explain from git history, issues, existing docs, and the code itself. Before a pass, read `references/retrospective-analysis.md`.
 3. **Knowledge-transfer interview** — when a maintainer's knowledge is about to become unavailable, analyze the repository first, then either ask targeted questions or let them narrate freely. Before preparing or running one, read `references/interview-playbook.md`.
 4. **Maintenance** — keep existing rationale current: resolve contradictions, mark superseded entries, merge duplicates, split files that have grown too large.
+
+Asked what Keep the Why is, how it works, or what one can ask for: before answering, read `references/help.md` — its parts (what is required, what optional), and the sentences that start each mode, setup, an update and each optional component.
 
 ## Edge cases
 
@@ -209,6 +211,7 @@ Personal config lives at `~/.keep-the-why/<id>.md`, outside the project. Full ra
 
 Load these only when the situation calls for them:
 
+- [`references/help.md`](references/help.md) — what Keep the Why is (its parts, required and optional) and the sentences a person can say to start each mode, setup, an update or an optional component; read before explaining the skill.
 - [`references/setup.md`](references/setup.md) — first activation, init wizards, config format, confirmation model, timer checks, migrations.
 - [`references/ci-linting.md`](references/ci-linting.md) — the optional components, each set up only on request: `keep-the-why-lint` in a project's CI or pre-commit (detection rules and the exact snippets), the dashboard on the project's site or its own GitHub Pages workflow, a registry listing; the local run is in `references/setup.md`, "Local linting".
 - [`references/autostart.md`](references/autostart.md) — getting the skill loaded at session start: the three start paths, and per agent what is verified how.

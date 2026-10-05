@@ -159,3 +159,19 @@ The landing page shows a simulated agent session in place of the GIF: a terminal
 **Consequence (2026-10-02, maintainer review of the first version):** the point is that a *fresh* agent finds the reason, so the session boundary is a banner of its own ("NEW SESSION · fresh agent, no memory of session 1"); what Keep the Why does is marked apart from the agent's output ("◆ Keep the Why · captured rationale", "… found relevant context") — a marker of the demo, not a line any agent prints; a strip above the terminal tells the story in six words for someone half watching; the agent's lines are cut to cause and effect; the end holds on the second agent's answer instead of moving on; and "simulated coding-agent sessions" stands in the title bar the whole time. Installation stays the first chapter, shortened — how fast it goes is part of the message.
 
 **Rejected alternative:** a fourth chapter for "asks when unsure". The maintainer's call: the third chapter's closing question already shows it.
+
+## The skill explains itself from one reference file, `references/help.md`
+
+**Id:** 301d2462-bcb9-4afa-a882-09eb4b12d33e
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** maintainer request, 2026-10-05 ("when people ask the skill how it works, it should know how to explain itself and which interfaces it offers")
+**See:** positioning.md#the-agent-is-the-installation-interface-the-skill-is-the-one-required-part — 2196306f-e2e1-4d07-ab12-41eacd335081 — as of 2026-10-05
+**Revisit when:** the sentences on the README and the installation page change, or a new component or mode is added
+
+The skill carries what the README tells a person — what Keep the Why is, which parts are required and which optional, and the sentences that start each mode, setup, an update and each optional component — in `references/help.md`. `SKILL.md` names it as a read-before trigger for questions about the skill, and the description names those questions, so the skill is loaded by them.
+
+**Reason:** the agent is the interface, but the README is not installed with the skill: an agent asked "what can I tell you to do?" knew the modes and the optional components only from scattered rules, and the sentences not at all. One file keeps the answer complete and the sentences identical to the README's.
+
+**Rejected alternative:** the whole explanation in `SKILL.md`. Rejected — it is needed only when someone asks, and `SKILL.md` stays small enough to load on every activation; a read-before trigger is the pattern for that (`context/evals.md`).
