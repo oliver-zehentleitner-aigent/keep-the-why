@@ -16,7 +16,7 @@ It is built from these parts:
 | `keep-the-why-dashboard` | a read-only viewer: graph of topics and citations, each entry with its Git history, what still needs a person; locally or published on the project's site | optional |
 | The registry and the globe | a list of projects with a published dashboard, and the globe that walks the citations between them | optional |
 
-No database, no service, no account, no telemetry; MIT licensed; works with any agent that reads skills. The agent is the interface: everything above is one sentence away. Documentation: https://keepthewhy.com.
+No database, no service, no account, no telemetry; MIT licensed; works with any agent that reads skills. The quality of the entries depends on the model running the skill: the format and the linter keep the structure, the model decides what it recognizes as a reason and how well it writes it down. The agent is the interface: everything above is one sentence away. Documentation: https://keepthewhy.com.
 
 **How it works day to day:** once set up, the skill loads at the start of every session (autostart). It records the reasoning as it comes up in normal work — including a change that was started and then dropped — and asks only when it is unsure whether or how to record something. Before changing something, the agent reads what `context/` already says about it.
 
