@@ -84,12 +84,12 @@ nav:
   - Security: security.md
   - Badge: badge.md
   - FAQ: faq.md
-  - "Why this project is built this way":
-      - "Read this project's context/": context/index.md
-      - "See it in the dashboard ↗": https://keepthewhy.com/dashboard/live/
   - Evals:
       - Full suite: evals.md
       - Agent & model matrix: agent-matrix.md
+  - "Why this project is built this way":
+      - "Read this project's context/": context/index.md
+      - "See it in the dashboard ↗": https://keepthewhy.com/dashboard/live/
   - Reference:
       - What you can ask for: help.md
       - Setup: setup.md
