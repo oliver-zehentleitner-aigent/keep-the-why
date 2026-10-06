@@ -16,8 +16,8 @@ Three components are optional. The agent knows how to set up each one, offers th
 
 | Say to your agent | What you get |
 |---|---|
-| "Set up the Keep the Why linter as a GitHub workflow." | [`keep-the-why-lint`](linting.md) checks the structure of `context/` and `.keep-the-why` on every push and pull request. |
-| "Publish the Keep the Why dashboard on GitHub Pages." | Your project's own [dashboard](dashboard.md) and live badge. The agent writes the workflow and tells you the one setting it needs: the repository's *Settings → Pages → Build and deployment → Source: GitHub Actions*. |
+| "Set up the Keep the Why linter in CI." | [`keep-the-why-lint`](linting.md) checks the structure of `context/` and `.keep-the-why` on every push and pull request: a GitHub workflow, a GitLab CI job, or the generic snippet for any other CI. |
+| "Publish the Keep the Why dashboard." | Your project's own [dashboard](dashboard.md) and live badge, on GitHub Pages or GitLab Pages, or added to a docs build you already have. The agent writes the workflow or the `pages` job and names the settings that stay yours: on GitHub the repository's *Settings → Pages → Build and deployment → Source: GitHub Actions*; on GitLab the Pages visibility *Everyone*, and a verified account for CI to run. |
 | "List this project in the Keep the Why registry." | A one-line pull request to the [registry](registry/index.md), so the globe of every published dashboard can find your project. Needs the published dashboard. |
 
 **Then fill it.** A new `context/` starts empty and fills itself as you work. What the project already knows — scattered across commit messages, pull requests, issues, old docs and people's heads — can be gathered right away, one sentence each:

@@ -51,8 +51,8 @@ No database, no service, no account, no telemetry; MIT licensed; works with any 
 
 | Say | What happens |
 |---|---|
-| "Set up the Keep the Why linter as a GitHub workflow." | the structure is checked on every push and pull request |
-| "Publish the Keep the Why dashboard on GitHub Pages." | the project's own dashboard and live badge; one repository setting stays the person's (Pages source: GitHub Actions) |
+| "Set up the Keep the Why linter in CI." | the structure is checked on every push and pull request: a GitHub workflow, a GitLab CI job, or the generic snippet for any other CI |
+| "Publish the Keep the Why dashboard." | the project's own dashboard and live badge, on GitHub Pages or GitLab Pages, or in an existing docs build; the settings that stay the person's are named (GitHub: Pages source *GitHub Actions*; GitLab: Pages visibility, a verified account for CI) |
 | "List this project in the Keep the Why registry." | a one-line pull request, so every published dashboard's globe can find the project |
 
 **Settings and questions**

@@ -128,10 +128,11 @@ https://keepthewhy.com/installation/ — then set up Keep the Why in this projec
 settings, including autostart." The installation page has a section for the agent doing the
 installing: which route to pick, and what to do when the skill only shows up in a new session.
 Three components are optional, each set up only when the developer asks for it (the skill knows
-how, and offers them where they fit): the linter as a CI workflow ("set up the Keep the Why
-linter as a GitHub workflow"), the dashboard on the project's GitHub Pages ("publish the Keep the
-Why dashboard on GitHub Pages" — the agent writes the workflow, the developer sets the
-repository's Pages source to GitHub Actions), and a listing in the registry ("list this project
+how, and offers them where they fit): the linter in CI ("set up the Keep the Why linter in CI" —
+a GitHub workflow, a GitLab CI job, or the generic snippet), the dashboard on the project's
+GitHub Pages or GitLab Pages ("publish the Keep the Why dashboard" — the agent writes the
+workflow or the `pages` job and names the settings that stay the developer's), and a listing in
+the registry ("list this project
 in the Keep the Why registry" — a one-line pull request; https://keepthewhy.com/registry/).
 After setup, what the project already knows can be gathered with one sentence each: "go
 through the git history, pull requests, issues and existing docs, and collect the reasoning
