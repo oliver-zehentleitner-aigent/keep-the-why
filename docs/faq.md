@@ -100,6 +100,14 @@ Yes. Check the skill's folder from a release into the repository and pin it in `
 **What if my project already has a documentation structure I like?**
 Keep the Why is meant to adapt to what exists, not replace a working structure with a fixed template. See [Repository structure](repository-structure.md), "Retrofitting an existing project."
 
+**Does it work on GitLab, Codeberg, Bitbucket or a self-hosted forge?**
+The format and the skill need nothing from the host: `context/` is Markdown in the repository and travels with Git wherever the repository lives. What touches the host is optional: the linter in CI, the dashboard published on the project's site, and the registry. Two hosts are tested end to end:
+
+- **GitHub:** this project and the other GitHub repositories in the [registry](registry/index.md).
+- **GitLab:** [keep-the-why-demo](https://gitlab.com/oliver-zehentleitner/keep-the-why-demo), with the linter in GitLab CI, the dashboard on GitLab Pages and a listing in the [registry](registry/index.md).
+
+The setup for both, including the GitLab settings that are yours to make (account verification for CI, Pages visibility), is in [CI, dashboard and registry setup](ci-linting.md). The dashboard also knows the link forms of Codeberg, Gitea, Forgejo and Bitbucket, but those haven't been tested end to end. If something doesn't work on your host, please [open an issue](https://github.com/oliver-zehentleitner/keep-the-why/issues/new/choose). A report from a host we haven't tried yet is very welcome.
+
 **Is this specific to Claude Code?**
 No. The skill format (SKILL.md with YAML frontmatter) is an open standard supported by Claude Code, Codex CLI, Gemini CLI, GitHub Copilot, Cursor, Windsurf, Antigravity, Amp, Cline, Goose, Roo Code, OpenCode, Trae, Factory, JetBrains Junie, Warp, and others — see [Installation](installation.md) for the current directory-path table. The structure it produces (a section in `AGENTS.md`, `context/`, the `.keep-the-why` file; personal preferences outside the project in `~/.keep-the-why/`) is plain Markdown and tool-agnostic by design, so it isn't locked to any of them even as the list of supported tools changes.
 
