@@ -48,9 +48,15 @@ const FILES = {
   "https://raw.githubusercontent.com/acme/far/HEAD/.keep-the-why": config("acme---far", ["- dashboard-state: https://acme.github.io/far/state.json"]),
   "https://acme.github.io/far/state.json": state("acme---far", { canonical: `${GH}/far` }, [entry("Far away", "Cited from notes.", { uuid: FAR_ID, status: "needs-review", git: { created: { date: "2026-08-10" } }, see: [{ remote: `${GH}/farther`, uuid: FARTHER_ID, date: "2026-09-29" }] })]),
   // the registry: a list of published states, read by the globe
-  "https://keepthewhy.com/registry/index.json": JSON.stringify({ checked: "2026-10-01", projects: [{ canonical: `${GH}/farther`, state: "https://acme.github.io/farther/state.json", id: "acme---farther", entries: 1 }, { canonical: `${GH}/gone`, state: "https://acme.github.io/gone/state.json", id: "acme---gone", entries: 3, error: "HTTP Error 404", failed_since: "2026-09-30" }, { canonical: `${GH}/refs`, state: "https://acme.github.io/refs/state.json", id: "acme---refs", entries: 1 }] }),
+  "https://keepthewhy.com/registry/index.json": JSON.stringify({ checked: "2026-10-01", projects: [{ canonical: `${GH}/farther`, state: "https://acme.github.io/farther/state.json", id: "acme---farther", entries: 1 }, { canonical: `${GH}/gone`, state: "https://acme.github.io/gone/state.json", id: "acme---gone", entries: 3, error: "HTTP Error 404", failed_since: "2026-09-30" }, { canonical: `${GH}/blocked`, state: "https://acme.github.io/blocked/state.json", id: "acme---blocked", entries: 2, cors: false }, { canonical: `${GH}/refs`, state: "https://acme.github.io/refs/state.json", id: "acme---refs", entries: 1 }] }),
+  "https://raw.githubusercontent.com/acme/blocked/HEAD/.keep-the-why": config("acme---blocked", ["- dashboard-state: https://acme.github.io/blocked/state.json"]),
   "https://raw.githubusercontent.com/acme/farther/HEAD/.keep-the-why": config("acme---farther", ["- dashboard-state: https://acme.github.io/farther/state.json"]),
   "https://acme.github.io/farther/state.json": state("acme---farther", { canonical: `${GH}/farther` }, [entry("The origin", "Where it started.", { uuid: FARTHER_ID, evidence: "inferred", git: { created: { date: "2026-08-01" } } })]),
+  // the registry's backlinks for far: notes cites it; a citation of an Id far does not hold counts apart
+  "https://keepthewhy.com/registry/backlinks/github.com/acme/far.json": JSON.stringify({ canonical: `${GH}/far`, checked: "2026-10-05", cited_by: [
+    { from: `${GH}/notes`, entry: NOTES_ID, title: "Notes", kind: "see", to: FAR_ID, as_of: "2026-09-29", resolved: true },
+    { from: `${GH}/refs`, entry: "5a1e5a1e-0000-4000-8000-000000000004", title: "Cites elsewhere", kind: "see", to: "5a1e5a1e-0000-4000-8000-00000000dead", as_of: "2026-09-29", resolved: false },
+  ] }),
   // an export that claims to be another repository's
   "https://raw.githubusercontent.com/acme/impostor/HEAD/.keep-the-why": config("acme---impostor", ["- dashboard-state: https://acme.github.io/impostor/state.json"]),
   "https://acme.github.io/impostor/state.json": state("acme---impostor", { canonical: `${GH}/suite` }, [entry("Release together", "A copy.", { uuid: NOTES_ID })]),
@@ -65,8 +71,11 @@ const FILES = {
   ] })]),
 };
 const fetched = [];
+// a host without CORS: the browser rejects the request with a TypeError, as for a host that is down
+const BLOCKED = new Set(["https://acme.github.io/blocked/state.json"]);
 const stubFetch = async (url) => {
   const u = String(url); fetched.push(u);
+  if (BLOCKED.has(u)) throw new TypeError("Failed to fetch");
   if (!(u in FILES)) return { ok: false, status: 404, text: async () => "404: Not Found", json: async () => { throw new Error("404"); } };
   const body = FILES[u];
   return { ok: true, status: 200, text: async () => (typeof body === "string" ? body : JSON.stringify(body)), json: async () => (typeof body === "string" ? JSON.parse(body) : structuredClone(body)) };
@@ -317,15 +326,21 @@ const report = {};
   if (fam !== "docs>acme/suite,plugin>web,web>acme/suite") errors.push("friends: the family's own parent lines are missing: " + fam);
   // the plugin's See to the suite comes along: a unit shows what its citation chains connect to the cited entries
   if (see.join() !== "Cites elsewhere>Notes are <img s,Cites elsewhere>Release together,Plugins load lazily>Release together") errors.push("friends: See lines to the friends missing: " + see.join());
-  const notesEntries = () => window.__g().nodes.filter((n) => n.kind === "entry" && n.id.startsWith("fe:P:https://github.com/acme/notes|")).length;
+  const notesEntries = () => window.__g().nodes.filter((n) => n.kind === "entry" && n.ext && n.proj === "acme/notes").length;
   // friends entries is on by default: the friend comes whole; off, a hub shows the cited entries, and a click on it expands it again
   if (notesEntries() !== 2) errors.push("friends: a friend should come whole by default, got " + notesEntries());
   if (!/^1 entries/.test(d.getElementById("counts")?.textContent || "1 entries")) errors.push("friends: merged into the counts: " + d.getElementById("counts")?.textContent);
   const fe = d.querySelector(".graph-ui .friends-ctl .friend-entries input"); fe.checked = false; fe.dispatchEvent(new window.Event("change")); await tick(150);
   if (notesEntries() !== 1) errors.push("friends entries off: a hub should show only the cited entries, got " + notesEntries());
-  window.__g().nodes.find((n) => n.friend && n.label === "acme/notes").action(); await tick(100);
-  if (notesEntries() !== 2) errors.push("friends: an expanded hub should show all of the friend's entries, got " + notesEntries());
   fe.checked = true; fe.dispatchEvent(new window.Event("change")); await tick(150);
+  // a click on a hub's circle does what its name does: goes there, in place; the own hub does nothing
+  const gg = window.__g(); const cv = d.querySelector("#main .graph-wrap canvas");
+  const at = (n) => ({ clientX: n.x * gg.scale + gg.ox, clientY: n.y * gg.scale + gg.oy });
+  const clickNode = async (n) => { cv.dispatchEvent(new window.MouseEvent("mousedown", { ...at(n), bubbles: true })); window.dispatchEvent(new window.MouseEvent("mouseup", at(n))); await tick(300); };
+  const own = gg.nodes.find((n) => n.kind === "project" && n.self);
+  if (own) { const h = window.location.hash; await clickNode(own); if (window.location.hash !== h || !/acme---refs/.test(d.title)) errors.push("hub click: the own hub moved the page: " + window.location.hash + " " + d.title); }
+  await clickNode(gg.nodes.find((n) => n.friend && n.label === "acme/notes"));
+  if (window.location.search !== `?public=${encodeURIComponent(`${GH}/notes`)}` || !/acme---notes/.test(d.title)) errors.push("hub click: a click on the friend's circle did not go there: " + window.location.search + " " + d.title);
   window.close();
 }
 {
@@ -358,6 +373,7 @@ const report = {};
   const g = window.__g();
   const trailHub = g?.nodes.find((n) => n.trail);
   if (trailHub?.label !== "1 · acme---refs") errors.push("path: the project walked from is not a hub in the graph: " + trailHub?.label);
+  if (!/the path — the way you walked here, not a citation/.test(d.querySelector(".graph-legend")?.textContent || "")) errors.push("path: the legend does not explain the path's line");
   if (!g?.links.some((l) => l.kind === "see" && g.nodes[l.s].label === "Cites elsewhere")) errors.push("path: the See from the path's project to this one is not drawn");
   if (!/acme---notes/.test(d.title)) errors.push("path: the page did not switch to the friend: " + d.title);
   // back along the path: in place, and the path shortens
@@ -436,6 +452,9 @@ const report = {};
   const window = await open(`http://localhost/?public=${encodeURIComponent(`${GH}/refs`)}#thought/${NOTES_ID},5a1e5a1e-0000-4000-8000-000000000004`);
   await tick(600);
   const d = window.document;
+  // reached without a click on the thought in the graph: the graph beside the reader holds it all the same
+  report.readerHeld = window.__g()?.thought?.nodes?.size || 0;
+  if (!report.readerHeld) errors.push("thought view: the thought being read is not held in the graph beside it");
   const beyond = d.querySelector(".thought-beyond")?.textContent || "";
   if (!/Before its origin, it goes on in acme\/far/.test(beyond)) errors.push("thought view: no note that the chain goes on in acme/far: " + beyond);
   d.querySelector(".thought-beyond button")?.click(); await tick(1500);
@@ -448,7 +467,7 @@ const report = {};
   const window = await open(`http://localhost/?public=${encodeURIComponent(`${GH}/refs`)}#graph`);
   await tick(600);
   const d = window.document;
-  const notes = () => window.__g().nodes.filter((n) => n.kind === "entry" && n.id.startsWith("fe:P:https://github.com/acme/notes|")).length;
+  const notes = () => window.__g().nodes.filter((n) => n.kind === "entry" && n.ext && n.proj === "acme/notes").length;
   const box = d.querySelector(".graph-ui .friends-ctl .friend-entries input");
   if (!box || !box.checked) errors.push("friend entries: no switch in the friends group, or off by default");
   const whole = notes();
@@ -456,6 +475,16 @@ const report = {};
   if (!(notes() < whole)) errors.push(`friend entries: switching off did not reduce notes to the linked ones (${whole} → ${notes()})`);
   if (window.localStorage.getItem("ktw-friend-entries") !== "linked") errors.push("friend entries: not kept for this browser");
   box.checked = true; box.dispatchEvent(new window.Event("change")); await tick(150);
+  // the state monitor: one line per project — the lean friend says so, its bodies not loaded yet, a link to its dashboard
+  d.querySelector("#loaded > a").click(); await tick(50);
+  const monRows = [...d.querySelectorAll(".loaded-pop .loaded-row")].map((r) => r.textContent.replace(/\s+/g, " "));
+  report.monitor = monRows;
+  const notesRow = [...d.querySelectorAll(".loaded-pop .loaded-row")].find((r) => /acme---notes/.test(r.textContent));
+  if (!notesRow || !/lean, bodies beside it/.test(notesRow.textContent) || !/bodies not loaded/.test(notesRow.textContent)) errors.push("monitor: the lean friend's row does not say lean / bodies not loaded: " + notesRow?.textContent);
+  if (notesRow?.querySelector("a.dash")?.getAttribute("href") !== "https://acme.github.io/notes/") errors.push("monitor: no dashboard link for notes: " + notesRow?.querySelector("a.dash")?.getAttribute("href"));
+  if (!/\.keep-the-why/.test(notesRow?.textContent || "")) errors.push("monitor: notes' .keep-the-why is not on its row");
+  if (!/this page/.test(monRows[0] || "")) errors.push("monitor: the first row is not this page's own: " + monRows[0]);
+  d.querySelector("#loaded > a").click(); await tick(50);
   // friends families: a friend's family beside it, on by default; off leaves the cited repository alone
   const famSwitch = d.querySelector(".graph-ui .friends-ctl .friend-families input");
   if (!famSwitch || !famSwitch.checked) errors.push("friends families: no switch, or off by default");
@@ -563,14 +592,16 @@ const report = {};
   window.location.hash = "#graph"; window.dispatchEvent(new window.Event("hashchange")); await tick(150);
   window.location.hash = "#globe"; window.dispatchEvent(new window.Event("hashchange")); await tick(150);
   if (d.querySelector(".globe-intro")) errors.push("globe: the intro came back after 'don't show this again'");
-  if (!d.querySelector(".statusbar .globe-egg")) errors.push("globe: no globe in the status bar");
+  if (!d.querySelector(".topbar #globe-btn[href='#globe']")) errors.push("globe: no globe button next to the search");
   const ctl = d.querySelector(".graph-ui .globe-ctl");
   if (!ctl) errors.push("globe: no globe group in the control bar");
   const sel = ctl?.querySelector("select");
-  if (!sel || sel.options.length !== 11 || sel.value !== "1") errors.push("globe: the hops choice is not off…10 with 1 chosen: " + sel?.options.length + " " + sel?.value);
+  if (!sel || sel.options.length !== 11 || sel.value !== "0" || sel.options[0].textContent !== "0 hops") errors.push("globe: the hops choice is not 0…10 hops with 0 chosen: " + sel?.options.length + " " + sel?.value + " " + sel?.options[0]?.textContent);
+  if (![...ctl.querySelectorAll("button")].find((b) => b.textContent === "go")?.disabled) errors.push("globe: go is not disabled at 0 hops");
+  sel.value = "1"; sel.dispatchEvent(new window.Event("change")); await tick(200);
   const before = fetched.length;
   window.__g().userMoved = true; // as if the reader had panned or zoomed
-  [...ctl.querySelectorAll("button")].find((b) => b.textContent === "go")?.click(); await tick(300);
+  [...d.querySelectorAll(".graph-ui .globe-ctl button")].find((b) => b.textContent === "go")?.click(); await tick(300);
   const dialog = d.querySelector(".globe-dialog");
   if (!dialog) errors.push("globe: no dialog before the first wave");
   report.globeWave1 = dialog?.querySelector("h3")?.textContent;
@@ -595,23 +626,37 @@ const report = {};
   d.querySelector(".graph-ui .globe-ctl input[type=checkbox]").click(); await tick(300);
   const dialog3 = d.querySelector(".globe-dialog");
   report.globeRegistry = dialog3?.querySelector("h3")?.textContent;
-  if (!/^The registry: 2 projects/.test(report.globeRegistry || "")) errors.push("globe: the registry should offer farther and gone: " + report.globeRegistry);
+  if (!/^The registry: 3 projects/.test(report.globeRegistry || "")) errors.push("globe: the registry should offer farther, gone and blocked: " + report.globeRegistry);
   if (!/acme\/gone — acme---gone · 3 entries · not answering since 2026-09-30, tried anyway/.test(dialog3?.textContent || "")) errors.push("globe: the dialog does not mark gone as not answering: " + dialog3?.textContent?.slice(0, 300));
+  if (!/acme\/blocked — acme---blocked · 2 entries · served without a CORS header/.test(dialog3?.textContent || "")) errors.push("globe: the dialog does not mark blocked as served without CORS");
   [...dialog3.querySelectorAll("button")].find((b) => b.textContent === "load them")?.click(); await tick(600);
   g = window.__g(); hubs = g.nodes.filter((n) => n.kind === "project" && n.hop != null).map((n) => `${n.label}:${n.hop}`).sort();
   if (hubs.join() !== "acme/far:1,acme/farther:registry") errors.push("globe: after the registry the graph should hold far (hop 1) and farther (registry): " + hubs.join());
   if (!/from the registry/.test(d.querySelector(".graph-legend")?.textContent || "")) errors.push("globe: the legend does not say 'from the registry'");
   if (!/acme\/gone not loaded · registry/.test(d.querySelector(".graph-legend")?.textContent || "")) errors.push("globe: a registry project that did not load is not named in the legend");
+  // the state monitor lists what did not come back: a count in the bar and the header, a block at the bottom
+  if (!/⚠ \d+ failed/.test(d.querySelector("#loaded > a")?.textContent || "")) errors.push("monitor: the bar does not count the failures: " + d.querySelector("#loaded > a")?.textContent);
+  d.querySelector("#loaded > a").click(); await tick(50);
+  const failedRows = [...d.querySelectorAll("#loaded-failed .loaded-row")].map((r) => r.textContent.replace(/\s+/g, " "));
+  report.monitorFailed = failedRows;
+  if (!failedRows.some((r) => /acme\/blocked — state/.test(r) && /blocked by CORS/.test(r) && /acme\.github\.io\/blocked\/state\.json/.test(r))) errors.push("monitor: blocked's state is not in the failures with its reason and address");
+  if (!failedRows.some((r) => /acme\/gone/.test(r))) errors.push("monitor: gone is not in the failures");
+  if (!/⚠ \d+ not loaded ↓/.test(d.querySelector(".loaded-pop .loaded-head")?.textContent || "")) errors.push("monitor: the header does not link to the failures");
+  d.querySelector("#loaded > a").click(); await tick(50);
+  const blocked = [...d.querySelectorAll(".graph-legend .warn")].find((x) => /acme\/blocked not loaded/.test(x.textContent));
+  if (!blocked || !/blocked by CORS/.test(blocked.title) || !/Access-Control-Allow-Origin/.test(blocked.title)) errors.push("globe: a host without CORS is not named as possibly blocked by CORS: " + blocked?.title);
   // the registry switched off and on again offers its projects again (their states come from memory)
   d.querySelector(".graph-ui .globe-ctl input[type=checkbox]").click(); await tick(300);
   g = window.__g(); hubs = g.nodes.filter((n) => n.kind === "project" && n.hop === "registry").map((n) => n.label);
   if (hubs.length) errors.push("globe: the registry switched off left its projects in the graph: " + hubs.join());
   d.querySelector(".graph-ui .globe-ctl input[type=checkbox]").click(); await tick(300);
   const dialog4 = d.querySelector(".globe-dialog");
-  if (!/^The registry: 2 projects/.test(dialog4?.querySelector("h3")?.textContent || "")) errors.push("globe: the registry switched on again should offer farther and, again, gone: " + dialog4?.querySelector("h3")?.textContent);
+  if (!/^The registry: 3 projects/.test(dialog4?.querySelector("h3")?.textContent || "")) errors.push("globe: the registry switched on again should offer farther and, again, gone and blocked: " + dialog4?.querySelector("h3")?.textContent);
   [...(dialog4?.querySelectorAll("button") || [])].find((b) => b.textContent === "load them")?.click(); await tick(400);
   g = window.__g();
   if (!g.nodes.some((n) => n.kind === "project" && n.hop === "registry")) errors.push("globe: the registry switched on again did not bring its project back");
+  // one path bar on the globe, as on the graph — the overlay, not a second one above it
+  if (d.querySelectorAll(".path-bar").length > 1) errors.push("globe: " + d.querySelectorAll(".path-bar").length + " path bars");
   // a move to a project the globe brought in: it is the centre now, drawn once — not again as a neighbour
   {
     const farHub = window.__g().nodes.find((n) => n.kind === "project" && n.label === "acme/far");
@@ -621,6 +666,10 @@ const report = {};
       if (!/acme---far/.test(d.title)) errors.push("globe: the move to acme/far did not happen: " + d.title);
       window.history.back(); await tick(500);
       if (!/acme---refs/.test(d.title)) errors.push("globe: back did not return to refs: " + d.title);
+      window.history.forward(); await tick(500);
+      window.location.hash = "#globe"; window.dispatchEvent(new window.Event("hashchange")); await tick(300);
+      if (d.querySelectorAll(".path-bar").length !== 1) errors.push("globe with a path: expected one path bar, got " + d.querySelectorAll(".path-bar").length);
+      window.history.back(); await tick(500);
       window.location.hash = "#globe"; window.dispatchEvent(new window.Event("hashchange")); await tick(300);
     } else errors.push("globe: no walkable acme/far hub");
   }
@@ -629,11 +678,12 @@ const report = {};
   g = window.__g();
   if (g.nodes.some((n) => n.kind === "project" && n.hop != null)) errors.push("globe: clear left globe repositories in the graph");
   if (!g.nodes.some((n) => n.kind === "project" && n.friend)) errors.push("globe: clear took the friends away too");
-  // hops off: the project alone — no friends, no family, no path
+  // 0 hops: what the graph shows — friends stay, no globe wave
   const selOff = d.querySelector(".graph-ui .globe-ctl select"); selOff.value = "0"; selOff.dispatchEvent(new window.Event("change")); await tick(300);
   g = window.__g();
-  if (g.nodes.some((n) => n.kind === "project")) errors.push("globe: at off the graph should hold the project alone, got hubs: " + g.nodes.filter((n) => n.kind === "project").map((n) => n.label).join());
-  if (!g.nodes.some((n) => n.kind === "topic" && !n.ext)) errors.push("globe: at off the project's own topics are gone");
+  if (g.nodes.some((n) => n.kind === "project" && n.hop != null)) errors.push("globe: at 0 hops a globe wave is still in the graph");
+  if (!g.nodes.some((n) => n.kind === "project" && n.friend)) errors.push("globe: at 0 hops the friends are gone — it should show what the graph shows");
+  if (!g.nodes.some((n) => n.kind === "topic" && !n.ext)) errors.push("globe: at 0 hops the project's own topics are gone");
   window.close();
 }
 {
@@ -650,7 +700,54 @@ const report = {};
   await tick(300);
   b = window.document.querySelector(".reader .share-btn");
   report.shareOnLocal = b?.title.split("\n")[1];
+  // the badges beside the search: the static one and the two live ones from the published export, ready to paste
+  const items = [...window.document.querySelectorAll("#badges-pop .badge-item")];
+  const md = items.map((x) => x.querySelector(".badge-field input")?.value);
+  report.badges = md;
+  if (items.length !== 3) errors.push("badges: expected three, got " + items.length);
+  if (md[1] !== "[![Keep the Why · live](https://acme.github.io/suite/keep-the-why-dashboard/badge-entries.svg)](https://acme.github.io/suite/keep-the-why-dashboard/)") errors.push("badges: the live badge's Markdown is wrong: " + md[1]);
+  if (!/<a href="https:\/\/acme\.github\.io\/suite\/keep-the-why-dashboard\/"><img alt="keep the why" src="https:\/\/acme\.github\.io\/suite\/keep-the-why-dashboard\/badge-entries-flat\.svg"><\/a>/.test(items[2]?.querySelectorAll(".badge-field input")[1]?.value || "")) errors.push("badges: the flat badge's HTML is wrong");
   if (report.shareOnLocal !== `https://acme.github.io/suite/keep-the-why-dashboard/#entry/${SUITE_ID}`) errors.push("copy link: on a local page it should be the published dashboard's address: " + b?.title);
+  window.close();
+}
+{
+  // cited by: who in the registry cites this project — one backlink file, fetched on the click, never before
+  const before = fetched.length;
+  const window = await open(`http://localhost/?public=${encodeURIComponent(`${GH}/far`)}#graph`, html, { "ktw-friends": "off" });
+  await tick(200);
+  const d = window.document;
+  const BL = "https://keepthewhy.com/registry/backlinks/github.com/acme/far.json";
+  if (fetched.slice(before).includes(BL)) errors.push("cited by: the backlink file was fetched before the click");
+  const box = () => d.querySelector(".graph-ui .cited-ctl input");
+  if (!box() || box().checked) errors.push("cited by: no unchecked 'cited by' switch in the graph");
+  box().checked = true; box().dispatchEvent(new window.Event("change")); await tick(400);
+  if (!fetched.slice(before).includes(BL)) errors.push("cited by: the backlink file was not fetched on the click");
+  report.citedBy = d.querySelector(".graph-ui .cited-ctl")?.textContent;
+  if (!/^cited by \(1\)/.test(report.citedBy || "")) errors.push("cited by: expected 'cited by (1)': " + report.citedBy);
+  if (!/1 of Ids not here/.test(report.citedBy || "")) errors.push("cited by: the citation of an Id far does not hold is not counted apart: " + report.citedBy);
+  const g = window.__g();
+  const hub = g.nodes.find((n) => n.kind === "project" && n.citedOnly);
+  if (!hub || hub.label !== "acme/notes") errors.push("cited by: notes is not drawn as citing this project: " + (hub?.label || "none"));
+  const link = g.links.find((l) => l.kind === "see" && g.nodes[l.s].entry?.uuid === NOTES_ID && g.nodes[l.t].entry?.uuid === FAR_ID);
+  if (!link) errors.push("cited by: no See from the notes entry to the far entry in the graph");
+  if (!/cites this project/.test(d.querySelector(".graph-legend")?.textContent || "")) errors.push("cited by: the legend does not say 'cites this project'");
+  // the Friends view lists it in a section of its own
+  window.location.hash = "#friends"; window.dispatchEvent(new window.Event("hashchange")); await tick(300);
+  const fr = d.getElementById("main").textContent;
+  if (!/Citing this project — from the registry/.test(fr) || !/acme\/notes/.test(fr)) errors.push("cited by: the Friends view has no 'Citing this project' section with notes");
+  window.close();
+}
+{
+  // a repository nothing in the registry cites has no backlink file: an answer, not a failure
+  const window = await open(`http://localhost/?public=${encodeURIComponent(`${GH}/web`)}#graph`, html, { "ktw-friends": "off" });
+  await tick(200);
+  const d = window.document;
+  const box = d.querySelector(".graph-ui .cited-ctl input");
+  box.checked = true; box.dispatchEvent(new window.Event("change")); await tick(300);
+  const t = d.querySelector(".graph-ui .cited-ctl")?.textContent || "";
+  report.citedByNone = t;
+  if (!/cited by \(0\)/.test(t) || !/nothing in the registry cites this project/.test(t)) errors.push("cited by: a 404 should read as nothing citing: " + t);
+  if (/registry not reached/.test(t)) errors.push("cited by: a 404 shown as a failure");
   window.close();
 }
 console.log(JSON.stringify(report, null, 1));

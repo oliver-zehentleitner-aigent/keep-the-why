@@ -15,6 +15,10 @@ on:
       - "tools/mkdocs/**"
       - "requirements-docs.txt"
       - ".github/workflows/docs.yml"
+      - "registry/**"
+      - "tools/registry/**"
+  schedule:
+    - cron: "17 5 * * 1" # the registry index is rebuilt weekly with the site
   workflow_dispatch:
 
 permissions:
@@ -38,6 +42,10 @@ jobs:
           python-version: "3.12"
       - run: pip install -r requirements-docs.txt
       - run: cp llms.txt docs/llms.txt
+      # The registry index (keepthewhy.com/registry/index.json) is built here, not committed:
+      # the previous index - for the 30-day grace of an export that stops answering - is the
+      # published one, and a line that cannot be listed is left out with a warning.
+      - run: python3 tools/registry/build.py --publish --previous https://keepthewhy.com/registry/index.json
       - run: mkdocs build --strict
       # The live example on /dashboard/live/: this repository's own context/,
       # exported by the dashboard in this checkout (the reason lint/ and

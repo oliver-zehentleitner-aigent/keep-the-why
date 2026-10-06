@@ -47,7 +47,7 @@ get thrown away, not creating separate documentation effort. It isn't magic, tho
 prevents knowledge from decaying on its own. This lowers the friction of the discipline that
 keeps documentation honest; it doesn't replace it.
 
-Version: 0.18.2.
+Version: 0.20.0.
 
 ## Authorship & License
 
@@ -122,9 +122,38 @@ is complete), checked directly by this skill at the start of every later session
 of whichever entry-point file a given agent tool reads on its own. Every later session picks
 the project back up without needing to be told again.
 
+The interface is the agent. One sentence installs and sets up everything a project needs:
+"Install the Keep the Why skill — pick the best installation method for you from
+https://keepthewhy.com/installation/ — then set up Keep the Why in this project with default
+settings, including autostart." The installation page has a section for the agent doing the
+installing: which route to pick, and what to do when the skill only shows up in a new session.
+Three components are optional, each set up only when the developer asks for it (the skill knows
+how, and offers them where they fit): the linter in CI ("set up the Keep the Why linter in CI" —
+a GitHub workflow, a GitLab CI job, or the generic snippet), the dashboard on the project's
+GitHub Pages or GitLab Pages ("publish the Keep the Why dashboard" — the agent writes the
+workflow or the `pages` job and names the settings that stay the developer's), and a listing in
+the registry ("list this project
+in the Keep the Why registry" — a one-line pull request; https://keepthewhy.com/registry/).
+After setup, what the project already knows can be gathered with one sentence each: "go
+through the git history, pull requests, issues and existing docs, and collect the reasoning
+that is already there into context/" (a retrospective pass; what cannot be backed up is marked
+unknown), "interview me about this project" (targeted questions about the gaps), "I'll tell you
+about this project — listen, and record the decisions" (free narration), and "check context/
+for entries that are stale or contradict the code" (maintenance).
+Keeping it current, two sentences in two sessions: "update the Keep the Why skill to the latest
+release" (re-runs the install command; the new version loads from the next session on), then
+"migrate this project to the installed Keep the Why version" (compares the project's
+`context-schema` with the skill's version, applies https://keepthewhy.com/migrations/ in between,
+raises `context-schema`; a session that notices the project is behind offers this by itself).
+A project can pin the skill version it runs: a copy of the skill folder in the repository plus
+`pinned-version` and `pinned-path` in `.keep-the-why`; whichever copy loads first, a global install
+included, follows the pinned one and stops instead of silently running another version
+(https://keepthewhy.com/installation/#pinning-a-project-to-one-skill-version).
+
 What a developer has to do, in full: install the skill (one command, `npx skills add …` above,
-for any of 70+ agents; other routes: https://keepthewhy.com/installation/), say "set up Keep
-the Why here" once per project, answer the setup ("defaults" is a complete answer), then work as usual. Nobody
+for any of 70+ agents; other routes: https://keepthewhy.com/installation/ — or the sentence
+above), say "set up Keep the Why here" once per project, answer the setup ("defaults" is a
+complete answer), then work as usual. Nobody
 has to tell the agent what to record. With the defaults — `capture-mode: proactive`,
 `capture-confirmation: confirm-when-unsure`, and the project carrying its own start path —
 the skill is loaded at the start of every session in that project, the agent records the why
@@ -169,6 +198,11 @@ split — which **See** (a related entry, in this project or another) and **Supe
   knowledge — let them talk, extract decision-forks from what comes up)
 - Maintenance — keep existing rationale current, resolve contradictions, split oversized files
 
+Autonomous agents with no human in the loop: in a session declared unattended (`session: unattended`
+in `~/.keep-the-why/config`), the agent writes an entry it would otherwise have asked about and flags
+it `pending-confirmation` instead of asking into the void or dropping it; the next attended session
+confirms it.
+
 Composition with other skills: Keep the Why is a cross-cutting persistence skill, not a
 development methodology or workflow orchestrator. When another skill or framework already
 governs how the work gets done (brainstorming, planning, systematic debugging, TDD, code
@@ -186,14 +220,17 @@ sections stating what is verified how: Claude Code, Codex CLI, opencode and Clin
 Hermes Agent by a live run — https://keepthewhy.com/autostart/
 
 First activation in a project runs a one-time setup: a project wizard (where `context/` lives,
-starting mode, README badge, `capture-confirmation`, `source-reference`, and whether to wire
-the structural linter into CI — GitHub Actions or GitLab CI, detected from the repository) and a separate
+starting mode, README badge, `capture-confirmation`, `source-reference`, and — optional, default
+no — whether to wire the structural linter into CI, GitHub Actions or GitLab CI detected from the
+repository, and whether to publish the dashboard on the project's site) and a separate
 personal wizard (proactive vs. explicit-only capture, `confirmation-flow`,
 update-check/consistency-check intervals, and `local-lint` — whether the agent runs the linter
 locally on what it writes, installing it from PyPI unasked or asked first). Each wizard is one
 list with the defaults filled in (`confirmation-flow: batch` is the default), and the defaults
 are the fully integrated setup: proactive capture, `local-lint: auto`, the project asks for the
-skill at session start — see https://keepthewhy.com/setup/. When a later
+skill at session start — see https://keepthewhy.com/setup/. A request that already gives the
+answers ("with default settings") is the answer to both wizards: no list, setup runs, the reply
+lists every value written. When a later
 skill update requires action from an existing project — a `context/` entry-format change, a
 structural convention (like `context/index.md`'s sort order), a new config default, or a
 storage-location change (like config moving into a dedicated `.keep-the-why` file) — a
@@ -320,6 +357,21 @@ boundaries. Its distinguishing combination: continuous capture, retrospective re
 knowledge-transfer interviews, plus ongoing maintenance of what's already there, organized as
 topic-indexed living docs rather than a shadow tree or one-file-per-decision, with no required
 external service (no database, no MCP server).
+
+## Questions this answers
+
+- "My coding agent keeps suggesting something we already tried and rejected": record the
+  rejection in `context/` with its reason; the agent reads the topic before changing that code.
+  Measured once: without a recorded reason 7 of 10 fresh sessions re-proposed the rejected
+  change, with one `context/` entry 0 of 10 did. Guidance the agent reads, not a lock.
+- "My CLAUDE.md / AGENTS.md keeps growing": keep instructions there; put the reasons behind the
+  code in `context/`, one file per topic, behind a one-line-per-topic index, so an agent opens
+  only the topic its task touches instead of loading every decision in every session.
+- "Do I need a vector database or an MCP memory server for project memory?": not for the
+  reasoning behind the code. Session/vector memory recalls past conversations by similarity;
+  Keep the Why is plain Markdown in the repository, found by its index, reviewed in pull
+  requests. Different layers that can run side by side.
+- Details and a comparison table: https://keepthewhy.com/faq/
 
 ## Plain Facts (what it is and is not)
 

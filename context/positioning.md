@@ -123,3 +123,71 @@ Every self-description — landing hero, README intro, Philosophy, Installation,
 **Reason:** "Keep the Why is project memory" claimed the whole for a part and put the project in a line of tools that sell a new store; "the why layer of a memory the repository already is" is the smaller and truer claim, and the one the tool can actually back. It also gives the tool a clean role next to everything else in a repository instead of beside it. Keeping the thesis on a separate page keeps this site the practice — releases, measurements, docs — and lets the argument be read, and disagreed with, without adopting any of it.
 
 **Rejected alternative:** a "Philosophy" section here carrying the thesis. Rejected — the argument holds for other implementations too and should not read as this project's marketing; and a thesis page with its own `context/` is a better demonstration than a chapter.
+
+## The agent is the installation interface; the skill is the one required part
+
+**Id:** 2196306f-e2e1-4d07-ab12-41eacd335081
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** maintainer design discussion, 2026-10-02 — installation trips up developers, experienced ones included, while an agent can be told to pick the right route from the installation page itself
+**Revisit when:** agents gain a common way to install a skill from a URL on their own, or the installation page's agent section turns out to send agents down a route that fails
+**See:** config-format.md#optional-components-default-to-no-the-agent-knows-them-offers-them-and-sets-them-up-only-on-request — 7889e8b2-d2c3-458d-a19e-10638aca9ded — as of 2026-10-02
+
+README, landing page and installation page lead with one sentence for the agent — install the skill, choosing the route from https://keepthewhy.com/installation/, then set the project up with default settings including autostart — and with the three optional components as one sentence each. The installation page has a section addressed to the agent doing the installing: the order of routes to try, pinned to `latest`, and what to do when the skill only shows up in a new session. The commands for a human doing it by hand follow below it, unchanged. For the setup half to work as one sentence, the skill treats a request that already gives the answers ("with default settings") as the answer to both wizards.
+
+**Reason:** the many install routes — skills CLI, gh, asm, five plugin and package mechanisms, the manual copy — are a choice the person should not have to make; the agent knows which of them it supports. The person then talks to one interface for everything: the skill, and each optional component.
+
+**Rejected alternative:** a single recommended command for everyone, as before. Rejected: one command still leaves the person to know their agent's flags, scope and plugin mechanism, which is where installs failed.
+
+## The landing page's demo is a scripted, vendor-neutral simulation, not a recording
+
+**Id:** d75f1afd-14d7-46c2-8c2d-da4f91c6740d
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** maintainer design discussion, 2026-10-02 (the idea came from pi.dev's in-page agent demo; "simulation, neutral, asking is enough in the third chapter")
+**Revisit when:** the README's GIF and the landing page's demo tell visibly different stories, or a reader takes the simulation for a recording
+**See:** positioning.md#the-agent-is-the-installation-interface-the-skill-is-the-one-required-part — 2196306f-e2e1-4d07-ab12-41eacd335081 — as of 2026-10-02
+
+The landing page shows a simulated agent session in place of the GIF: a terminal and the project's files side by side, in three chapters — install and set up from the one sentence, learn a reason the code cannot show and record it, a later session that reads it and asks instead of repeating the change. It is a script played by `docs/assets/demo/demo.js`, plain JavaScript without dependencies, in no particular agent's look. Chapters 2 and 3 are re-enacted from the rejected-change experiment's transcripts, and the caption says it is simulated. With `prefers-reduced-motion` it is a static transcript; without JavaScript the old GIF stands in. The README keeps its GIF — GitHub runs no script.
+
+**Reason:** a recording is tied to one agent's interface and to one session's noise, and every change means recording again; Keep the Why works with any agent, and the story is the mechanism, not a vendor's terminal. A script stays text: edited in a pull request, readable by a screen reader, small. Grounding the lines in real transcripts keeps it honest.
+
+**Rejected alternative:** an asciinema recording of a real session, the way pi.dev does it. Rejected for the reasons above.
+
+**Consequence (2026-10-02, maintainer review of the first version):** the point is that a *fresh* agent finds the reason, so the session boundary is a banner of its own ("NEW SESSION · fresh agent, no memory of session 1"); what Keep the Why does is marked apart from the agent's output ("◆ Keep the Why · captured rationale", "… found relevant context") — a marker of the demo, not a line any agent prints; a strip above the terminal tells the story in six words for someone half watching; the agent's lines are cut to cause and effect; the end holds on the second agent's answer instead of moving on; and "simulated coding-agent sessions" stands in the title bar the whole time. Installation stays the first chapter, shortened — how fast it goes is part of the message.
+
+**Rejected alternative:** a fourth chapter for "asks when unsure". The maintainer's call: the third chapter's closing question already shows it.
+
+## The skill explains itself from one reference file, `references/help.md`
+
+**Id:** 301d2462-bcb9-4afa-a882-09eb4b12d33e
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** maintainer request, 2026-10-05 ("when people ask the skill how it works, it should know how to explain itself and which interfaces it offers")
+**See:** positioning.md#the-agent-is-the-installation-interface-the-skill-is-the-one-required-part — 2196306f-e2e1-4d07-ab12-41eacd335081 — as of 2026-10-05
+**Revisit when:** the sentences on the README and the installation page change, or a new component or mode is added
+
+The skill carries what the README tells a person — what Keep the Why is, which parts are required and which optional, and the sentences that start each mode, setup, an update and each optional component — in `references/help.md`. `SKILL.md` names it as a read-before trigger for questions about the skill, and the description names those questions, so the skill is loaded by them.
+
+**Reason:** the agent is the interface, but the README is not installed with the skill: an agent asked "what can I tell you to do?" knew the modes and the optional components only from scattered rules, and the sentences not at all. One file keeps the answer complete and the sentences identical to the README's.
+
+**Rejected alternative:** the whole explanation in `SKILL.md`. Rejected — it is needed only when someone asks, and `SKILL.md` stays small enough to load on every activation; a read-before trigger is the pattern for that (`context/evals.md`).
+
+## Supported agents are named in plain text, never shown as logos
+
+**Id:** cd274fee-3191-4ca2-8ab1-999b752d18d4
+**Type:** decision
+**Type:** constraint
+**Status:** active
+**Evidence:** confirmed
+**Source:** maintainer decision, 2026-10-05, after a check of the vendors' published brand rules
+**Revisit when:** the vendors whose marks need permission publish a compatibility or "works with" program, or permission is given in writing
+
+The README's line above the website link names the agents Keep the Why installs on — Claude Code, Codex, GitHub Copilot, Cursor, OpenClaw, Hermes Agent, Cline, OpenCode, Pi, Antigravity — as plain text, as do the agent lists on the landing page (*How it works*) and the installation page, where the ones with an install route of their own (the plugins) link it.
+
+**Reason:** the three best-known names cannot carry a logo: Anthropic allows saying in plain text that a product runs Claude Code and requires written permission for any other use of its names or logos; OpenAI's brand guidelines say not to use its logo without permission; Google requires prior written consent for uses its brand documentation does not cover. Of the others, only some have a mark under an open license, and most publish no rules for third parties at all — which is no permission. A row where the best-known agents are text and the rest logos would point at the gap.
+
+**Rejected alternative:** logos where a source allows them (OpenClaw and Hermes Agent from their MIT repositories; OpenCode and Pi from Simple Icons, CC0; Cline, Cursor, GitHub Copilot from their brand pages or icon sets), text for the rest. Rejected for the mixed look and the unclear footing of the ones without rules.

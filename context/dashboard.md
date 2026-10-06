@@ -96,6 +96,8 @@ The author layer comes from three Git calls per entry: `blame` on the heading fo
 
 **Reason:** a developer who has just set up Keep the Why, or who asks the agent how to see what has been recorded, should learn that a viewer exists — from the skill, not by chance. The trust statement in the installation docs is that the only install the skill may trigger is the linter, and it stays true: the dashboard is information, like the badge, and the developer installs it or not.
 
+**Consequence (2026-10-02):** "never installs or starts it" is about the developer's machine. Writing a CI workflow that installs the dashboard on a runner to publish the project's export is one of the optional components, set up on request — config-format.md#optional-components-default-to-no-the-agent-knows-them-offers-them-and-sets-them-up-only-on-request (7889e8b2-d2c3-458d-a19e-10638aca9ded).
+
 **Rejected alternative:** a wizard question "install the dashboard?" like the linter's `local-lint`. Rejected — the linter is the skill's own check on what it writes; the dashboard is a tool for a person, started when a person wants to look, and a wizard that installs a web server on a yes widens what the skill does on a machine.
 
 ## The update check is the server's one network call; the page asks other hosts only for what a person opens
@@ -306,13 +308,19 @@ Beside the graph, *Thoughts* lists its lines of reasoning: the longest chains of
 **Revisit when:** a wave regularly offers more than the dialog can list, or a registry listing is asked to carry anything beyond what the export already says
 **See:** dashboard.md#thoughts-are-the-longest-chains-of-see-and-superseded-by-listed-beside-the-graph — cfe036bd-3264-411d-b26d-4214a22f6fe2 — as of 2026-10-01
 
-The globe (`#globe`, the 🌐 at the end of the status bar) is the graph alone, full width, loading repositories in waves out from what the page holds: hop 1 is what the loaded entries cite outside the page, hop 2 what those cite, up to ten. Each wave is asked for in a dialog naming the repositories and the files before anything is fetched, and a wave's count is only known once the previous one is in — so the pauses are not caution for its own sake but the only order the counting allows. The registry — `registry/projects.txt`, one canonical repository URL per line, added by pull request, followed to each export and built into `docs/registry/index.json` by a workflow — is loaded the same way, as a wave of its own. The setting is not kept per browser.
+The globe (`#globe`, the 🌐 left of the search in the top bar; until dashboard 0.7.2 at the end of the status bar) is the graph alone, full width, loading repositories in waves out from what the page holds: hop 1 is what the loaded entries cite outside the page, hop 2 what those cite, up to ten. Each wave is asked for in a dialog naming the repositories and the files before anything is fetched, and a wave's count is only known once the previous one is in — so the pauses are not caution for its own sake but the only order the counting allows. The registry — `registry/projects.txt`, one canonical repository URL per line, added by pull request, followed to each export and built into `docs/registry/index.json` by a workflow — is loaded the same way, as a wave of its own. The setting is not kept per browser.
 
 **Reason:** following a thought already loads repositories hop by hop, along one chain; the globe is the same mechanism in the breadth, and it reuses the layer that draws friends and chain-reached units, so nothing new is drawn, only more of it. The dialog with the list, rather than a browser `confirm`, is there so the reader sees *which* repositories would be fetched, not only how many — the page's rule is that it asks other hosts only for what a person opens, and a wave is that opening, made explicit. Not keeping the setting is the same rule: a remembered globe would fetch from other hosts on a reload without a click.
 
 **The registry and the sentence "there is no index of the web and none is wanted"** (the thoughts entry, cited above): that sentence stands — the dashboard needs no index to work, nobody has to be listed, and the globe finds repositories by their citations alone. The registry is the one thing citations cannot give: being found from a project that cites nothing of yours, and the reverse direction, who cites you. It is an invitation by pull request, not a requirement, and the workflow's check (the export the repository's `.keep-the-why` names must name that repository) keeps a listing honest. Ten projects to start with, all the maintainer's; the first outside project with a published export was found the same day (a user's CLI), which is what made the list more than a demo.
 
 **Consequence (2026-10-01, maintainer decision):** the registry lists repositories, not exports. `registry/projects.txt` holds canonical URLs; the build reads each `.keep-the-why` at `HEAD` and follows `dashboard-state` — the way the dashboard's public mode starts from a canonical. A listed state URL went stale the moment an owner moved the export, and the check had to compare two URLs; a canonical stays right, and the check is that the export names its repository. A family is listed by its root: its `children` block brings the rest. Changed an hour after the first version went out, before anyone had listed by the old form.
+
+**Consequence (2026-10-02, maintainer review, dashboard 0.6.9):** the hops count from what the graph shows. The graph already draws the friends, so with *1 hop* as the default the first wave sat one step further out than its label, and *off* hid friends and family the graph had shown a moment before. *0 hops* is now the default and equals the graph view; a wave is always one step beyond what is drawn, and the globe no longer has a mode that shows less than the graph — hiding friends or family is their own switches' job.
+
+**Consequence (2026-10-03, maintainer decision):** the index is a build artifact, no longer a committed file. Since main has been protected by a ruleset (pull requests with required checks, 2026-09-07), the workflow's push of a rebuilt index was rejected whenever the index changed — unnoticed while registry pull requests carried a hand-built index along, visible when the first outside pull request (#596) was merged without one. The docs workflow now runs `tools/registry/build.py --publish` before `mkdocs build`, on every deploy and weekly, and reads the published index as the previous state for the 30-day grace; a line that cannot be listed is left out with a warning instead of failing the site. The registry workflow only checks pull requests. Rejected: a ruleset bypass for the Actions bot — it would open the protected branch to a bot for one generated file. In the same change `registry/projects.txt` is kept in A–Z order, enforced by the check, so concurrent additions land in different places.
+
+**Consequence (2026-10-06, maintainer decision, dashboard 0.7.2):** the 🌐 moved from the end of the status bar to a button left of the search. Placed as an easter egg it went unnoticed, and people who arrive from a post should find the globe. The easter-egg placement was given up for that.
 
 **Rejected alternative:** a page of its own for the globe, without thoughts and side pane. Rejected — a second legend, a second control bar and a second thoughts logic for the same graph; thoughts across three repositories are the interesting part, and the reader wants to walk on from the globe. The globe is the graph view with the side pane folded away.
 
@@ -391,3 +399,111 @@ The page marks a checkout as a fork — *fork of host/owner/repo*, linking the r
 **Rejected alternative:** ask the host — GitHub's repository API says `fork: true` and names `parent`. Authoritative, but one request per project at every build, and the page asks a host only on a click (the author lookup). The API can be added as an opt-in confirmation later; the local signals stay the default.
 
 **Consequence:** a mirror — `origin` points at a copy, `canonical` at the original — is marked a fork by the second signal; the tooltip says "fork or mirror" for that one. Comparison is case-insensitive on the normalized form, so `git@github.com:Acme/widget.git` and `https://github.com/acme/widget/` are one repository.
+
+## An export carries its title and description in the static head, the project's id in the title
+
+**Id:** f1798af9-40d1-493a-9edc-6fb29b97e11c
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** maintainer request, 2026-10-05, after a search result for `/dashboard/live/` showed the bare id as title and a random sentence from an entry body as snippet; the static-head form was the assisting agent's proposal, accepted
+**Revisit when:** search engines or link previews show the exports badly again, or the registry lists so many projects that the description needs more than the repository and its counts
+
+An exported page writes `<title>Keep the Why Dashboard · <id></title>`, a `description` and `og:title` / `og:description` into its head at export time; the description names `owner/repo` (from `canonical`, else the remote, else the id), the entry and topic counts, and what the entries are. The script sets the same title.
+
+**Reason:** the exports are meant to be found — every published dashboard is a public showcase of a project's reasoning — and there will be many of them, so the title has to say which project it is. A crawler reading the static head gets the right text without running the script; before, the head said only *Keep the Why — dashboard* and had no description, so the search result took the script-set id as title and picked a sentence out of the embedded state.
+
+**Rejected alternative:** `noindex` on the export, leaving the docs page `/dashboard/` as the entry point. Rejected: the exports are what should show up in search, not be hidden from it.
+
+## A repository's platform is read from its URL alone, its mark drawn from paths the page carries
+
+**Id:** 26af2206-a51f-41c3-bed9-cc700ff22a2f
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** maintainer request and review, 2026-10-05; the inline marks and "no mark for an unknown host" were the assisting agent's proposal, accepted
+**See:** dashboard.md#the-update-check-is-the-servers-one-network-call-the-page-asks-other-hosts-only-for-what-a-person-opens — 5b7a6c2d-8218-4987-b912-0fe7bb15cc1a — as of 2026-10-05
+**Revisit when:** a self-hosted instance appears often enough that its missing mark is felt, or the page starts loading anything from the platforms anyway
+
+Hubs and repository links show the platform's mark — GitHub, GitLab, Codeberg, Bitbucket, Gitea, Forgejo — taken from the host name of `canonical` or the remote through one table, `HOSTS` in `lib.js`. The marks are SVG paths in that table, drawn in the text colour on the canvas and inline in the DOM. A host no row matches gets no mark. New platforms come in as a row, by pull request.
+
+**Reason:** the page asks other hosts only for what a person opens (the See line above). Fetching each platform's favicon would ask one host per project on every load, and would tell those hosts who looks at which dashboard. Paths the page carries cost a few kilobytes and work in a static export offline.
+
+**Rejected alternative:** a `host-kind` field in `.keep-the-why` so a self-hosted instance could name its platform. Rejected: a schema change, with spec, linter and migration, for an icon, while no known project sits on a self-hosted instance; the URL decides, and where it cannot, nothing is shown.
+
+**Rejected alternative:** a generic mark for unknown hosts. Rejected: it says nothing the name beside it does not, and "no mark" already reads as "platform unknown".
+
+## The registry build derives backlinks from the exports it already loads; no links file in the export
+
+**Id:** d8791f26-64b7-47df-9a2c-188f55562ae2
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** maintainer proposal and review, 2026-10-05; deriving from the state, keying by canonical and the bounds were the assisting agent's proposals, accepted
+**See:** dashboard.md#the-globe-loads-the-web-in-waves-each-asked-for-with-its-count-the-registry-is-an-invitation-never-a-requirement — 64f88b63-67b6-4a87-990c-e0258e7b63b0 — as of 2026-10-05
+**Revisit when:** the registry grows past what one build can fetch, or a project asks for backlinks it can see in the dashboard without the registry
+
+`tools/registry/build.py` reads the cross-project `See` and `Superseded by` lines of every export it loads — the listed lines and the family members their `children` blocks name — and writes `backlinks/<host>/<owner>/<repo>.json` per cited repository into the site, with `cited_by` counts in the index. Files, citations and keys are sorted. Like the index, it is a build artifact, never committed.
+
+**Reason:** the build already fetches every listed `state.json` to check it, and the state carries the citations. A second file per export would be another format to version and keep in step, and every project would have to export it before the registry could count it. Files are keyed by the repository URL, not the project id: the build has checked the URL (the export names its repository, the repository's `.keep-the-why` names the export), and anyone can write any id. Repositories outside the registry get a file too, so one that publishes later finds its backlinks waiting.
+
+**Rejected alternative:** a `state.links.json` written by every dashboard export, read by the registry. Rejected for the reasons above; its one advantage, a smaller download, does not matter at the registry's size.
+
+**Consequence:** the target's path comes from a foreign export, so it is accepted only as three plain segments under `backlinks/` (a nested GitLab group gets no file), and one export counts with at most 500 citations — without both bounds a listed project could write outside the directory or fill the site. Where the cited repository was loaded in the same build, `resolved` says whether the cited Id exists; elsewhere the field is left out rather than guessed. Citations from an export in its 30-day grace are missing from that build — the build keeps no state between runs.
+
+## "Cited by" is fetched from the registry on a click, never remembered, and drawn the way friends are
+
+**Id:** 707ff0bf-6e58-4f8b-a0ec-b634f7ce98ea
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** maintainer review, 2026-10-05 ("cited by" as a filter, loaded on the click; the agent's proposal, accepted)
+**See:** dashboard.md#the-registry-build-derives-backlinks-from-the-exports-it-already-loads-no-links-file-in-the-export — d8791f26-64b7-47df-9a2c-188f55562ae2 — as of 2026-10-05
+**Revisit when:** the backlink files move out of the registry, or the page gains a way to know who cites it without asking a host
+
+The graph's *cited by* switch fetches the registry's backlink file for this repository when it is checked, and loads the repositories in it through the friends' path: the same unit, the same drawing, the citing entries joined to the cited ones by the See and Superseded by the layer already draws both ways. The state is reset when the centre moves and is not stored in the browser.
+
+**Reason:** loaded automatically, every dashboard would ask keepthewhy.com on every open: a central dependency for a page that otherwise needs nothing, and a record of who looks at which dashboard. The page asks other hosts only for what a person opens; a remembered switch would break that on the next reload. Drawing citing repositories as friends reuses what works — loading, families, failures in the Friends view — instead of a second mechanism.
+
+**Rejected alternative:** loading the backlinks with the friends, on by default. Rejected for the request on every open. A separate drawing for citing repositories was not needed: the hub list and legend say *cites this project*, and the arrow of the See already points from the citing entry to the cited one.
+
+**Consequence:** only citations of Ids this export holds are drawn — a repository's file covers every project in it, and a cited entry may be gone — the rest is counted beside the switch. A 404 for the file means nothing in the registry cites the repository, not a failure.
+
+## Without JavaScript an export lists its entries as links to the host; the Keep the Why note uses the page's own logo
+
+**Id:** 80a781e1-ab6e-4a51-83cf-e31382659bcf
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** maintainer report and request, 2026-10-05 ("with JavaScript disabled the dashboard is completely empty"; a note on Keep the Why with logo and links); the static list in the export was the assisting agent's proposal, accepted
+**Revisit when:** the page gains a rendering that works without the script anyway, or the list makes exports noticeably larger
+
+The page hides its app shell under `<noscript>` and shows a notice instead. In an export, the notice is followed by the project's topics and entries — title, status, evidence — each linked to its file and heading on the host, then a short paragraph on Keep the Why with the wordmark and links to keepthewhy.com. Bodies are left out. The local server shows the notice and the paragraph alone.
+
+**Reason:** the page was blank without JavaScript — for a reader who disabled it, a text browser, a screen reader, and a crawler that does not run scripts, which also left the exports' titles and description from the static head as the only thing to index. The export already has the state in Python, so the list costs a few kilobytes and no script; the Markdown itself is one click away on the host.
+
+**Rejected alternative:** the logo as an image from keepthewhy.com. Rejected: `<noscript>` content loads like any page content, so every view without JavaScript would ask keepthewhy.com — the page asks other hosts only for what a person opens. The wordmark the page already inlines is used instead.
+
+**Rejected alternative:** the entry bodies in the static list. Rejected for size; the export already embeds the state once for the script.
+
+**Consequence:** the host's URL forms are written twice, in `lib.js` (`hostFileLink`) and in `export.py` (`host_file_link`). Heading anchors in the static list follow GitHub's rule (`hostAnchor` in `lib.js`, since 0.6.16 also behind *open on the host*), not the dashboard's entry id, which differs for titles with an apostrophe or a dot.
+
+## A GitLab project is read through the repository files API, not its raw path
+
+**Id:** b21b37fe-785e-480a-9b97-66b41974a672
+**Type:** decision
+**Type:** workaround
+**Status:** active
+**Evidence:** confirmed
+**Source:** listing keep-the-why-demo, the first repository on GitLab (PR #640), and a probe from a GitHub runner, 2026-10-06
+**Revisit when:** gitlab.com sends Access-Control-Allow-Origin on its raw path, or the files API starts limiting the registry's or a reader's requests
+**See:** dashboard.md#the-registry-build-derives-backlinks-from-the-exports-it-already-loads-no-links-file-in-the-export — d8791f26-64b7-47df-9a2c-188f55562ae2 — as of 2026-10-06
+
+For a canonical on a `gitlab.` host, the registry build (`raw_url`) and the page (`rawFileUrl` in `lib.js`) read `.keep-the-why` at `<host>/api/v4/projects/<path, URL-encoded>/repository/files/<file, URL-encoded>/raw?ref=HEAD`, not at `<canonical>/-/raw/HEAD/`. The registry build also retries a request twice, after 2 and 6 seconds, on 403, 429 and 5xx.
+
+**Reason:** gitlab.com serves raw files without `Access-Control-Allow-Origin`, so a dashboard on another site (the globe, public mode) could not read a GitLab project's `.keep-the-why`, and the registry listed it with `cors: false`. The files API returns the same file with `Access-Control-Allow-Origin: *`. The retry is for Cloudflare in front of gitlab.com: the first registry check of the demo got 403 from one GitHub runner; a re-run, and a probe from another runner, got 200 for the same URL.
+
+**Rejected alternative:** keep the raw path and accept `cors: false` for GitLab. GitLab projects would be listed but invisible to every browser-side reader.
+
+**Rejected alternative:** a copy of `.keep-the-why` in the published export, read from Pages, which does send CORS. That changes what every listed project must publish, on every host, to work around one host's headers.
+

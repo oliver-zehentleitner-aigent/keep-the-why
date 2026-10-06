@@ -29,7 +29,11 @@ Open source under the [MIT license](https://keepthewhy.com/license/) — the ski
 </div>
 
 <div class="ktw-hero__demo">
-<img src="assets/keep-the-why-readme.gif" alt="Keep the Why captures the reason an attempted retry-wrapper simplification was abandoned, stores it as versioned Markdown in context/retries.md, and lets a later agent session retrieve that reasoning instead of repeating the attempt." loading="lazy">
+<link rel="stylesheet" href="assets/demo/demo.css">
+<div data-ktw-demo>
+<noscript><img src="assets/keep-the-why-readme.gif" alt="Keep the Why captures the reason an attempted retry-wrapper simplification was abandoned, stores it as versioned Markdown in context/retries.md, and lets a later agent session retrieve that reasoning instead of repeating the attempt." loading="lazy"></noscript>
+</div>
+<script src="assets/demo/demo.js" defer></script>
 </div>
 
 </div>
@@ -38,13 +42,15 @@ Open source under the [MIT license](https://keepthewhy.com/license/) — the ski
 
 ## How it works
 
-**Install it with one command. Say "set up Keep the Why here" once in a project and answer the setup — "defaults" is a complete answer. Then work as usual.**
+**Your agent is the interface. Tell it once, then work as usual:**
 
-```sh
-npx skills add https://github.com/oliver-zehentleitner/keep-the-why/tree/latest/skills/keep-the-why
-```
+> Install the Keep the Why skill — pick the best installation method for you from https://keepthewhy.com/installation/ — then set up Keep the Why in this project with default settings, including autostart.
 
-That line covers any of 70+ agents (Claude Code, Codex, OpenCode, Cursor, …); plugin marketplaces, a manual copy and a vendored, pinned install are on the [installation page](installation.md). The defaults include the start path, so from then on every session in that project loads the skill by itself. The agent records the why as it surfaces and asks only when it is genuinely unsure. You never have to tell it what to write down.
+The skill is the one part a project needs, and that sentence covers any of 70+ agents ([Claude Code](installation.md#also-installable-claude-code-plugin), [Codex](installation.md#also-installable-codex-plugin), [GitHub Copilot](installation.md#also-installable-github-copilot-cli-plugin), [Cursor](installation.md#also-installable-cursor-plugin), [Pi](installation.md#also-installable-pi-package), [Antigravity](installation.md#recommended-skills-cli), [OpenCode](installation.md#recommended-skills-cli), [OpenClaw](installation.md#recommended-skills-cli), [Hermes Agent](installation.md#recommended-skills-cli), [Cline](installation.md#recommended-skills-cli), …). Three components are optional, one sentence each whenever you want them — the linter in CI, the dashboard on GitHub Pages or GitLab Pages, a listing in the registry: the agent knows how, offers them, and does it only when you say so. All of it, and the commands by hand: the [installation page](installation.md). The defaults include the start path, so from then on every session in that project loads the skill by itself. The agent records the why as it surfaces and asks only when it is genuinely unsure. You never have to tell it what to write down.
+
+**Then fill it.** A new `context/` starts empty and fills itself as you work. What the project already knows — in commit messages, pull requests, issues, old docs and people's heads — is one sentence away: *"Go through the git history, pull requests, issues and existing docs, and collect the reasoning that is already there into `context/`."* What the agent cannot back up it marks `unknown`, never made up. For what lives only in someone's head: *"Interview me about this project."* More on the [installation page](installation.md#your-agent-is-the-interface).
+
+**Keep it current.** After a skill update, in a new session: *"Migrate this project to the installed Keep the Why version."* The agent compares the project's `context-schema` with the skill's version, applies the [migrations](migrations.md) in between and raises it — and offers the same by itself when it notices the project is behind.
 
 <div class="ktw-cards" markdown>
 
@@ -52,7 +58,7 @@ That line covers any of 70+ agents (Claude Code, Codex, OpenCode, Cursor, …); 
 
 ### Capture
 
-The agent notices rationale as it surfaces — a decision, an alternative that lost, a workaround, a change that was started and abandoned — and writes it down, without being asked. No separate documentation step. An existing repository can start late too. History, issues and code give back only part of the past why — but from that point on the reasons that matter are written down once, never again, and the gaps close over time.
+The agent notices rationale as it surfaces — a decision, an alternative that lost, a workaround, a change that was started and abandoned — and writes it down, without being asked. No separate documentation step. An existing repository can start late too. History, issues and code give back only part of the past why — but from that point on the reasons that matter are written down once, never again, and the gaps close over time. Autonomous agents with no human in the loop too: in a session declared [unattended](setup.md#personal-defaults-and-the-global-ask-vs-accept-policy), the agent writes what it found and flags it `pending-confirmation` — recorded now, confirmed by the next person who looks.
 
 [Install →](installation.md) · [Autostart →](autostart.md) · [Continuous capture →](continuous-capture.md) · [Retrospective →](retrospective-analysis.md)
 
@@ -216,7 +222,7 @@ Two branches that add entries merge like code. The index has a fixed `0`–`9`, 
 
 </div>
 
-The dashboard — a read-only view over `context/` and its Git history: who recorded what, when a status changed, what still needs a person. It follows the reasoning beyond one repository: the project's [*family*](https://oliver-zehentleitner.github.io/unicorn-binance-suite/keep-the-why-dashboard/#family){ target=_blank rel=noopener }, its [*friends*](https://keepthewhy.com/dashboard/live/#friends){ target=_blank rel=noopener } — the repositories its entries cite — and the [*thoughts*](https://keepthewhy.com/dashboard/live/#thoughts){ target=_blank rel=noopener } running through them, lines of decisions each citing the one before. Run locally, it updates as the project changes. Static exports, each rebuilt with its project's docs deploy: Keep the Why's own `context/` — a mono repository, the export behind the screenshot — repo-native project memory, a single repository, and the UNICORN Binance Suite, a family of eight repositories. [Dashboard →](dashboard.md) · [Mono repository example: Keep the Why →](https://keepthewhy.com/dashboard/live/) · [Single repository example: repo-native project memory →](https://oliver-zehentleitner.github.io/repo-native-project-memory/dashboard/live/){ target=_blank rel=noopener } · [Multi repository example: unicorn-binance-suite →](https://oliver-zehentleitner.github.io/unicorn-binance-suite/keep-the-why-dashboard/){ target=_blank rel=noopener }
+The dashboard — a read-only view over `context/` and its Git history: who recorded what, when a status changed, what still needs a person. It follows the reasoning beyond one repository: the project's [*family*](https://oliver-zehentleitner.github.io/unicorn-binance-suite/keep-the-why-dashboard/#family){ target=_blank rel=noopener }, its [*friends*](https://keepthewhy.com/dashboard/live/#friends){ target=_blank rel=noopener } — the repositories its entries cite — and the [*thoughts*](https://keepthewhy.com/dashboard/live/#thoughts){ target=_blank rel=noopener } running through them, lines of decisions each citing the one before. Run locally, it updates as the project changes. Static exports, each rebuilt with its project's docs deploy: Keep the Why's own `context/` — a mono repository, the export behind the screenshot — repo-native project memory, a single repository, and the UNICORN Binance Suite, a family of eight repositories. [Dashboard →](dashboard.md) · [Mono repository example: Keep the Why →](https://keepthewhy.com/dashboard/live/) · [Single repository example: repo-native project memory →](https://oliver-zehentleitner.github.io/repo-native-project-memory/dashboard/live/){ target=_blank rel=noopener } · [Multi repository example: unicorn-binance-suite →](https://oliver-zehentleitner.github.io/unicorn-binance-suite/keep-the-why-dashboard/){ target=_blank rel=noopener } · [🌐 The globe: every listed project, and how they cite each other →](https://keepthewhy.com/dashboard/live/#globe){ target=_blank rel=noopener }
 
 </div>
 

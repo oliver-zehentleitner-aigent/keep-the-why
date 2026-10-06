@@ -227,6 +227,82 @@ class StateTest(unittest.TestCase):
         self.assertNotIn("</script>", payload)
         self.assertIn("<\\/script>", payload)
 
+    def test_export_head_names_the_project_for_search_and_previews(self):
+        from ktw_dashboard.export import page_description
+
+        state = StateBuilder(self.root).build()
+        n = len(state["entries"])
+        html = render_page(state)
+        self.assertEqual(html.count("<title>"), 1)
+        self.assertIn("<title>Keep the Why Dashboard · acme---widget</title>", html)
+        # no canonical and no remote: the description falls back to the id
+        self.assertIn(
+            f'<meta name="description" content="Keep the Why dashboard of acme---widget: {n} recorded entries',
+            html,
+        )
+        self.assertIn(
+            '<meta property="og:title" content="Keep the Why Dashboard · acme---widget">',
+            html,
+        )
+        # owner/repo from canonical, SSH and .git forms normalized; quotes escaped
+        state["project"]["canonical"] = "git@github.com:acme/widget.git"
+        self.assertTrue(
+            page_description(state).startswith(
+                "Keep the Why dashboard of acme/widget: "
+            )
+        )
+        state["project"]["canonical"] = ""
+        state["project"]["git"]["remote"] = "gitlab.com/acme/sub/widget"
+        self.assertIn("of acme/sub/widget:", page_description(state))
+        state["project"]["id"] = 'a"b<c'
+        html = render_page(state)
+        self.assertIn("Keep the Why Dashboard · a&quot;b&lt;c</title>", html)
+
+    def test_export_reads_without_javascript(self):
+        from ktw_dashboard.export import host_file_link, noscript_body
+
+        state = StateBuilder(self.root).build()
+        html = render_page(state)
+        nojs = html.split("<noscript>\n<div", 1)[1].split("</noscript>", 1)[0]
+        self.assertNotIn("<!--ktw:noscript-->", html)
+        self.assertIn("<h1>acme---widget</h1>", nojs)
+        self.assertIn(f"{len(state['entries'])} entries across", nojs)
+        self.assertIn("About Keep the Why", nojs)
+        self.assertIn('href="https://keepthewhy.com"', nojs)
+        # the logo is the page's own, inlined — nothing is loaded from another host without JavaScript either
+        self.assertNotIn('src="https://', nojs)
+        self.assertIn('src="data:image/png;base64,', nojs)
+        # no canonical, no remote: titles without links
+        self.assertNotIn("/blob/HEAD/", nojs)
+        state["project"]["canonical"] = "https://github.com/acme/widget"
+        state["entries"][0]["title"] = "It's `<script>` time"
+        body = noscript_body(state)
+        self.assertIn(
+            'href="https://github.com/acme/widget/blob/HEAD/context/'
+            + state["entries"][0]["file"]
+            + '#its-script-time"',
+            body,
+        )
+        self.assertIn("It&#x27;s &lt;script&gt; time", body)
+        self.assertNotIn("<script>", body)
+        self.assertIn(
+            'href="https://github.com/acme/widget/tree/HEAD/context/">context/ on the host',
+            body,
+        )
+        self.assertEqual(
+            host_file_link("https://gitlab.com/g/r", "context/a.md", "x"),
+            "https://gitlab.com/g/r/-/blob/HEAD/context/a.md#x",
+        )
+        self.assertEqual(
+            host_file_link("https://codeberg.org/o/r", "context/a.md"),
+            "https://codeberg.org/o/r/src/branch/HEAD/context/a.md",
+        )
+        self.assertEqual(
+            host_file_link("https://bitbucket.org/o/r", "context/a.md"),
+            "https://bitbucket.org/o/r/src/HEAD/context/a.md",
+        )
+        self.assertEqual(host_file_link("", "context/a.md"), "")
+
     def test_export_keeps_the_bodies_beside_a_lean_state(self):
         from ktw_dashboard.export import BODIES_FILE, export, split_bodies
 

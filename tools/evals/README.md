@@ -200,14 +200,14 @@ restrained.
 ## Usage
 
 ```bash
-# everything (88 cases; expect a long run and real API usage)
+# everything (104 cases; expect a long run and real API usage)
 python3 tools/evals/run.py --all
 
 # a subset
 python3 tools/evals/run.py --cases continuous-capture-basic,chestertons-fence-guard
 
 # knobs
-python3 tools/evals/run.py --all --parallel 4 --model sonnet --judge-model sonnet
+python3 tools/evals/run.py --all --parallel 4 --model sonnet --judge-model opus
 
 # a different driver — model syntax is driver-specific
 python3 tools/evals/run.py --all --driver pi --model ollama/qwen3.8:27b --parallel 1

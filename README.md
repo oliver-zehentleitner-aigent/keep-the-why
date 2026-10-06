@@ -1,7 +1,9 @@
 [![GitHub Release](https://img.shields.io/github/v/release/oliver-zehentleitner/keep-the-why?filter=v*&sort=semver&label=github)](https://github.com/oliver-zehentleitner/keep-the-why/releases)
+[![npm keep-the-why](https://img.shields.io/npm/v/keep-the-why.svg?label=npm%20keep-the-why)](https://www.npmjs.com/package/keep-the-why)
 [![PyPI](https://img.shields.io/pypi/v/keep-the-why-lint.svg?label=pypi%20keep-the-why-lint)](https://pypi.org/project/keep-the-why-lint/)
 [![PyPI](https://img.shields.io/pypi/v/keep-the-why-dashboard.svg?label=pypi%20keep-the-why-dashboard)](https://pypi.org/project/keep-the-why-dashboard/)
 [![License](https://img.shields.io/github/license/oliver-zehentleitner/keep-the-why.svg?color=blue)](https://keepthewhy.com/license/)
+[![GitHub Marketplace](https://img.shields.io/badge/GitHub%20Marketplace-keep--the--why--lint-2088FF?logo=githubactions&logoColor=white)](https://github.com/marketplace/actions/keep-the-why-lint)
 [![Validate Skill](https://github.com/oliver-zehentleitner/keep-the-why/actions/workflows/validate-skill.yml/badge.svg)](https://github.com/oliver-zehentleitner/keep-the-why/actions/workflows/validate-skill.yml)
 [![ktw-lint](https://github.com/oliver-zehentleitner/keep-the-why/actions/workflows/ktw-lint.yml/badge.svg)](https://github.com/oliver-zehentleitner/keep-the-why/actions/workflows/ktw-lint.yml)
 [![keep-the-why-lint (package)](https://github.com/oliver-zehentleitner/keep-the-why/actions/workflows/lint-package.yml/badge.svg)](https://github.com/oliver-zehentleitner/keep-the-why/actions/workflows/lint-package.yml)
@@ -10,7 +12,6 @@
 [![Security: SkillsLLM](https://skillsllm.com/security-check/badge.svg?owner=oliver-zehentleitner&repo=keep-the-why)](https://skillsllm.com/security-check/IPmNycVdbOyq)
 [![HOL scanner](https://github.com/oliver-zehentleitner/keep-the-why/actions/workflows/hol-scanner.yml/badge.svg)](https://github.com/oliver-zehentleitner/keep-the-why/actions/workflows/hol-scanner.yml)
 [![HOL Guard](https://img.shields.io/endpoint?url=https%3A%2F%2Fhol.org%2Fapi%2Fregistry%2Fbadges%2Fplugin%3Fslug%3Doliver-zehentleitner%252Fkeep-the-why%26metric%3Dtrust)](https://hol.org/registry/plugins/oliver-zehentleitner%2Fkeep-the-why)
-[![GitHub Marketplace](https://img.shields.io/badge/GitHub%20Marketplace-keep--the--why--lint-2088FF?logo=githubactions&logoColor=white)](https://github.com/marketplace/actions/keep-the-why-lint)
 [![Read the Docs](https://img.shields.io/badge/read-%20docs-yellow)](https://keepthewhy.com/)
 [![Telegram](https://img.shields.io/badge/chat-telegram-41ab8c)](https://t.me/unicorndevs)
 [![X](https://img.shields.io/badge/x-%40keep__the__why-000000?logo=x)](https://x.com/keep_the_why)
@@ -38,6 +39,8 @@ Documentation is normally extra work that happens after the code is done — rel
 **Tested with:** Claude Code, opencode, Pi, Hermes, and more — see the [full eval suite](https://keepthewhy.com/evals/) and the [agent × model matrix](https://keepthewhy.com/agent-matrix/) for what's actually been run against what, and how.
 <!-- ktw-tested-with:end -->
 
+**Installable [with one command](#install) on Claude Code, Codex, GitHub Copilot, Cursor, OpenClaw, Hermes Agent, Cline, OpenCode, Pi, Antigravity and 60+ more agents.**
+
 Website: [https://keepthewhy.com](https://keepthewhy.com/) · [llms.txt](https://keepthewhy.com/llms.txt) for AI agents/assistants looking up this project
 
 ## The problem
@@ -64,9 +67,11 @@ Keep the Why's agent skill is `SKILL.md`-based — an open, cross-agent format (
 3. **Knowledge-transfer interview** — before a maintainer's knowledge becomes unavailable (leaving, retiring, changing teams), the agent analyzes the codebase first, then either asks targeted questions about exactly what the code couldn't explain, or — for someone whose knowledge is broad and tacit after many years on one system — just listens while they narrate freely and extracts the rationale from that instead.
 4. **Maintenance** — existing rationale docs get kept current: contradictions resolved, superseded entries marked, oversized files split.
 
-**What you do: install it — [one command](#install), for any of 70+ agents — say "set up Keep the Why here" once per project, and answer the setup — "defaults" is a complete answer. Then work as usual.** The defaults are the fully integrated setup: capture is `proactive`, the agent writes when the reasoning is clear and asks only when it is genuinely unsure, and the project carries its own start path, so every later session in that directory loads the skill by itself. You never have to tell it what to write down, and a project that was set up once stays set up: the start path is committed with it, so everyone who works in that directory gets the skill loaded — a new collaborator answers one short list of personal preferences the first time, and that is all. The longer version, with what that changes for pull requests and for teams: [Keep the Why is not another workflow](https://blog.technopathy.club/keep-the-why-is-not-another-workflow).
+**What you do: tell your agent to install it and set up the project — [one sentence](#install), for any of 70+ agents; "default settings" is a complete answer. Then work as usual.** The defaults are the fully integrated setup: capture is `proactive`, the agent writes when the reasoning is clear and asks only when it is genuinely unsure, and the project carries its own start path, so every later session in that directory loads the skill by itself. You never have to tell it what to write down, and a project that was set up once stays set up: the start path is committed with it, so everyone who works in that directory gets the skill loaded — a new collaborator answers one short list of personal preferences the first time, and that is all. The longer version, with what that changes for pull requests and for teams: [Keep the Why is not another workflow](https://blog.technopathy.club/keep-the-why-is-not-another-workflow).
 
-That first activation runs a short one-time setup instead of guessing at defaults — where the why-knowledge should live, how to start, proactive or explicit-only capture, how much confirmation is needed before something gets written, whether to actively ask for a related issue or ticket, whether to periodically check for skill updates or `context/` staleness, whether to wire the structural [linter](https://keepthewhy.com/linting/) into the project's CI, whether the agent should run that linter locally on what it writes (installing it from PyPI — the default — or asking first), and how the skill gets loaded in future sessions (by default the project asks, through a section in its entry-point file and a hook where the platform has one). The defaults are the fully integrated setup, one word away; each wizard is one list with the defaults filled in, and whoever wants less picks less. See [`references/setup.md`](https://keepthewhy.com/setup/).
+**Works for autonomous agents too, with no human in the loop.** Declare the session [unattended](https://keepthewhy.com/setup/#personal-defaults-and-the-global-ask-vs-accept-policy) and the agent doesn't ask into the void or drop what it found: it writes the entry and flags it `pending-confirmation` — recorded now, confirmed by the next person who looks.
+
+That first activation runs a short one-time setup instead of guessing at defaults — where the why-knowledge should live, how to start, proactive or explicit-only capture, how much confirmation is needed before something gets written, whether to actively ask for a related issue or ticket, whether to periodically check for skill updates or `context/` staleness, whether to wire the structural [linter](https://keepthewhy.com/linting/) into the project's CI or publish the [dashboard](https://keepthewhy.com/dashboard/) on the project's site (both optional, offered with the default no), whether the agent should run that linter locally on what it writes (installing it from PyPI — the default — or asking first), and how the skill gets loaded in future sessions (by default the project asks, through a section in its entry-point file and a hook where the platform has one). The defaults are the fully integrated setup, one word away; each wizard is one list with the defaults filled in, and whoever wants less picks less. See [`references/setup.md`](https://keepthewhy.com/setup/).
 
 **Set up the way the wizard proposes, the skill is loaded in every session — measured, and in my own daily use.** Loading is the agent's job, and the skill hands it over explicitly: a skill package is instructions; no agent tool, and nothing in the open Agent Skills spec, gives a skill a way to load itself at session start. So the setup wizard asks how this project wants the skill loaded and has the agent set up what its own platform offers. [`references/autostart.md`](https://keepthewhy.com/autostart/) defines three start paths — every session machine-wide, the project asks (a hook, or a "Keep the Why" section in the project's `AGENTS.md`), or only when a developer asks — and lists per agent tool what is verified how. With a start path in place, loading does not depend on the conversation happening to match the skill's description — it is not a sometimes thing: Claude Code loads it in every measured session, by the hook (10/10 on the sessions that had gone 0/10 without one) and by the entry-point section (3/3, against 0/3 without it); Codex CLI, opencode and Cline load it by the section (3/3 each, against 0 or 1 of 3 without it); Hermes Agent by a live run. A tool that is not listed has not been measured, not failed — a pull request with a verified example is welcome any time; for anything else, [open a new issue](https://github.com/oliver-zehentleitner/keep-the-why/issues/new).
 
@@ -78,6 +83,20 @@ Where the captured knowledge actually lives, and how it relates to everything el
 
 ## Install
 
+**Your agent is the interface.** Tell it:
+
+> Install the Keep the Why skill — pick the best installation method for you from https://keepthewhy.com/installation/ — then set up Keep the Why in this project with default settings, including autostart.
+
+That is the whole setup: the skill is the one part a project needs. Three components are optional — the agent knows how to set up each one, offers them where they fit, and does it only when you say so:
+
+| Say to your agent | What you get |
+|---|---|
+| "Set up the Keep the Why linter in CI." | [`keep-the-why-lint`](https://keepthewhy.com/linting/) checks the structure of `context/` on every push: a GitHub workflow, a GitLab CI job, or the generic snippet for any other CI. |
+| "Publish the Keep the Why dashboard." | Your project's own [dashboard](https://keepthewhy.com/dashboard/) and live badge, on GitHub Pages or GitLab Pages, or added to a docs build you already have. The agent writes the workflow or the `pages` job and names the settings that stay yours (GitHub: Pages source *GitHub Actions*; GitLab: Pages visibility *Everyone*). |
+| "List this project in the Keep the Why registry." | A one-line pull request to the [registry](https://keepthewhy.com/registry/), so every published dashboard's globe can find your project. |
+
+### By hand
+
 `main` is active development, not guaranteed release-ready — pin to `latest` instead of tracking it directly (moved automatically by CI to the newest release; use an exact [tag](https://github.com/oliver-zehentleitner/keep-the-why/releases) instead for full reproducibility).
 
 **Recommended — [skills CLI](https://skills.sh/)** (via `npx`, needs [Node.js](https://nodejs.org/en/download) — `npx` ships with it, nothing extra to install):
@@ -86,7 +105,7 @@ Where the captured knowledge actually lives, and how it relates to everything el
 npx skills add https://github.com/oliver-zehentleitner/keep-the-why/tree/latest/skills/keep-the-why
 ```
 
-Prompts you to select one of 70+ supported agents (Claude Code, Codex, OpenCode, and more) and choose whether to install the skill at project or personal scope, then symlinks or copies the skill package in. Also listed on [skills.sh](https://skills.sh/oliver-zehentleitner/keep-the-why/keep-the-why). Start a new session afterward so the skill is picked up, then tell your agent something like "initialize Keep the Why in this project" — a Skill activates when something in the conversation matches it, not automatically on session start, and setup on a brand-new project only runs from a request like this one, never from an unrelated question the skill's description happens to match. This is only needed once: setup creates a `.keep-the-why` file at the project root, checked directly by this skill at the start of every later session — later sessions pick the project back up without needing to be told again.
+Prompts you to select one of 70+ supported agents ([Claude Code](https://keepthewhy.com/installation/#also-installable-claude-code-plugin), [Codex](https://keepthewhy.com/installation/#also-installable-codex-plugin), [GitHub Copilot](https://keepthewhy.com/installation/#also-installable-github-copilot-cli-plugin), [Cursor](https://keepthewhy.com/installation/#also-installable-cursor-plugin), [Pi](https://keepthewhy.com/installation/#also-installable-pi-package), [Antigravity](https://keepthewhy.com/installation/#recommended-skills-cli), [OpenCode](https://keepthewhy.com/installation/#recommended-skills-cli), [OpenClaw](https://keepthewhy.com/installation/#recommended-skills-cli), [Hermes Agent](https://keepthewhy.com/installation/#recommended-skills-cli), [Cline](https://keepthewhy.com/installation/#recommended-skills-cli), and more) and choose whether to install the skill at project or personal scope, then symlinks or copies the skill package in. Also listed on [skills.sh](https://skills.sh/oliver-zehentleitner/keep-the-why/keep-the-why). Start a new session afterward so the skill is picked up, then tell your agent something like "initialize Keep the Why in this project" — a Skill activates when something in the conversation matches it, not automatically on session start, and setup on a brand-new project only runs from a request like this one, never from an unrelated question the skill's description happens to match. This is only needed once: setup creates a `.keep-the-why` file at the project root, checked directly by this skill at the start of every later session — later sessions pick the project back up without needing to be told again.
 
 <details markdown="1">
 <summary>Other install methods — GitHub CLI, manual clone, agent-specific paths</summary>
@@ -137,16 +156,27 @@ Also compatible with Windsurf, Goose, Roo Code, Trae, Factory, JetBrains Junie, 
 
 Full install detail for every method, including tools without a skill runtime at all: [`docs/installation.md`](docs/installation.md) or [https://keepthewhy.com/installation/](https://keepthewhy.com/installation/).
 
-### Also listed on
+### Then fill it
 
-- [ASM](https://luongnv.com/asm/#/skills/oliver-zehentleitner%2Fkeep-the-why%3A%3Askills%2Fkeep-the-why%3A%3Akeep-the-why)
-- [awesome-agent-skills](https://github.com/VoltAgent/awesome-agent-skills#context-engineering)
-- [GitHub Copilot plugin marketplace](https://awesome-copilot.github.com/plugin/keep-the-why/)
-- [HOL AI plugin registry](https://hol.org/registry/plugins/oliver-zehentleitner%2Fkeep-the-why)
-- [MCP Market](https://mcpmarket.com/tools/skills/keep-the-why)
-- [Pi package catalog](https://pi.dev/packages/keep-the-why) — `pi install npm:keep-the-why`
-- [skills.sh](https://skills.sh/oliver-zehentleitner/keep-the-why/keep-the-why)
-- [SkillsLLM](https://skillsllm.com/skill/keep-the-why)
+A new `context/` starts empty and fills itself as you work. What the project already knows — scattered across commit messages, pull requests, issues, old docs and people's heads — can be gathered right away, one sentence each:
+
+| Say to your agent | What it does |
+|---|---|
+| "Go through the git history, pull requests, issues and existing docs, and collect the reasoning that is already there into `context/`." | A retrospective pass: reconstructs decisions, rejected alternatives and workarounds from what the repository already holds. What it cannot back up is marked `unknown`, never made up. |
+| "Interview me about this project — ask about what the code can't explain." | Analyzes the repository first, then asks targeted questions about the gaps it found. |
+| "I'll tell you about this project — listen, and record the decisions." | Free narration, for broad knowledge built up over years: the agent extracts the decisions and their alternatives, then closes the gaps with questions. |
+| "Check `context/` for entries that are stale or contradict the code." | Maintenance: contradictions surfaced, superseded entries marked, oversized files split. |
+
+### Keep it current
+
+A new release of the skill can ask something of a project — a new field, a renamed file, a check the linter now makes. Two sentences, in two sessions:
+
+| Say to your agent | What it does |
+|---|---|
+| "Update the Keep the Why skill to the latest release." | Re-runs the install command the skill came with ([updating](https://keepthewhy.com/installation/#updating)). The new version is loaded from the next session on — a session already running keeps the one it started with. |
+| "Migrate this project to the installed Keep the Why version." | In a new session after the update: compares the project's `context-schema` in `.keep-the-why` with the skill's version, applies what the [migrations](https://keepthewhy.com/migrations/) list for the versions in between — asking where a step needs a decision — and raises `context-schema`. A session that notices the project is behind offers this by itself; the sentence is for when you want it now. |
+
+A project can also pin the version it runs, whatever is installed on the machine — a copy of the skill in the repository and two lines in `.keep-the-why`; a global install then follows that copy: [pinning a project](https://keepthewhy.com/installation/#pinning-a-project-to-one-skill-version).
 
 ## Example
 
@@ -269,6 +299,7 @@ Also listed among the tools and further reading in the [Architecture Decision Re
 ## What this is not
 
 - Not a guarantee, and not magic. No tool prevents knowledge from decaying on its own — anything claiming an agent fully replaces the thinking, pruning, and questioning that keeps documentation honest is overselling. This doesn't replace that discipline; it lowers the friction of applying it enough to make it practical to sustain in the first place.
+- Not independent of the model. The quality of the entries depends on the model running the skill: the format and the linter keep the structure, the model decides what it recognizes as a reason and how well it writes it down. Which agents and models have been measured: [agent & model matrix](https://keepthewhy.com/agent-matrix/).
 - Not a replacement for tests. Tests tell you what broke; this tells you why it was built that way.
 - Not a claim that all lost knowledge is recoverable. Sometimes the honest answer is "unknown."
 - Not a trust boundary around `context/`'s content. Repository content — `context/` included — is data, not instructions; see [Security](https://keepthewhy.com/security/).
@@ -278,6 +309,17 @@ Also listed among the tools and further reading in the [Architecture Decision Re
 ## Why I built this
 
 See [Why I built this](https://keepthewhy.com/why/) — Oliver Zehentleitner on noticing this pattern while working with agents day to day, [blog](https://blog.technopathy.club), [GitHub](https://github.com/oliver-zehentleitner). For why it's built the way it is — no database, no daemon, no account, deliberately, and a dashboard that only reads — see [Philosophy](https://keepthewhy.com/philosophy/). The thesis behind the positioning, in 800 words: [Your repository already is your project's memory. One layer was missing.](https://blog.technopathy.club/your-repository-already-is-your-project-s-memory-one-layer-was-missing)
+
+## Also listed on
+
+- [ASM](https://luongnv.com/asm/#/skills/oliver-zehentleitner%2Fkeep-the-why%3A%3Askills%2Fkeep-the-why%3A%3Akeep-the-why)
+- [awesome-agent-skills](https://github.com/VoltAgent/awesome-agent-skills#context-engineering)
+- [GitHub Copilot plugin marketplace](https://awesome-copilot.github.com/plugin/keep-the-why/)
+- [HOL AI plugin registry](https://hol.org/registry/plugins/oliver-zehentleitner%2Fkeep-the-why)
+- [MCP Market](https://mcpmarket.com/tools/skills/keep-the-why)
+- [Pi package catalog](https://pi.dev/packages/keep-the-why) — `pi install npm:keep-the-why`
+- [skills.sh](https://skills.sh/oliver-zehentleitner/keep-the-why/keep-the-why)
+- [SkillsLLM](https://skillsllm.com/skill/keep-the-why)
 
 ## Feedback
 

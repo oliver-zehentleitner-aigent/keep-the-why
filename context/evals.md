@@ -152,3 +152,41 @@ The fourteen earlier series, 0.6.2 to 0.17.1, were restored from the file's hist
 **Rejected alternative:** a copy of the whole page per release. The methodology sections would then exist fourteen times, each frozen at a different state, and nothing would say which one is in force. Also rejected: leaving it to Git history — the state this replaces.
 
 **Consequence:** release checklist step 14 writes a new page instead of editing a block. Series pages, round pages and run summaries are out of the site search (front matter), so a search finds the current state; the run summaries are also out of the navigation (`not_in_nav`), their series page links them. `docs/evals/runs/` is out of the link check: the runner cuts a quoted URL off at its column limit.
+
+## A rule the agent must not miss stands in `SKILL.md`, not only in a reference file
+
+**Id:** 0dc16831-abf0-4065-bae3-47d5e2ca4d20
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** baseline series on main, 2026-10-02 (three runs, 103 cases, `claude-sonnet-5-5`), and its failure analysis; maintainer approval of the fix package
+**Revisit when:** the agent model changes again, or a series shows the session shape (median tool calls) back near what Sonnet 5 had
+
+The skill's design leaned on reference files for detail: `SKILL.md` names the rule and points at where it is spelled out. That stays the shape, but a rule whose miss does harm — how the linter may be installed, when `dashboard-state` is written — gets its operative clause in `SKILL.md` or in the very sentence the agent is on, not only behind a pointer.
+
+**Reason:** `claude-sonnet-5-5` works in about half the steps Sonnet 5 did (median 4 tool calls per case instead of 11, 6 turns instead of 13) and opens a referenced file far less often. In the baseline every failing `local-lint-auto` run installed into a virtual environment, which `references/setup.md` forbids; none of them had opened that section, and the one run that did passed. Without the reference, the agent falls back on its trained habit.
+
+**Consequence (same day, maintainer decision):** where a reference file holds a procedure that cannot be shortened into a clause — the wizards, the migration sections, local linting, the optional components, a retrospective pass, an interview — `SKILL.md`'s pointer is phrased as a read-before trigger at the point of action ("before presenting it, read …") instead of a "see …" an agent can take for optional. A pointer to background stays a pointer.
+
+**Rejected alternative:** an instruction to always read every reference file named in `SKILL.md`. Rejected because it multiplies the cost of every session for rules most sessions never touch; the point of reference files is loading on demand.
+
+**Rejected alternative:** moving the reference files' content into `SKILL.md`. Rejected because the skill would grow past what is cheap to load at every activation (`CONTRIBUTING.md`); only the clause that must not be missed moves.
+
+## The judge is Opus, a stronger model than the agent under test
+
+**Id:** 5930a05f-0c02-4d36-aa0d-fcbef30315be
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** maintainer decision 2026-10-04/05 ("the judge should be reliable and not become a product of its own"; "if Sonnet is too weak as judge, we go to Opus"); a regrade of the 0.19.1 candidate series (`tools/evals/regrade.py --judge-model opus`, all 309 records)
+**Revisit when:** the agent under test moves to Opus itself, or a regrade shows the Opus judge flipping passes it should not
+
+From 0.19.1 on, the eval judge (`--judge-model`, the default in `run.py` and `regrade.py`) is Claude Opus; the agent under test stays Sonnet. Up to 0.19.0 the judge was the same model as the agent.
+
+**Reason:** on `claude-sonnet-5-5` the judge was the larger part of the noise. Re-grading the candidate series (98 · 100 · 98 of 103 with the Sonnet judge) with Opus kept all 296 passes, confirmed 3 of the 13 fails and overturned 10 — fails such as a verdict of "fail" beside the judge's own "should be read as pass-like", or a deduction for a write the skill requires. With the Opus judge the same three runs read 102 · 102 · 102 and pass every gate of the series rule. Calibrating case texts against a Sonnet judge had turned into chasing it: each round one case was fixed and another flipped.
+
+**Rejected alternative:** keep Sonnet and keep calibrating case texts. Rejected — the cases began to spell out what the skill already says, for a judge that did not read it the same way twice; the judge is an instrument, and the instrument should be steadier than what it measures.
+
+**Rejected alternative:** a judge prompt tuned per failure form. Rejected by the maintainer: the judge should be reliable, not a product of its own.
+
+**Consequence:** a change of instrument. Series from 0.19.1 on are not directly comparable with earlier ones; `docs/evals.md` says from which version the judge is Opus, and the judge model is recorded in every run.

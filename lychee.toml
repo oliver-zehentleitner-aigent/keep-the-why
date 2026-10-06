@@ -39,3 +39,20 @@ exclude = [
   "^https://keepthewhy\\.com/dashboard/",
   "^https://github\\.com/oliver-zehentleitner/keep-the-why/tree/main/dashboard",
 ]
+
+# github.com answers a burst of blob-page requests from an Actions runner with
+# 503; the same file at the same ref is checked on raw.githubusercontent.com,
+# which serves it as a plain file and does not throttle that way. Only the
+# file's existence at that ref is checked either way (no line anchors).
+remap = [
+  "^https://github\\.com/([^/]+)/([^/]+)/blob/([^#?]+)(?:[#?].*)?$ https://raw.githubusercontent.com/$1/$2/$3",
+]
+
+# github.com also answers bursts of page requests from a runner with 500
+# (issue pages, a different set on every run, 2026-10-06; all answer 200 from
+# elsewhere and on a re-run). The token lychee-action passes covers API calls,
+# not page fetches. Fewer requests at once (default 128) and a longer wait
+# before lychee's retries take the burst out; the run gets slower, no link is
+# skipped.
+max_concurrency = 16
+retry_wait_time = 5

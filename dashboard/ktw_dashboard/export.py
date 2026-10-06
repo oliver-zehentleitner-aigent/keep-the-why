@@ -7,11 +7,126 @@ requests, no badge service in between."""
 from __future__ import annotations
 
 import base64
+import html as html_lib
 import json
 import os
 import re
 
+from . import gitinfo
 from .server import WEB_DIR
+
+TITLE_PREFIX = "Keep the Why Dashboard"
+
+
+def page_title(state: dict) -> str:
+    """`Keep the Why Dashboard · <id>` — the same in app.js, so a search
+    result names the project and many exports stay told apart."""
+    p = state.get("project", {})
+    return f"{TITLE_PREFIX} · {p.get('id') or p.get('name') or 'project'}"
+
+
+def page_description(state: dict) -> str:
+    """One sentence for search results and link previews: whose repository,
+    how many entries, what they are. `owner/repo` from `canonical`, else
+    from the remote; without either, the project's id."""
+    p = state.get("project", {})
+    remote = gitinfo.normalize_remote(
+        p.get("canonical") or (p.get("git") or {}).get("remote") or ""
+    )
+    repo = remote.split("/", 1)[1] if "/" in remote else ""
+    whose = repo or p.get("id") or p.get("name") or "a project"
+    entries = len(state.get("entries", []))
+    topics = len(state.get("topics", []))
+    e_noun = "entry" if entries == 1 else "entries"
+    t_noun = "topic" if topics == 1 else "topics"
+    return (
+        f"Keep the Why dashboard of {whose}: {entries} recorded {e_noun} — "
+        f"decisions, rejected alternatives, workarounds and constraints — "
+        f"across {topics} {t_noun}; the reasoning the code cannot explain."
+    )
+
+
+def host_file_link(canonical: str, path: str, anchor: str = "") -> str:
+    """A file of a repository as its host renders it, at HEAD — the same URL forms as `hostFileLink` in
+    lib.js, the page's one place for host grammar; this copy serves the page without JavaScript.
+    """
+    base = (canonical or "").rstrip("/")
+    if not base.startswith("https://"):
+        return ""
+    if re.match(r"^https://gitlab\.", base) or "/-/" in base:
+        seg = "/-/blob/HEAD/"
+    elif re.match(r"^https://(codeberg\.org|gitea\.|forgejo\.)", base):
+        seg = "/src/branch/HEAD/"
+    elif re.match(r"^https://bitbucket\.org", base):
+        seg = "/src/HEAD/"
+    else:
+        seg = "/blob/HEAD/"
+    return f"{base}{seg}{path}" + (f"#{anchor}" if anchor else "")
+
+
+def noscript_body(state: dict) -> str:
+    """The page without JavaScript: the project, its topics and their entries — title, status, evidence —
+    each linked to the file on the host. No bodies: the Markdown is a click away, and the page carries the
+    whole state for the script already."""
+    esc = html_lib.escape
+    p = state.get("project", {})
+    canonical = p.get("canonical") or (
+        f"https://{p['git']['remote']}" if (p.get("git") or {}).get("remote") else ""
+    )
+    ctx = (p.get("context") or "context/").strip("`")
+    ctx = ctx if ctx.endswith("/") else ctx + "/"
+    root = (p.get("root") or "").strip("/")
+    prefix = f"{root}/{ctx}" if root else ctx
+    entries = state.get("entries", [])
+    topics = state.get("topics", [])
+    by_file = {}
+    for e in entries:
+        by_file.setdefault(e.get("file") or "", []).append(e)
+    name = p.get("id") or p.get("name") or "project"
+    out = [f"<h1>{esc(name)}</h1>"]
+    meta = f"{len(entries)} {'entry' if len(entries) == 1 else 'entries'} across {len(topics)} {'topic' if len(topics) == 1 else 'topics'}"
+    if state.get("generated"):
+        meta += f" · exported {state['generated']}"
+    out.append(f'<p class="nojs-meta">{esc(meta)}</p>')
+    if canonical:
+        tree = host_file_link(canonical, prefix).replace("/blob/", "/tree/", 1)
+        out.append(
+            f'<p><a href="{esc(tree)}">{esc(prefix)} on the host</a> · <a href="{esc(canonical)}">{esc(canonical)}</a></p>'
+        )
+    for t in topics:
+        file = t.get("file") or ""
+        link = host_file_link(canonical, prefix + file) if canonical else ""
+        head = esc(t.get("title") or file)
+        out.append(
+            f'<h2><a href="{esc(link)}">{head}</a></h2>' if link else f"<h2>{head}</h2>"
+        )
+        items = []
+        for e in by_file.get(file, []):
+            # the heading's anchor as the host renders it (GitHub's rule, as `hostAnchor` in lib.js), not the
+            # dashboard's own entry id, which differs for a title with an apostrophe or a dot
+            anchor = re.sub(r"[^\w\- ]", "", (e.get("title") or "").lower()).replace(
+                " ", "-"
+            )
+            href = host_file_link(canonical, prefix + file, anchor) if canonical else ""
+            title = esc((e.get("title") or "").replace("`", ""))
+            label = f'<a href="{esc(href)}">{title}</a>' if href else title
+            tags = " · ".join(esc(x) for x in (e.get("status"), e.get("evidence")) if x)
+            items.append(f'<li>{label} <span class="nojs-meta">{tags}</span></li>')
+        if items:
+            out.append("<ul>" + "".join(items) + "</ul>")
+    return "\n".join(out)
+
+
+def _head_meta(state: dict) -> str:
+    title = html_lib.escape(page_title(state))
+    desc = html_lib.escape(page_description(state))
+    return (
+        f"<title>{title}</title>\n"
+        f'<meta name="description" content="{desc}">\n'
+        f'<meta property="og:type" content="website">\n'
+        f'<meta property="og:title" content="{title}">\n'
+        f'<meta property="og:description" content="{desc}">'
+    )
 
 
 def render_page(state: dict) -> str:
@@ -37,6 +152,10 @@ def render_page(state: dict) -> str:
                 "ascii"
             )
         html = html.replace(f"/static/{name}", data_uri)
+    # title and description in the page itself, not only set by the script:
+    # a crawler or a link preview reads the static head
+    html = re.sub(r"<title>[^<]*</title>", lambda _: _head_meta(state), html, count=1)
+    html = html.replace("<!--ktw:noscript-->", noscript_body(state), 1)
     html = html.replace(
         '<link rel="stylesheet" href="/static/style.css">', f"<style>\n{css}\n</style>"
     )

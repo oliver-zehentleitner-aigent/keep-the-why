@@ -156,8 +156,9 @@ def main():
     )
     ap.add_argument(
         "--judge-model",
-        default="sonnet",
-        help="judge model (default: sonnet; always run via the claude driver, "
+        default="opus",
+        help="judge model (default: opus — a judge stronger than the agent under test, "
+        "see context/evals.md; always run via the claude driver, "
         "regardless of --driver, so grading stays consistent)",
     )
     ap.add_argument(

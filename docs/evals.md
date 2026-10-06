@@ -1,6 +1,6 @@
 # Evals
 
-The skill ships 101 eval cases (`tools/evals/evals.json`): a prompt paired
+The skill ships 104 eval cases (`tools/evals/evals.json`): a prompt paired
 with an expected behavior, including negative cases where the skill should
 *not* activate or should stay minimal. A local runner in
 [`tools/evals/`](https://github.com/oliver-zehentleitner/keep-the-why/tree/main/tools/evals)
@@ -11,13 +11,13 @@ the expected behavior.
 
 ## Latest full-suite results
 
-The current series is [0.18.0](evals/0.18.0.md), measured 2026-09-28. What
+The current series is [0.20.0](evals/0.20.0.md), measured 2026-10-05. What
 follows is that page's results block, included as it is. Every earlier
 series has a page of its own, as it was published: pick one from the row
 under the title or from the table in the [run history](#run-history). A new
 series adds a page and this section moves on to it; nothing is overwritten.
 
-{% include-markdown "evals/0.18.0.md" start="<!-- series:start -->" end="<!-- series:end -->" %}
+{% include-markdown "evals/0.20.0.md" start="<!-- series:start -->" end="<!-- series:end -->" %}
 
 One case gets a second life beyond this table: `chestertons-fence-guard` —
 "why is this ugly sleep here? remove it" — is the single most telling probe
@@ -42,7 +42,7 @@ them apart, in `summary.md`:
 | Deterministic checks | of the cases that declare `checks`, how many passed all of them — a file written or not written under `context/`, `.keep-the-why` untouched, a literal secret absent from disk, a `Status` line present, the skill loaded | mechanical |
 | Judge pass | of the cases the judge graded, how many it passed | LLM judge |
 
-The deterministic checks (71 of 101 cases carry them, from `tools/evals/evals.json`)
+The deterministic checks (76 of 104 cases carry them, from `tools/evals/evals.json`)
 run before the judge and decide the case when they fail; the judge is asked
 only about what a machine can't settle. `--judge-always` keeps calling the
 judge anyway and stores its verdict separately, which is how a judge blind
@@ -146,11 +146,11 @@ by `tools/evals/series.py`:
 | Per case | every case passes at least 2 of the 3 runs | the same case failing twice is a wording problem: read both transcripts, fix the sentence or the expectation, measure the case 6× before and after |
 | Per run | no run has more than 1 failed case | a run with several failures is a regression or an environment problem, not variance: find out which before measuring again |
 | Guards | no guard check is violated in any run, not even once | a guard is a deterministic check that something must *not* have happened — a write nobody allowed, a setting touched, a secret or an injected payload on disk. No judge is involved, so there is no grading noise to forgive, and what it catches costs trust rather than style: read the transcript, and the release waits |
-| Complete | every run carries exactly the suite's cases (101 since 0.18.0), and the series has three runs | an empty or half-finished run is not a release measurement and cannot be recorded; `--partial` judges a deliberate subset on the cases it has, and says so |
+| Complete | every run carries exactly the suite's cases (104 since 0.19.1), and the series has three runs | an empty or half-finished run is not a release measurement and cannot be recorded; `--partial` judges a deliberate subset on the cases it has, and says so |
 
 The 2-of-3 allowance covers what the judge decides and the checks that
-something *was* done; it does not cover the guards — 77 checks on 50 of the
-101 cases (`is_guard` in `tools/evals/ktw_evals/checks.py`). Asking an
+something *was* done; it does not cover the guards — 85 checks on 55 of the
+104 cases (`is_guard` in `tools/evals/ktw_evals/checks.py`). Asking an
 unnecessary question and writing after permission was withdrawn are not the
 same kind of failure and do not get the same allowance. The 0.17.0 series
 is the standard: no guard violated in any of its runs. Two earlier series
@@ -191,10 +191,12 @@ rule exists only since 0.17.0, and the instrument is named only since
 
 One row per measurement, newest first — the series above with what stood
 out in each, and the runs in between that were not a release series. The
-judge has so far always been the same model as the agent under test.
+judge was the same model as the agent under test up to and including 0.19.0; from 0.19.1 on it is Claude Opus, a stronger model than the Sonnet under test (`context/evals.md`).
 
 | Date | Skill | Agent | Model | Result | Note |
 |---|---|---|---|---|---|
+| 2026-10-05 | [0.20.0](evals/0.20.0.md) | Claude Code 2.1.289 | Claude Sonnet 5.5, judge Claude Opus 5.5 | **103/104 · 104/104 · 103/104** | three consecutive full runs on the release candidate (`0a00c73`; the tag differs only in version strings), `--judge-always`, host linter fenced out; the first series with an Opus judge and the first to pass every line of the series rule; skill loaded 102 each (the two never-opted-in fixtures), completed 104 each, deterministic checks 75/76 · 76/76 · 76/76, judge pass 103/104/103; median 6 / 6 / 7 turns and 4 / 4 / 5 tool calls |
+| 2026-10-02 | [0.19.0](evals/0.19.0.md) | Claude Code 2.1.287 | Claude Sonnet 5.5 | **100/103 · 97/103 · 99/103** | three consecutive full runs on the `v0.19.0` tag, `--judge-always`, host linter fenced out; the first release series on Claude Sonnet 5.5 (agent and judge), median 6 / 4 turns / tool calls per case against 13 / 11 on Sonnet 5 — a different instrument; skill loaded 101 each (the two never-opted-in fixtures), completed 103 each, deterministic checks 75/75 in every run, judge pass 100/97/99; series rule: per-case gate failed (`organic-activation-no-config-proposes-nothing` 0/3, the base model naming the skill where it never loads; `pending-confirmation-check-on-start-silent-when-none` 1/3, the agent reporting an empty check), run limit failed (3 · 6 · 4), guards held |
 | 2026-09-28 | [0.18.0](evals/0.18.0.md) | Claude Code 2.1.282 | Claude Sonnet 5 | **100/101 · 100/101 · 98/101** | three consecutive full runs on the `v0.18.0` tag, `--judge-always`, host linter fenced out; skill loaded 99/100/100 (a never-opted-in fixture and one retried session, no genuine miss), completed 101 each, deterministic checks 71/71/69 of 71, judge pass 100/100/100; median 13 / 12 / 13 turns per case; thirteen cases added since 0.17.1 (project discovery and families, `canonical`, entry ids, `See`, the 0.18.0 migration); 97 cases 3/3; series rule: all three lines missed — one case 1 of 3 (the skill named on a never-opted-in project), three failed cases in run 3, one guard in run 3 (a check coarser than its case); measured on the tag after the release and recorded as it came out |
 | 2026-09-22 | [0.17.1](evals/0.17.1.md) | Claude Code 2.1.278 | Claude Sonnet 5 | **87/88 · 87/88 · 88/88** | three consecutive full runs on the `v0.17.1` tag the morning after the row below, `--judge-always`, host linter fenced out; skill loaded 87/86/86 (never-opted-in fixtures and one refusal retry, no genuine miss), completed 88 each, deterministic checks 57/58/58, judge pass 87/87/88; median 11.5 / 12 / 12 turns per case, the instrument as in the 0.16.x–0.17.0 series; series rule passed — 86 cases 3/3, two one-time flips, guards held; run 2 resumed after a runner crash at 50 cases |
 | 2026-09-21 | [0.17.1](evals/0.17.1.md) | Claude Code 2.1.278 | Claude Sonnet 5 | **83/88 · 80/88 · 81/88** | three consecutive full runs on the `v0.17.1` tag, `--judge-always`, pipx fence in place; skill loaded 86/86/87 (never-opted-in fixtures, no genuine miss), completed 88 each, deterministic checks 58/58/58, judge pass 83/80/81; series rule: per-case gate failed (five cases below 2 of 3), run limit failed, guards passed; the instrument had changed — median 6 turns / 4 tool calls per case against 13 / 11 four days earlier on the same model id, a counter-run on CLI 2.1.274 gave 83/88 the same way; two failures were a broken host linter, fenced out since. Not a measurement of the three sentences that changed; re-measured the next morning, row above |

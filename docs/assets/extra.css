@@ -226,3 +226,27 @@
 
 .md-typeset .ktw-globe-link { font-size: .9rem; margin-top: -.4rem; }
 .md-typeset .ktw-globe-link a:first-child { font-size: 1.6rem; text-decoration: none; vertical-align: middle; margin-right: .2rem; }
+
+/* the globe link in the header bar (overrides/main.html) */
+.md-header__button.ktw-globe {
+  font-size: 1.5rem;
+  line-height: 1;
+  text-decoration: none;
+  margin: 0 .2rem;
+  opacity: .9;
+}
+/* desktop: placed after the repository's tag/stars/forks by the script; a little room to them */
+@media screen and (min-width: 60em) {
+  .md-header__button.ktw-globe { margin-left: .6rem; }
+}
+.md-header__button.ktw-globe:hover,
+.md-header__button.ktw-globe:focus-visible { opacity: 1; }
+
+/* the sentence to give an agent, as a code block for the copy button — wrapped like prose, not scrolled */
+.md-typeset .ktw-prompt pre > code {
+  white-space: pre-wrap;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  font-size: .8rem;
+  line-height: 1.5;
+}

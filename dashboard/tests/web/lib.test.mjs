@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import {
   esc, plural, isUuid, rawFileUrl, configLine, normalizeState, slug, hostFileLink, canonicalOf,
   parseSupersededBy, kindLabel, typeName, groupByFamily, searchTerms, searchHit, compareHits, snippetAt, highlight,
-  resolveLocation, bodyProse, linkFamily, authorLookup, mergeStates, friendsOf, thoughtsOf, thoughtInsights,
+  resolveLocation, bodyProse, linkFamily, authorLookup, mergeStates, friendsOf, thoughtsOf, thoughtInsights, HOSTS, hostOf, backlinksUrl, citingOf, hostAnchor,
 } from "../../ktw_dashboard/web/lib.js";
 
 test("esc escapes the five HTML characters and nothing else", () => {
@@ -42,7 +42,9 @@ test("hostFileLink knows the four host grammars and defaults to GitHub's", () =>
 test("rawFileUrl fetches at HEAD on every host, root prefixed", () => {
   assert.equal(rawFileUrl("https://github.com/acme/widget", "", ".keep-the-why"), "https://raw.githubusercontent.com/acme/widget/HEAD/.keep-the-why");
   assert.equal(rawFileUrl("https://github.com/acme/mono/", "packages/widget", ".keep-the-why"), "https://raw.githubusercontent.com/acme/mono/HEAD/packages/widget/.keep-the-why");
-  assert.equal(rawFileUrl("https://gitlab.com/group/widget", "", ".keep-the-why"), "https://gitlab.com/group/widget/-/raw/HEAD/.keep-the-why");
+  // GitLab through the files API (it sends CORS headers), project path and file path URL-encoded
+  assert.equal(rawFileUrl("https://gitlab.com/group/widget", "", ".keep-the-why"), "https://gitlab.com/api/v4/projects/group%2Fwidget/repository/files/.keep-the-why/raw?ref=HEAD");
+  assert.equal(rawFileUrl("https://gitlab.com/group/sub/mono/", "packages/widget", ".keep-the-why"), "https://gitlab.com/api/v4/projects/group%2Fsub%2Fmono/repository/files/packages%2Fwidget%2F.keep-the-why/raw?ref=HEAD");
   assert.equal(rawFileUrl("https://bitbucket.org/acme/widget", "", ".keep-the-why"), "https://bitbucket.org/acme/widget/raw/HEAD/.keep-the-why");
   assert.equal(rawFileUrl("https://codeberg.org/acme/widget", "", ".keep-the-why"), "https://codeberg.org/acme/widget/raw/branch/HEAD/.keep-the-why");
 });
@@ -270,4 +272,61 @@ test("thoughtInsights: an unconfirmed origin, steps in question and what rests o
   assert.deepEqual(stale.shaky, [{ i: 0, why: "superseded, still cited" }]);
   assert.deepEqual(stale.affected, [1, 2]);
   assert.equal(stale.from, "");
+});
+
+test("hostOf reads the platform from the URL alone; an unknown host gets none", () => {
+  const name = (u) => hostOf(u)?.name ?? null;
+  assert.equal(name("https://github.com/acme/widget"), "GitHub");
+  assert.equal(name("github.com/acme/widget"), "GitHub"); // git.remote's form
+  assert.equal(name("git@gitlab.com:acme/widget.git"), "GitLab");
+  assert.equal(name("https://gitlab.acme.at/team/widget"), "GitLab");
+  assert.equal(name("https://codeberg.org/acme/widget"), "Codeberg");
+  assert.equal(name("https://user:token@bitbucket.org/acme/widget"), "Bitbucket");
+  assert.equal(name("https://gitea.acme.at/acme/widget"), "Gitea");
+  assert.equal(name("https://forgejo.acme.at/acme/widget"), "Forgejo");
+  assert.equal(name("https://GitHub.com/acme/widget"), "GitHub");
+  assert.equal(name("https://git.acme.at/acme/widget"), null); // self-hosted under its own name: no guess
+  assert.equal(name("https://notgithub.com/acme/widget"), null);
+  assert.equal(name(""), null);
+  assert.equal(name(undefined), null);
+  for (const h of HOSTS) assert.match(h.path, /^[Mm][\d.\s,\-a-zA-Z]+$/, h.name);
+});
+
+test("backlinksUrl: the registry's path for a repository, or none", () => {
+  const idx = "https://keepthewhy.com/registry/index.json";
+  assert.equal(backlinksUrl(idx, "https://github.com/Acme/Widget/"), "https://keepthewhy.com/registry/backlinks/github.com/acme/widget.json");
+  assert.equal(backlinksUrl(idx, "https://github.com/acme/widget.git"), "https://keepthewhy.com/registry/backlinks/github.com/acme/widget.json");
+  for (const c of ["", null, "http://github.com/a/b", "https://gitlab.com/group/sub/app", "https://github.com/acme", "https://github.com/../x", "https://github.com/a/b%2Fc"]) assert.equal(backlinksUrl(idx, c), null, String(c));
+});
+
+test("citingOf: one item per citing repository, only citations of Ids held here", () => {
+  const U = (n) => `${n}${n}${n}${n}${n}${n}${n}${n}-0000-4000-8000-000000000000`;
+  const file = { cited_by: [
+    { from: "https://github.com/b/two", entry: U(3), to: U(1), kind: "see" },
+    { from: "https://github.com/a/one", entry: U(4), to: U(1), kind: "see" },
+    { from: "https://github.com/a/one", entry: U(5), to: U(2), kind: "superseded_by" },
+    { from: "https://github.com/a/one", entry: U(4), to: U(2), kind: "see" },
+    { from: "https://github.com/a/one", entry: U(6), to: U(9), kind: "see" }, // an Id not held here
+    { from: "https://github.com/fam/member", entry: U(7), to: U(1), kind: "see" }, // family: drawn already
+    { from: "javascript:alert(1)", entry: U(8), to: U(1) },
+    null,
+  ] };
+  const r = citingOf(file, [U(1), U(2)], ["https://github.com/fam/member/"]);
+  assert.deepEqual(r.citing, [
+    { canonical: "https://github.com/a/one", uuids: [U(4), U(5)] },
+    { canonical: "https://github.com/b/two", uuids: [U(3)] },
+  ]);
+  assert.equal(r.elsewhere, 1);
+  assert.deepEqual(citingOf(null, [U(1)]), { citing: [], elsewhere: 0 });
+  assert.deepEqual(citingOf({ cited_by: "x" }, [U(1)]), { citing: [], elsewhere: 0 });
+});
+
+test("hostAnchor: a heading's anchor as GitHub renders it, not the entry id", () => {
+  // each checked against the heading's id on github.com
+  assert.equal(hostAnchor("The wizard now asks about activation reliability, and delegates setup to the current agent's own platform"), "the-wizard-now-asks-about-activation-reliability-and-delegates-setup-to-the-current-agents-own-platform");
+  assert.equal(hostAnchor("Setup/init state is tracked opportunistically"), "setupinit-state-is-tracked-opportunistically");
+  assert.equal(hostAnchor("`context/` gets `AGENTS.md`/`CLAUDE.md` guard files"), "context-gets-agentsmdclaudemd-guard-files");
+  assert.equal(hostAnchor("Snake_case and hy-phens stay"), "snake_case-and-hy-phens-stay");
+  assert.equal(hostAnchor("Größe über alles"), "größe-über-alles");
+  assert.equal(hostAnchor(null), "");
 });

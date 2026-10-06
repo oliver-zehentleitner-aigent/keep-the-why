@@ -84,14 +84,17 @@ nav:
   - Security: security.md
   - Badge: badge.md
   - FAQ: faq.md
-  - Why I built this: why.md
   - Evals:
       - Full suite: evals.md
       - Agent & model matrix: agent-matrix.md
+  - "Why this project is built this way":
+      - "Read this project's context/": context/index.md
+      - "See it in the dashboard ↗": https://keepthewhy.com/dashboard/live/
   - Reference:
+      - What you can ask for: help.md
       - Setup: setup.md
       - Autostart examples: autostart.md
-      - CI linting setup: ci-linting.md
+      - CI, dashboard and registry setup: ci-linting.md
       - Migrations: migrations.md
       - Methodology: methodology.md
       - Continuous capture: continuous-capture.md
@@ -104,6 +107,3 @@ nav:
       - Abandoned change: examples/abandoned-change.md
       - Legacy project: examples/legacy-project.md
       - Developer handover: examples/developer-handover.md
-  - "Why this project is built this way":
-      - "Read this project's context/": context/index.md
-      - "See it in the dashboard ↗": https://keepthewhy.com/dashboard/live/

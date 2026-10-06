@@ -1,8 +1,59 @@
 # Installation
 
-Keep the Why is the why layer of [repo-native project memory](https://oliver-zehentleitner.github.io/repo-native-project-memory/): the reasoning behind a codebase, kept as Markdown in the repository and versioned by Git, for coding agents and humans. What you install is the **agent skill** that captures and maintains it — a `SKILL.md` with its reference files, in the open, cross-agent skill format, not tied to one vendor. No build step, no service, no database, no account. The [linter](linting.md) and the [dashboard](dashboard.md) are separate, optional packages; the skill installs neither.
+Installable [with one command](#recommended-skills-cli) on [Claude Code](#also-installable-claude-code-plugin), [Pi](#also-installable-pi-package), [Codex](#also-installable-codex-plugin), [GitHub Copilot](#also-installable-github-copilot-cli-plugin), [Cursor](#also-installable-cursor-plugin), OpenClaw, Hermes Agent, Cline, OpenCode, Antigravity and 60+ more agents.
 
-The short version, for any of 70+ agents (Claude Code, Codex, OpenCode, …), pinned to the newest release:
+## Your agent is the interface
+
+You don't have to read the rest of this page. Tell your coding agent:
+
+``` { .text .ktw-prompt }
+Install the Keep the Why skill — pick the best installation method for you from https://keepthewhy.com/installation/ — then set up Keep the Why in this project with default settings, including autostart.
+```
+
+That is the whole setup. The skill is the one part a project needs: the agent installs it, the [setup](setup.md) writes `.keep-the-why` and `context/`, [autostart](autostart.md) makes every later session load the skill by itself, and from then on the agent records the why as it surfaces. "Default settings" is a complete answer; leave it out and the agent shows you the settings as one list first.
+
+Three components are optional. The agent knows how to set up each one, offers them where they fit, and does it only when you say so — one sentence each, now or any time later:
+
+| Say to your agent | What you get |
+|---|---|
+| "Set up the Keep the Why linter in CI." | [`keep-the-why-lint`](linting.md) checks the structure of `context/` and `.keep-the-why` on every push and pull request: a GitHub workflow, a GitLab CI job, or the generic snippet for any other CI. |
+| "Publish the Keep the Why dashboard." | Your project's own [dashboard](dashboard.md) and live badge, on GitHub Pages or GitLab Pages, or added to a docs build you already have. The agent writes the workflow or the `pages` job and names the settings that stay yours: on GitHub the repository's *Settings → Pages → Build and deployment → Source: GitHub Actions*; on GitLab the Pages visibility *Everyone*, and a verified account for CI to run. |
+| "List this project in the Keep the Why registry." | A one-line pull request to the [registry](registry/index.md), so the globe of every published dashboard can find your project. Needs the published dashboard. |
+
+**Then fill it.** A new `context/` starts empty and fills itself as you work. What the project already knows — scattered across commit messages, pull requests, issues, old docs and people's heads — can be gathered right away, one sentence each:
+
+| Say to your agent | What it does |
+|---|---|
+| "Go through the git history, pull requests, issues and existing docs, and collect the reasoning that is already there into `context/`." | A retrospective pass: reconstructs decisions, rejected alternatives and workarounds from what the repository already holds. What it cannot back up is marked `unknown`, never made up. |
+| "Interview me about this project — ask about what the code can't explain." | Analyzes the repository first, then asks targeted questions about the gaps it found. |
+| "I'll tell you about this project — listen, and record the decisions." | Free narration, for broad knowledge built up over years: the agent extracts the decisions and their alternatives, then closes the gaps with questions. |
+| "Check `context/` for entries that are stale or contradict the code." | Maintenance: contradictions surfaced, superseded entries marked, oversized files split. |
+
+**Keep it current.** A new release of the skill can ask something of a project — a new field, a renamed file, a check the linter now makes. Two sentences, in two sessions:
+
+| Say to your agent | What it does |
+|---|---|
+| "Update the Keep the Why skill to the latest release." | Re-runs the install command the skill came with ([updating](#updating)). The new version is loaded from the next session on — a session already running keeps the one it started with. |
+| "Migrate this project to the installed Keep the Why version." | In a new session after the update: compares the project's `context-schema` in `.keep-the-why` with the skill's version, applies what the [migrations](migrations.md) list for the versions in between — asking where a step needs a decision — and raises `context-schema`. A session that notices the project is behind offers this by itself; the sentence is for when you want it now. |
+
+A project can also pin the version it runs, whatever is installed on the machine — a copy of the skill in the repository and two lines in `.keep-the-why`; a global install then follows that copy: [pinning a project](#pinning-a-project-to-one-skill-version).
+
+Everything below is for the agent doing the installing, and for anyone who prefers to do it by hand.
+
+### For agents reading this page
+
+A person sent you here to install the skill. Pick the first route that fits you:
+
+1. **The skills CLI**, if `npx` (Node.js) is available — it knows the skills directory of 70+ agents. Non-interactive, pinned to the newest release: `npx skills add https://github.com/oliver-zehentleitner/keep-the-why/tree/latest/skills/keep-the-why -a <your agent> -y` — add `-g` for every project of this user; without it, this project only. Details: [skills CLI](#recommended-skills-cli).
+2. **Your own plugin or package mechanism**, if you have one listed below — [Claude Code plugin](#also-installable-claude-code-plugin), [Copilot CLI plugin](#also-installable-github-copilot-cli-plugin), [Codex plugin](#also-installable-codex-plugin), [Pi package](#also-installable-pi-package), [Cursor plugin](#also-installable-cursor-plugin).
+3. **The GitHub CLI** (`gh skill install`, [below](#also-recommended-github-cli)) or **[asm](#also-installable-asm)**, if one of them is installed.
+4. **The [manual clone](#fallback-manual-clone)** into your skills directory — works everywhere `git` does.
+
+Install a tagged release (`latest`), never `main`. Then set up the project as the person asked. Many agents read their skills directory only when a session starts: if the skill is not available to you in this session, read the installed `keep-the-why/SKILL.md` and follow it, or tell the person to start a new session and repeat the setup sentence. "Default settings" in the request answers both setup lists; the optional components above are set up only when the person names them.
+
+### The short version, by hand
+
+For any of 70+ agents ([Claude Code](#also-installable-claude-code-plugin), [Codex](#also-installable-codex-plugin), [GitHub Copilot](#also-installable-github-copilot-cli-plugin), [Cursor](#also-installable-cursor-plugin), [Pi](#also-installable-pi-package), [Antigravity](#recommended-skills-cli), [OpenCode](#recommended-skills-cli), [OpenClaw](#recommended-skills-cli), [Hermes Agent](#recommended-skills-cli), [Cline](#recommended-skills-cli), …), pinned to the newest release:
 
 ```bash
 npx skills add https://github.com/oliver-zehentleitner/keep-the-why/tree/latest/skills/keep-the-why
@@ -24,7 +75,7 @@ Replace `latest` with an exact [tag](https://github.com/oliver-zehentleitner/kee
 npx skills add oliver-zehentleitner/keep-the-why
 ```
 
-Either form prompts for which of its 70+ supported agents (Claude Code, Codex, OpenCode, and more) and scope (project or personal) to install for, then installs via symlink or copy, your choice. Also listed on [skills.sh](https://skills.sh/oliver-zehentleitner/keep-the-why/keep-the-why).
+Either form prompts for which of its 70+ supported agents ([Claude Code](#also-installable-claude-code-plugin), [Codex](#also-installable-codex-plugin), [GitHub Copilot](#also-installable-github-copilot-cli-plugin), [Cursor](#also-installable-cursor-plugin), [Pi](#also-installable-pi-package), [Antigravity](#recommended-skills-cli), [OpenCode](#recommended-skills-cli), [OpenClaw](#recommended-skills-cli), [Hermes Agent](#recommended-skills-cli), [Cline](#recommended-skills-cli), and more) and scope (project or personal) to install for, then installs via symlink or copy, your choice. Also listed on [skills.sh](https://skills.sh/oliver-zehentleitner/keep-the-why/keep-the-why).
 
 ## Also recommended: GitHub CLI
 
@@ -149,13 +200,31 @@ Start a new session afterward, same as a fresh install — a session already in 
 
 This is separate from whether your project's own `context/` needs anything done to it. Updating the skill replaces its own files wholesale — nothing to do on your side just because a release changed how `SKILL.md` describes itself internally. A release asks something of your project when `migrations.md` has an entry that applies — not just `context/` entry-format changes, also structural conventions (like `context/index.md`'s sort order), new config defaults, and storage-location changes (like config moving into a dedicated `.keep-the-why` file) — tracked via `context-schema` in your project's `.keep-the-why`; see `setup.md` and `migrations.md`. The two are independent: a release can update the skill's own frontmatter shape (as `0.3.1` did) without touching `context-schema` at all.
 
+## Pinning a project to one skill version
+
+Installing from a release tag (above) decides which version *your machine* has. A project can also decide which version *it* runs, whatever is installed on the machine: check a copy of the skill into the repository and pin it in `.keep-the-why`. Useful when a team wants everyone on the version the project was set up and tested with, or when a project should not change behaviour just because someone's personal install is newer or older.
+
+The copy is the `skills/keep-the-why/` folder of a release, for example at `.agents/skills/keep-the-why/`, plus two lines in `.keep-the-why`:
+
+```markdown
+- pinned-version: 0.20.0
+- pinned-path: .agents/skills/keep-the-why/SKILL.md
+```
+
+Or ask the agent: *"Pin this project to the Keep the Why version installed here."*
+
+**It works with a global install too.** In some tools a skill installed for the user overrides a project's copy with the same name, so the project's copy would never load. The pin handles that from the other side: whichever copy loads first reads `pinned-version` before anything else. If its own version is a different one, it checks the pinned file — inside the project, `name: keep-the-why`, the pinned version in its frontmatter — and follows that file for the rest of the session instead of itself. If the pinned file is missing or does not match, the agent stops and says so, and offers to restore the copy, remove the pin, or continue with the installed version for this session only. It never quietly runs a different version than the one the project pinned. A "Keep the Why" section in the project's `AGENTS.md` ([autostart](autostart.md)) should name the pinned `SKILL.md`, so agents without a skill tool read the right copy as well.
+
+**Updating a pinned project** is a change to the project, not to the machine: replace the copied folder with the new release's `skills/keep-the-why/`, set `pinned-version` to the new version, then *"Migrate this project to the installed Keep the Why version."* in a new session, as with any update. Or ask: *"Update this project's pinned Keep the Why copy to the latest release."* To stop pinning, delete the two lines (and the copy, if nothing else uses it). Every condition and the exact checks: [setup — Pinned versions](setup.md#pinned-versions).
+
 ## Trust and scope
 
 Before letting anything run inside an agent, know what you're actually getting:
 
-- **The skill package is instructions only.** `skills/keep-the-why/` is `SKILL.md`, `references/*.md`, `examples/*.md` — no scripts, no binaries. What the instructions can trigger is one thing: the linter, `keep-the-why-lint`, installed by its fixed name from PyPI and run after writes when you say yes in the setup wizard (the wizard's default is yes; `no` turns it off). Autostart, if you enable it, writes a session hook into the project's agent settings — a file you see and commit. The exact bounds are on [Security](security.md).
+- **The skill package is instructions only.** `skills/keep-the-why/` is `SKILL.md`, `references/*.md`, `examples/*.md` — no scripts, no binaries. What the instructions can trigger on their own is one thing: the linter, `keep-the-why-lint`, installed by its fixed name from PyPI and run after writes when you say yes in the setup wizard (the wizard's default is yes; `no` turns it off). Autostart, if you enable it, writes a session hook into the project's agent settings — a file you see and commit. The exact bounds are on [Security](security.md).
 - **No network access of its own.** The package has nothing that calls out. The one install the skill may ask for is that PyPI package; everything else is your agent's own network access, not something this skill adds.
-- **No external services.** No database, no MCP server, no account, no API key. The [dashboard](dashboard.md) is a second, separate PyPI package you install yourself if you want it; the skill never installs or starts it.
+- **No external services.** No database, no MCP server, no account, no API key. The [dashboard](dashboard.md) is a second, separate PyPI package you install yourself if you want it; the skill never installs or starts it on your machine.
+- **Optional components only on your word.** The linter workflow, the dashboard's Pages workflow and the registry pull request are files and a pull request the agent writes when you ask for them — staged in your working tree, not committed; the pull request opened with your agent's own GitHub access, after it says which account. Never as a default, never on its own initiative.
 - **Install a tagged release, not `main`.** `main` is where active development happens and isn't guaranteed release-ready at any given moment — installing without pinning tracks it directly. A `latest` tag always points to the newest release, moved automatically by CI whenever one ships. Every install method below shows how to pin to it (or to an exact version, for full reproducibility).
 - **Updating is explicit**, never automatic — see "Updating" below.
 
