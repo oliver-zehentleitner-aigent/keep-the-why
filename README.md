@@ -91,8 +91,8 @@ That is the whole setup: the skill is the one part a project needs. Three compon
 
 | Say to your agent | What you get |
 |---|---|
-| "Set up the Keep the Why linter as a GitHub workflow." | [`keep-the-why-lint`](https://keepthewhy.com/linting/) checks the structure of `context/` on every push. |
-| "Publish the Keep the Why dashboard on GitHub Pages." | Your project's own [dashboard](https://keepthewhy.com/dashboard/) and live badge; the agent writes the workflow and tells you the one setting it needs (*Settings → Pages → Source: GitHub Actions*). |
+| "Set up the Keep the Why linter in CI." | [`keep-the-why-lint`](https://keepthewhy.com/linting/) checks the structure of `context/` on every push: a GitHub workflow, a GitLab CI job, or the generic snippet for any other CI. |
+| "Publish the Keep the Why dashboard." | Your project's own [dashboard](https://keepthewhy.com/dashboard/) and live badge, on GitHub Pages or GitLab Pages, or added to a docs build you already have. The agent writes the workflow or the `pages` job and names the settings that stay yours (GitHub: Pages source *GitHub Actions*; GitLab: Pages visibility *Everyone*). |
 | "List this project in the Keep the Why registry." | A one-line pull request to the [registry](https://keepthewhy.com/registry/), so every published dashboard's globe can find your project. |
 
 ### By hand

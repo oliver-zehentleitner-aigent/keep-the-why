@@ -10,7 +10,7 @@ The skill is the one thing a project needs. Three components go beyond it, each 
 | The dashboard on the project's site | `keep-the-why-dashboard` exported into the project's docs site or its own GitHub Pages workflow, with the live badge | "The dashboard export", below |
 | A listing in the registry | one line in Keep the Why's registry, so the project can be found from the globe of every published dashboard | "The registry", below |
 
-**Know, offer, set up on request.** The agent knows how each one is set up, from this file. It offers one where it fits — the project wizard asks about the first two with the default *no*, and the registry is offered once, after the dashboard is published — and it sets one up only when the person says yes or asks for it, at setup or at any time later ("set up the linter workflow", "publish the dashboard on GitHub Pages", "list us in the registry"). Never on its own initiative, and a "defaults" answer to the wizard is not a yes to any of them. What the agent cannot do itself — a repository setting it has no access to — it names, with the place to do it.
+**Know, offer, set up on request.** The agent knows how each one is set up, from this file. It offers one where it fits — the project wizard asks about the first two with the default *no*, and the registry is offered once, after the dashboard is published — and it sets one up only when the person says yes or asks for it, at setup or at any time later ("set up the linter in CI", "publish the dashboard", "list us in the registry"). Never on its own initiative, and a "defaults" answer to the wizard is not a yes to any of them. What the agent cannot do itself — a repository setting it has no access to — it names, with the place to do it.
 
 ## The linter in CI
 
