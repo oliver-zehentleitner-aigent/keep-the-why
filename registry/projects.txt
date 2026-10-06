@@ -27,3 +27,4 @@ https://github.com/oliver-zehentleitner/unicorn-binance-websocket-api
 https://github.com/oliver-zehentleitner/unicorn-fy
 https://github.com/rapt0p7/scenegrid-console
 https://github.com/zyvop/zyvop-cli
+https://gitlab.com/oliver-zehentleitner/keep-the-why-demo
