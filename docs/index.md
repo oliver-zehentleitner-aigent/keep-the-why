@@ -242,8 +242,9 @@ Two branches that add entries merge like code. The index has a fixed `0`–`9`, 
 
 </div>
 
-<div class="ktw-hosts" aria-label="Git hosts">
-<div class="ktw-hosts__track">
+<div class="ktw-agents ktw-hosts" aria-label="Git hosts">
+<div class="ktw-agents__viewport">
+<div class="ktw-agents__track">
 <a class="ktw-agents__item" href="https://keepthewhy.com/faq/#hosts" aria-label="Keep the Why on GitHub" data-name="GitHub"><span class="ktw-agents__logo" role="img" aria-label="GitHub" style="-webkit-mask-image:url(/assets/third-party/hosts/github.svg);mask-image:url(/assets/third-party/hosts/github.svg)"></span></a>
 <a class="ktw-agents__item" href="https://keepthewhy.com/faq/#hosts" aria-label="Keep the Why on GitLab" data-name="GitLab"><span class="ktw-agents__logo" role="img" aria-label="GitLab" style="-webkit-mask-image:url(/assets/third-party/hosts/gitlab.svg);mask-image:url(/assets/third-party/hosts/gitlab.svg)"></span></a>
 <a class="ktw-agents__item" href="https://keepthewhy.com/faq/#hosts" aria-label="Keep the Why on Codeberg" data-name="Codeberg"><span class="ktw-agents__logo" role="img" aria-label="Codeberg" style="-webkit-mask-image:url(/assets/third-party/hosts/codeberg.svg);mask-image:url(/assets/third-party/hosts/codeberg.svg)"></span></a>
@@ -256,6 +257,7 @@ Two branches that add entries merge like code. The index has a fixed `0`–`9`, 
 <a class="ktw-agents__item" href="https://keepthewhy.com/faq/#hosts" aria-label="Keep the Why on Bitbucket" aria-hidden="true" tabindex="-1" data-name="Bitbucket"><span class="ktw-agents__logo" role="img" aria-label="Bitbucket" style="-webkit-mask-image:url(/assets/third-party/hosts/bitbucket.svg);mask-image:url(/assets/third-party/hosts/bitbucket.svg)"></span></a>
 <a class="ktw-agents__item" href="https://keepthewhy.com/faq/#hosts" aria-label="Keep the Why on Gitea" aria-hidden="true" tabindex="-1" data-name="Gitea"><span class="ktw-agents__logo" role="img" aria-label="Gitea" style="-webkit-mask-image:url(/assets/third-party/hosts/gitea.svg);mask-image:url(/assets/third-party/hosts/gitea.svg)"></span></a>
 <a class="ktw-agents__item" href="https://keepthewhy.com/faq/#hosts" aria-label="Keep the Why on Forgejo" aria-hidden="true" tabindex="-1" data-name="Forgejo"><span class="ktw-agents__logo" role="img" aria-label="Forgejo" style="-webkit-mask-image:url(/assets/third-party/hosts/forgejo.svg);mask-image:url(/assets/third-party/hosts/forgejo.svg)"></span></a>
+</div>
 </div>
 </div>
 

@@ -252,7 +252,9 @@
 }
 
 /* Agent marquee under the hero buttons: two copies of the list, the track
-   slides by half its width, so the loop is seamless. Pure CSS, no script. */
+   slides by half its width, so the loop is seamless. Pure CSS; marquee.js,
+   when it runs, takes the motion over for drag-to-scroll. The host row
+   further down reuses these classes. */
 .ktw-agents {
   margin: .6rem 0 0;
   max-width: 48rem;
@@ -295,6 +297,7 @@
   pointer-events: none;
 }
 .ktw-agents__track {
+  --ktw-strip: 1; /* read by marquee.js: 1 = moving strip, 0 = standing row */
   display: flex;
   gap: .9rem;
   width: max-content;
@@ -366,30 +369,35 @@
   mask-mode: luminance;
 }
 /* Git hosts under the "Git does the rest" cards: the same marks as the
-   dashboard's HOSTS table (Simple Icons, CC0). A standing, centered row
-   where the width allows; narrower than the row (six marks and five gaps,
-   17.5rem) the container query turns it into a strip that runs right to
-   left like the agent strip, with the list's second copy making the loop
-   seamless. The query is the measurement: no script. Simple Icons are
-   filled glyphs on a transparent 24×24 box, so the mask reads alpha and is
-   scaled down. The clip sits here, outside the query, on purpose: an
-   element never matches a query against itself, only its descendants do,
-   so a clip inside the @container block would never apply to .ktw-hosts
-   and the strip would widen the page. Clipping the standing row costs
-   nothing (it fits by definition); overflow-y stays visible for the hover
-   label, as on the agent strip. */
+   dashboard's HOSTS table (Simple Icons, CC0), in the agent strip's own
+   markup, so marquee.js drives both the same way (drag, hover pause). Six
+   marks do not fill a strip: where the width holds the row (six marks and
+   five gaps, 17.5rem) it stands centered, no motion, no fades, no second
+   copy; narrower than that the container query switches it to the strip —
+   the query is the measurement, and --ktw-strip tells the script which
+   mode the CSS chose. The query sits on .ktw-hosts and its rules address
+   descendants only: an element never matches a query against itself.
+   Simple Icons are filled glyphs on a transparent 24×24 box, so the mask
+   reads alpha and is scaled down to match the agents. */
 .ktw-hosts {
   container-type: inline-size;
-  position: relative;
-  overflow-x: clip;
-  overflow-y: visible;
   margin: 1.6rem 0 0;
+  max-width: none;
 }
-.ktw-hosts__track {
-  display: flex;
+.ktw-hosts .ktw-agents__viewport {
+  cursor: default;
+}
+.ktw-hosts .ktw-agents__viewport::before,
+.ktw-hosts .ktw-agents__viewport::after {
+  display: none;
+}
+.ktw-hosts .ktw-agents__track {
+  --ktw-strip: 0;
   flex-wrap: wrap;
   justify-content: center;
   gap: 1.4rem;
+  width: auto;
+  animation: none;
 }
 .ktw-hosts .ktw-agents__item[aria-hidden="true"] {
   display: none;
@@ -402,49 +410,39 @@
   mask-mode: alpha;
 }
 @container (max-width: 18rem) {
-  .ktw-hosts::before,
-  .ktw-hosts::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    bottom: -1rem;
-    width: 12%;
-    z-index: 1;
-    pointer-events: none;
+  .ktw-hosts .ktw-agents__viewport {
+    cursor: grab;
   }
-  .ktw-hosts::before {
-    left: 0;
-    background: linear-gradient(to right, var(--md-default-bg-color), transparent);
+  .ktw-hosts .ktw-agents__viewport--dragging {
+    cursor: grabbing;
   }
-  .ktw-hosts::after {
-    right: 0;
-    background: linear-gradient(to left, var(--md-default-bg-color), transparent);
+  .ktw-hosts .ktw-agents__viewport::before,
+  .ktw-hosts .ktw-agents__viewport::after {
+    display: block;
   }
-  .ktw-hosts__track {
+  .ktw-hosts .ktw-agents__track {
+    --ktw-strip: 1;
     flex-wrap: nowrap;
     justify-content: flex-start;
     width: max-content;
-    will-change: transform;
-    animation: ktw-hosts-scroll 40s linear infinite;
+    /* six marks at the agent strip's pace, roughly 24px/s */
+    animation: ktw-agents-scroll 16s linear infinite;
   }
-  .ktw-hosts:hover .ktw-hosts__track,
-  .ktw-hosts__track:focus-within {
-    animation-play-state: paused;
+  .ktw-hosts .ktw-agents__track--scripted {
+    animation: none;
   }
   .ktw-hosts .ktw-agents__item[aria-hidden="true"] {
     display: block;
   }
 }
-@keyframes ktw-hosts-scroll {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
 @keyframes ktw-agents-scroll {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
 }
+/* The .ktw-hosts selectors repeat so this outranks the container query's rules. */
 @media (prefers-reduced-motion: reduce) {
-  .ktw-agents__track, .ktw-hosts__track { animation: none; flex-wrap: wrap; width: auto; }
+  .ktw-agents__track, .ktw-hosts .ktw-agents__track { --ktw-strip: 0; animation: none; flex-wrap: wrap; width: auto; }
   .ktw-agents__item[aria-hidden="true"], .ktw-hosts .ktw-agents__item[aria-hidden="true"] { display: none; }
-  .ktw-agents__viewport::before, .ktw-agents__viewport::after, .ktw-hosts::before, .ktw-hosts::after { display: none; }
+  .ktw-agents__viewport::before, .ktw-agents__viewport::after,
+  .ktw-hosts .ktw-agents__viewport::before, .ktw-hosts .ktw-agents__viewport::after { display: none; }
 }
