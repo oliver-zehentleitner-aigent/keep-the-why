@@ -276,7 +276,7 @@ Two branches that add entries merge like code. The index has a fixed `0`–`9`, 
 
 <figure markdown>
 [![The Timeline: a clock every graph follows, the entries on a stage in perspective, the thoughts and the small graph beside](assets/dashboard-timeline-screenschot.png)](https://keepthewhy.com/dashboard/live/#timeline){ target=_blank rel=noopener }
-<figcaption>The timeline — the project day by day, the entries in perspective</figcaption>
+<figcaption>The timeline — the project day by day, the entries in perspective; press play</figcaption>
 </figure>
 
 </div>
