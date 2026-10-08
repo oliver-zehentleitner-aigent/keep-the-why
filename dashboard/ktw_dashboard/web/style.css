@@ -214,7 +214,9 @@ table.t tr.clickable { cursor: pointer; }
 .details .fill { flex: 1; min-height: 0; }
 .details .mini { position: relative; min-height: 220px; height: 100%; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); overflow: hidden; }
 .details .mini canvas { width: 100%; height: 100%; display: block; touch-action: pan-y; }
-.details .mini.tall { height: 320px; flex: none; }
+/* the small graph at the end of a long pane stays at the pane's bottom edge while the rest scrolls under it — always in view */
+.details .mini.tall { height: 320px; flex: none; position: sticky; bottom: 0; margin-top: auto; margin-bottom: -16px; box-shadow: 0 -10px 24px -6px color-mix(in srgb, var(--bg2) 85%, transparent), 0 0 0 16px var(--bg2); z-index: 2; }
+/* its resting place at the end of the pane is flush with the edge too (the pane's padding is swallowed), so reaching the end moves nothing */
 .details .mini .mini-hint { position: absolute; bottom: 6px; right: 8px; font-size: 10px; color: var(--fg3); pointer-events: none; }
 .details .mini .mini-title { position: absolute; top: 6px; left: 8px; font-size: 10px; color: var(--fg3); text-transform: uppercase; letter-spacing: .06em; pointer-events: none; }
 .details .legend-list { display: grid; gap: 6px; font-size: 12px; color: var(--fg2); }
@@ -242,7 +244,7 @@ table.t.findings td { font-size: 12.5px; } table.t.findings .mono { white-space:
 .graph-hint { position: absolute; bottom: 14px; right: 18px; font-size: 11px; color: var(--fg3); text-align: right; max-width: 40%; }
 .graph-toggle, .graph-hint-touch { display: none; } /* phones only, see the 900px block */
 
-.timeline svg { width: 100%; height: 260px; display: block; }
+.timeline svg { width: 100%; height: 130px; display: block; }
 .timeline .axis text { fill: var(--fg3); font-size: 10px; }
 .timeline .axis line { stroke: var(--line); }
 .timeline rect.b { cursor: pointer; }
@@ -312,7 +314,7 @@ kbd { font-family: var(--mono); font-size: 11px; background: var(--bg3); border:
   .main { padding: 16px 14px 32px; }
   .details { border-left: 0; border-top: 1px solid var(--line); padding: 14px; }
   .details .mini { min-height: 240px; height: 240px; }
-  .details .mini.tall { height: 280px; }
+  .details .mini.tall { height: 280px; position: static; box-shadow: none; margin-top: 0; margin-bottom: 0; }
   /* the graph gets the screen: switches and legend behind two buttons, opened one at a time, closed by touching the graph */
   .graph-wrap { height: 80vh; height: 80svh; min-height: 380px; margin: -16px -14px -32px; }
   .graph-ui { top: 46px; left: 10px; right: 10px; font-size: 12px; gap: 8px; padding: 8px 10px; max-height: calc(100% - 100px); overflow: auto; background: var(--bg2); box-shadow: 0 8px 28px rgba(0,0,0,.35); z-index: 3; }
@@ -323,6 +325,8 @@ kbd { font-family: var(--mono); font-size: 11px; background: var(--bg3); border:
   .graph-toggle { display: inline-block; position: absolute; left: 10px; z-index: 4; font: inherit; font-size: 12px; color: var(--fg); background: color-mix(in srgb, var(--bg2) 92%, transparent); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; }
   .graph-toggle[aria-expanded="true"] { border-color: var(--accent); color: var(--accent2); }
   .ui-toggle { top: 10px; }
+  .graph-wrap .graph-corner { bottom: 40px; right: 10px; }
+  .graph-wrap .graph-corner-fit { right: 64px; }
   .legend-toggle { bottom: 10px; }
   .graph-wrap.ui-open .path-bar { display: none; }
   .graph-hint { display: none; }
@@ -488,6 +492,9 @@ a.author:hover { color: var(--accent2); }
 .details .mini .mini-open { position: absolute; bottom: 5px; right: 6px; background: color-mix(in srgb, var(--bg2) 85%, transparent); border: 1px solid var(--line); border-radius: 5px; color: var(--fg2); font-size: 10.5px; padding: 2px 7px; cursor: pointer; }
 .details .mini .mini-open:hover { color: var(--fg); border-color: var(--accent); }
 .details .mini .mini-hint { right: auto; left: 8px; }
+.details .mini .mini-corner { position: absolute; bottom: 5px; right: 96px; display: inline-flex; gap: 4px; }
+.details .mini .mini-corner-btn { font: inherit; font-size: 10px; padding: 2px 7px; background: color-mix(in srgb, var(--bg2) 85%, transparent); border: 1px solid var(--line); border-radius: 5px; color: var(--fg2); cursor: pointer; }
+.details .mini .mini-corner-btn:hover { color: var(--fg); border-color: var(--accent); }
 
 /* the globe: the graph alone, full width; waves asked for in a dialog */
 /* desktop only: the phone layout is one column already, and these rules, more specific than
@@ -549,3 +556,82 @@ a.author:hover { color: var(--accent2); }
 .nojs li { margin: 3px 0; }
 .nojs .nojs-meta { color: var(--fg3); font-size: 13px; }
 .nojs-about { margin-top: 36px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--fg2); }
+
+/* ---- timeline: the playhead and the stage */
+.timeline .now { stroke: var(--accent2); stroke-width: 1.5; stroke-dasharray: 3 3; }
+.timeline .now-label { fill: var(--accent2); font-size: 10px; font-family: var(--mono); }
+.playhead { display: flex; align-items: center; gap: 10px; margin: 4px 0 16px; font-size: 12px; color: var(--fg2); flex-wrap: wrap; }
+.playhead .play-btn, .playhead .play-jump { font: inherit; font-size: 13px; line-height: 1; width: 30px; height: 28px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg2); color: var(--fg); cursor: pointer; }
+.playhead .play-btn { width: 36px; }
+.playhead .play-btn.on, .playhead .play-btn:hover, .playhead .play-jump:hover { border-color: var(--accent); color: var(--accent2); }
+.playhead .playhead-range { flex: 1 1 200px; min-width: 120px; accent-color: var(--accent); margin: 0; }
+.playhead .playhead-day { font-family: var(--mono); font-size: 13px; color: var(--fg); min-width: 84px; }
+.playhead .play-speed { font: inherit; font-size: 11px; background: var(--bg2); color: var(--fg); border: 1px solid var(--line); border-radius: 5px; padding: 3px 4px; }
+/* the counts on a line of their own, in tabular figures: as the days play their width changes, and nothing else may move with it */
+.playhead .playhead-counts { color: var(--fg3); white-space: nowrap; flex-basis: 100%; font-variant-numeric: tabular-nums; min-height: 1.4em; }
+.playhead .playhead-day { font-variant-numeric: tabular-nums; }
+.stage-wrap { position: relative; height: 480px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); overflow: hidden; margin: 14px 0 18px; }
+.stage-wrap canvas.stage { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+.stage-wrap canvas.stage.grabbing { cursor: grabbing; }
+.stage-wrap .stage-seg { position: absolute; top: 8px; right: 8px; display: inline-flex; gap: 2px; background: color-mix(in srgb, var(--bg2) 85%, transparent); border: 1px solid var(--line); border-radius: 5px; padding: 1px; z-index: 5; }
+.stage-wrap .stage-seg button { font: inherit; font-size: 10.5px; padding: 2px 7px; border: 0; border-radius: 4px; background: transparent; color: var(--fg2); cursor: pointer; white-space: nowrap; }
+.stage-wrap .stage-seg button.on { background: var(--accent); color: #fff; }
+.stage-wrap .stage-arrange { right: auto; left: 118px; }
+.stage-wrap .stage-foreign { right: auto; left: 290px; }
+.graph-wrap .graph-corner { position: absolute; bottom: 40px; right: 18px; z-index: 3; font: inherit; font-size: 10.5px; padding: 3px 9px; border: 1px solid var(--line); border-radius: 5px; background: color-mix(in srgb, var(--bg2) 85%, transparent); color: var(--fg2); cursor: pointer; }
+.graph-wrap .graph-corner:hover { border-color: var(--accent); color: var(--accent2); }
+.graph-wrap .graph-corner-fit { right: 72px; }
+.stage-wrap .stage-reset { position: absolute; top: 8px; right: 8px; z-index: 5; font: inherit; font-size: 10.5px; padding: 3px 9px; border: 1px solid var(--line); border-radius: 5px; background: color-mix(in srgb, var(--bg2) 85%, transparent); color: var(--fg2); cursor: pointer; }
+.stage-wrap .stage-reset:hover { border-color: var(--accent); color: var(--accent2); }
+.stage-wrap .stage-seg .seg-label { padding: 2px 4px 2px 7px; font-size: 10.5px; color: var(--fg3); }
+.stage-note { font-size: 11.5px; }
+.stage-note .stage-hint-touch { display: none; }
+.stage-tip { position: absolute; z-index: 3; pointer-events: none; max-width: 280px; background: color-mix(in srgb, var(--bg2) 94%, transparent); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; font-size: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.3); }
+.stage-tip b { display: block; color: var(--fg); margin-bottom: 2px; }
+.stage-tip .note, .stage-card .note { color: var(--fg3); font-size: 11px; }
+.stage-tip .pills, .stage-card .pills { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.timeline-head { display: grid; grid-template-columns: minmax(0, 1fr) clamp(280px, 42%, 420px); gap: 18px; align-items: stretch; margin-bottom: 0; }
+.timeline-head-text { min-width: 0; display: flex; flex-direction: column; justify-content: space-between; }
+.timeline-head-text .sub { margin-top: 0; }
+.timeline-head-text .timeline { margin: 6px 0 4px; }
+.timeline-head-text .legend { margin: 0 0 10px; font-size: 11.5px; }
+.timeline-head-text .playhead { margin-bottom: 0; }
+/* the card fills its slot and never sets the row's height — the column beside it does — so a short entry and a long one leave the stage where it is */
+.stage-card-slot { min-width: 0; position: relative; }
+/* head, title and pills at the top, the foot (who recorded it · let go · open) always at the bottom; only the text scrolls */
+.stage-card { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--bg2); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px 10px; font-size: 13px; }
+.stage-card .stage-card-body { flex: 1 1 auto; min-height: 2.6em; overflow: auto; margin: 8px 0 0; color: var(--fg2); line-height: 1.45; font-size: 12.5px; }
+.stage-card .stage-card-body p { margin: 0 0 8px; }
+.stage-card .stage-card-body p:last-child { margin-bottom: 0; }
+.stage-card .stage-card-body b { color: var(--fg); }
+.stage-card .stage-card-body code { font-size: 11px; }
+.stage-card .stage-card-foot { flex: none; }
+.stage-card .stage-card-head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.stage-card .stage-card-head .pill { flex: none; }
+.stage-card .stage-card-held { font: inherit; font-size: 11px; cursor: pointer; border-color: var(--accent); color: var(--accent2); }
+.stage-card .stage-card-held b { font-weight: 700; margin-left: 2px; }
+.stage-card .stage-card-held:hover { background: var(--accent); color: #fff; }
+.stage-card h3 { margin: 6px 0 0; font-size: 15px; line-height: 1.3; text-transform: none; letter-spacing: 0; color: var(--fg); }
+.stage-card h3 a { color: var(--fg); }
+.stage-card .stage-card-foot { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
+.stage-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 11.5px; color: var(--fg2); margin: -10px 0 6px; align-items: center; }
+.stage-legend .type-glyph { vertical-align: -1px; margin-right: 2px; }
+.stage-legend .sw { display: inline-block; width: 11px; height: 11px; vertical-align: -1px; margin-right: 4px; border: 1.2px solid currentColor; box-sizing: border-box; }
+.stage-legend .sw.solid { background: currentColor; }
+.stage-legend .sw.hatch { background: repeating-linear-gradient(135deg, currentColor 0 1px, transparent 1px 3.5px); }
+.stage-legend .sw.dashed { border-style: dashed; }
+.stage-legend .sw.ring { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.2px var(--open); }
+.stage-legend .grp { display: inline-flex; gap: 10px; align-items: center; }
+.stage-legend .grp + .grp { padding-left: 12px; border-left: 1px solid var(--line); }
+.stage-note { margin: 0 0 16px; }
+@media (max-width: 900px) {
+  .stage-wrap { min-height: 0; } /* the stage sets its own height from its width */
+  .stage-note .stage-hint { display: none; }
+  .stage-note .stage-hint-touch { display: inline; }
+  .timeline-head { grid-template-columns: 1fr; }
+  .stage-card-slot { height: 320px; }
+  /* the stage's switches on a phone: the day and reset on the first line, the two switches on a second */
+  .stage-wrap .stage-arrange { top: 36px; left: 8px; }
+  .stage-wrap .stage-foreign { top: 36px; left: 150px; }
+  .playhead .playhead-counts { white-space: normal; }
+}
