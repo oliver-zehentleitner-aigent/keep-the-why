@@ -235,9 +235,15 @@
   margin: 0 .2rem;
   opacity: .9;
 }
-/* desktop: placed after the repository's tag/stars/forks by the script; a little room to them */
+/* The header's order, right of the title: search, globe, repository, light/dark. Material renders the palette
+   toggle before the search and the repository after it; the header is a flex row, so the order is set here, not by
+   rewriting the partial — the script appends the globe and leaves the rest to this. */
+.md-header__inner > .md-search { order: 1; }
+.md-header__inner > .ktw-globe { order: 2; }
+.md-header__inner > .md-header__source { order: 3; }
+.md-header__inner > .md-header__option { order: 4; }
 @media screen and (min-width: 60em) {
-  .md-header__button.ktw-globe { margin-left: .6rem; }
+  .md-header__button.ktw-globe { margin: 0 .3rem 0 .4rem; }
 }
 .md-header__button.ktw-globe:hover,
 .md-header__button.ktw-globe:focus-visible { opacity: 1; }
