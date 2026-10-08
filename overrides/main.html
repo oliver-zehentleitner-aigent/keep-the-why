@@ -19,7 +19,7 @@
 
 {% block scripts %}
   {{ super() }}
-  {#- The globe in the header bar, before the search: the dashboard's 🌐 — every published Keep the Why project and how they cite each other. Material has no header-link option; a new tab, like the dashboard entry in the nav. -#}
+  {#- The globe in the header bar: the dashboard's 🌐 — every published Keep the Why project and how they cite each other. Material has no header-link option; a new tab, like the dashboard entry in the nav. Appended; its place (search, globe, repository, light/dark) is the header's flex order in extra.css. -#}
   <script>
     (function () {
       var inner = document.querySelector(".md-header__inner");
@@ -32,14 +32,7 @@
       a.title = "The globe: every published Keep the Why project and how they cite each other";
       a.setAttribute("aria-label", a.title);
       a.textContent = "🌐";
-      // desktop: at the far right, after the repository's tag/stars/forks; narrow screens: before the search
-      var wide = window.matchMedia("(min-width: 60em)");
-      var place = function () {
-        if (wide.matches) inner.appendChild(a);
-        else inner.insertBefore(a, inner.querySelector(".md-search") || inner.querySelector(".md-header__source"));
-      };
-      place();
-      wide.addEventListener("change", place);
+      inner.appendChild(a);
     })();
   </script>
   {#- The "See it in the dashboard" nav entry leaves the docs for the live export; open it in a new tab so the reader keeps their place. Material has no per-entry option for this. -#}
