@@ -6,7 +6,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Added
 
-- `keep-the-why-dashboard`, next release: the Projects cell of the Authors table is a table cell again — it had become a flex box, and its border ran apart from the row's.
+- `keep-the-why-dashboard` 0.9.1: the Projects cell of the Authors table is a table cell again — it had become a flex box, and its border ran apart from the row's.
 - `keep-the-why-dashboard` 0.9.0: the Authors view counts every project the page holds — this one, its family, the friends loaded into the graph, the path — in one table with the sums and a pill per project, each a link to that project's dashboard, and a table per project under it. A Git author's name that recurs across projects is one row; a name an export anonymized (author-1) says nothing across projects and stays a row per project. A line above the table says what was counted and offers to load the friends not here yet.
 - `keep-the-why-dashboard` 0.8.1: *3 hours /s* among the timeline's speeds, between an hour and a day.
 - `keep-the-why-dashboard` 0.8.0: the views in the sidebar run Overview, Queues, Graph, Thoughts, Timeline, Authors, Family, Friends, Projects — what one reads first, then how it connects, then who and where.
