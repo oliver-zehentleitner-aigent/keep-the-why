@@ -6,7 +6,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Added
 
-- `keep-the-why-dashboard`, next release: *3 hours /s* among the timeline's speeds, between an hour and a day.
+- `keep-the-why-dashboard` 0.8.1: *3 hours /s* among the timeline's speeds, between an hour and a day.
 - `keep-the-why-dashboard` 0.8.0: the views in the sidebar run Overview, Queues, Graph, Thoughts, Timeline, Authors, Family, Friends, Projects — what one reads first, then how it connects, then who and where.
 - `keep-the-why-dashboard` 0.8.0: the small graph at the end of the side pane (on an entry, a topic, the timeline) stays at the pane's bottom edge while the rest scrolls under it, so it is always in view; on a phone the pane is in the page's flow and nothing sticks.
 - `keep-the-why-dashboard` 0.8.0: the side pane's graph has *fit* and *reset* beside *full graph*, and the graph page the same two in its corner: fit the view (centred on the point the graph turns around while it turns), let go of the held thought.
