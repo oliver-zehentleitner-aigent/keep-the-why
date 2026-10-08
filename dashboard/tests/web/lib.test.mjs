@@ -489,3 +489,33 @@ test("stageHeight: the base at least, twice it at most, what the window leaves i
   assert.equal(stageHeight(500, 2000), 1000);
   assert.equal(stageHeight(100, 50), 220);
 });
+
+// authors across the loaded projects
+import { mergeAuthors } from "../../ktw_dashboard/web/lib.js";
+
+test("mergeAuthors: one row per name across projects with the sums, each project with its own numbers", () => {
+  const groups = [
+    { name: "alpha", canonical: "https://github.com/x/alpha", authors: [{ name: "Ann", created: 3, touched: 4, superseded: 1, first: "2026-02-01", last: "2026-03-01", evidence: { confirmed: 2, inferred: 1 } }, { name: "Bo", created: 1, touched: 1, superseded: 0, first: "2026-02-10", last: "2026-02-10", evidence: { confirmed: 1 } }] },
+    { name: "beta", canonical: "https://github.com/x/beta", authors: [{ name: "Ann", created: 2, touched: 2, superseded: 0, first: "2026-01-15", last: "2026-04-01", evidence: { unknown: 2 } }] },
+  ];
+  const rows = mergeAuthors(groups);
+  assert.deepEqual(rows.map((r) => r.label), ["Ann", "Bo"], "by entries created");
+  const ann = rows[0];
+  assert.equal(ann.created, 5); assert.equal(ann.touched, 6); assert.equal(ann.superseded, 1);
+  assert.equal(ann.first, "2026-01-15"); assert.equal(ann.last, "2026-04-01");
+  assert.deepEqual(ann.evidence, { confirmed: 2, inferred: 1, unknown: 2 });
+  assert.deepEqual(ann.per.map((p) => [p.project, p.created]), [["alpha", 3], ["beta", 2]]);
+  assert.equal(rows[1].per.length, 1);
+});
+
+test("mergeAuthors: an anonymized name stays one row per project, labelled with it", () => {
+  const groups = [
+    { name: "alpha", anonymized: true, authors: [{ name: "author-1", created: 2, evidence: {} }] },
+    { name: "beta", anonymized: true, authors: [{ name: "author-1", created: 1, evidence: {} }] },
+    { name: "gamma", authors: [{ name: "author-1", created: 1, evidence: {} }] }, // a real name that happens to read like one: its own row
+  ];
+  const rows = mergeAuthors(groups);
+  assert.deepEqual(rows.map((r) => r.label), ["author-1 (alpha)", "author-1", "author-1 (beta)"]);
+  assert.ok(rows[0].anonymized && !rows[1].anonymized);
+  assert.deepEqual(mergeAuthors([]), []);
+});

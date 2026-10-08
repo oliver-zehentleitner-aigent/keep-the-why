@@ -526,3 +526,27 @@ export function pushApart(items, { px, py, room, slice = 1.4 }) {
 }
 // the stage's box: as tall as the plane needs (`base`), up to twice that where the window has the room, never less
 export const stageHeight = (base, roomLeft) => Math.round(Math.max(220, Math.min(1400, Math.max(base, Math.min(2 * base, roomLeft)))));
+
+// ---------------------------------------------------------------- authors across the loaded projects
+// The Authors view over every project the page holds: this one, the family, the friends, the path. `groups` are
+// [{ name, canonical, anonymized, authors }] — a project's name, its address, whether its export anonymized the
+// names, and its authors as the state carries them. A Git author's name that recurs across projects is one row
+// with the sums, its projects listed with their own numbers; an anonymized name (author-1) is a stand-in that says
+// nothing across projects, so it stays one row per project, labelled with the project. Sorted by entries created.
+export function mergeAuthors(groups) {
+  const rows = new Map();
+  for (const G of groups) {
+    for (const a of G.authors || []) {
+      const key = G.anonymized ? `${a.name}\u0000${G.name}` : a.name;
+      const per = { project: G.name, canonical: G.canonical || "", created: a.created || 0, touched: a.touched || 0, superseded: a.superseded || 0, first: a.first || "", last: a.last || "" };
+      const cur = rows.get(key);
+      if (!cur) { rows.set(key, { name: a.name, label: G.anonymized ? `${a.name} (${G.name})` : a.name, anonymized: !!G.anonymized, created: per.created, touched: per.touched, superseded: per.superseded, first: per.first, last: per.last, evidence: { ...(a.evidence || {}) }, per: [per] }); continue; }
+      cur.created += per.created; cur.touched += per.touched; cur.superseded += per.superseded;
+      for (const [k, v] of Object.entries(a.evidence || {})) cur.evidence[k] = (cur.evidence[k] || 0) + v;
+      if (per.first && (!cur.first || per.first < cur.first)) cur.first = per.first;
+      if (per.last && (!cur.last || per.last > cur.last)) cur.last = per.last;
+      cur.per.push(per);
+    }
+  }
+  return [...rows.values()].sort((a, b) => b.created - a.created || a.label.localeCompare(b.label));
+}
