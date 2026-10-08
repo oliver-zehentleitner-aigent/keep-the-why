@@ -2,7 +2,7 @@
    The page knows only the state (see state.py): live from /api/events, or
    embedded as window.__KTW_STATE__ in an export. It renders; it never writes. */
 
-import { esc, plural, typeName, UUID_RE, isUuid, rawFileUrl, configLine, normalizeState, slug, hostFileLink, canonicalOf, parseSupersededBy, kindLabel, groupByFamily, searchTerms, searchHit, compareHits, snippetAt, highlight, resolveLocation, linkFamily, authorLookup, mergeStates, friendsOf, thoughtsOf, thoughtInsights, hostOf, backlinksUrl, citingOf, hostAnchor , todayISO, addDays, dayDiff, existsAt, statusAt, seeDay, supersededDay, linkExistsAt, daySpan, createdOn, TYPE_KINDS, TYPE_COLORS, typeKind, SHELF, stageCards, stageLinks, markLinked, stageLanes, logDepth, percentileBox, pushApart, stageHeight } from "./lib.js";
+import { esc, plural, typeName, UUID_RE, isUuid, rawFileUrl, configLine, normalizeState, slug, hostFileLink, canonicalOf, parseSupersededBy, kindLabel, groupByFamily, searchTerms, searchHit, compareHits, snippetAt, highlight, resolveLocation, linkFamily, authorLookup, mergeStates, friendsOf, thoughtsOf, thoughtInsights, hostOf, backlinksUrl, citingOf, hostAnchor , todayISO, addDays, dayDiff, existsAt, statusAt, seeDay, supersededDay, linkExistsAt, daySpan, createdOn, TYPE_KINDS, TYPE_COLORS, typeKind, SHELF, stageCards, stageLinks, markLinked, stageLanes, logDepth, percentileBox, pushApart, stageHeight, mergeAuthors } from "./lib.js";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const narrow = () => !!window.matchMedia?.("(max-width: 900px)").matches;
@@ -841,15 +841,59 @@ function viewQueues(main) {
     section("Revisit-when triggers", "The conditions on record. Whether one has fired is a human judgement; the dashboard cannot tell.", q.revisit),
   );
 }
+// The projects the page holds, each with its state and a link to its dashboard: this one, the family members
+// (the family scope's merge, or the family loaded beside the graph), the friends loaded into the graph with the
+// members their families brought, the projects of the path. One per canonical; this project first.
+function authorProjects() {
+  const out = []; const seen = new Set();
+  const add = (name, canonical, state, open, role) => { const k = fkey(canonical || name); if (!state || seen.has(k)) return; seen.add(k); out.push({ name, canonical: canonical || "", state, open, role, anonymized: !!state.anonymized }); };
+  add(SELF?.project?.id || SELF?.project?.name || "this project", canonicalOf(SELF?.project), SELF, "#authors", "self");
+  for (const G of (LAST_POOL?.groups || []).slice(1)) add(G.member?.name, G.member?.canonical || canonicalOf(G.state?.project), G.state, memberLink(G.member, "#authors"), "family");
+  for (const m of familyMembers()) add(m.name, m.canonical, m.state, m.open?.replace("#graph", "#authors") || "#graph", "family");
+  for (const r of Object.values(FRIENDS.loaded)) { if (!r?.state) continue; for (const m of r.members || [r]) add(m.name || repoLabel(m.canonical), m.canonical, m.state, (m.open || r.open || "").replace("#graph", "#authors") || null, "friend"); }
+  for (const t of TRAIL) add(t.name || repoLabel(t.canonical), t.canonical, t.state, t.url?.replace(/#.*$/, "#authors") || null, "path");
+  return out;
+}
+// the newest commit of an author among a state's entries, for the profile link on that project's host
+function authorCommitIn(name, state) {
+  let best = null;
+  for (const e of state?.entries || []) for (const c of [e.git?.created, e.git?.last_touched, ...(e.git?.status_history || [])]) if (c?.author === name && c.commit && (!best || (c.date || "") > (best.date || ""))) best = c;
+  return best?.commit || null;
+}
+// The Authors view: every Git author of every project the page holds — this one, the family, the friends, the
+// path — in one table with the sums and a pill per project, and a table per project under it. Names are Git
+// authors as the projects' .mailmap files map them; one name across projects is one row, an anonymized name
+// (author-1) a row per project. A click on a row filters every view to that author.
 function viewAuthors(main) {
-  const rows = S.authors;
-  main.append(el("h1", {}, "Authors"), el("p", { class: "sub" }, "Git authors of the entries — who created, touched, or superseded what. Git knows names, not who was driving."));
+  main.append(el("h1", {}, "Authors"), el("p", { class: "sub" }, "Git authors of the entries — who created, touched, or superseded what, in every project this page holds: this one, its family, the friends in the graph, the path. Git knows names, not who was driving."));
   if (!S.project.git?.available) return main.append(el("p", { class: "center" }, "No Git repository — nothing to attribute."));
-  const tbl = el("table", { class: "t" }, el("thead", {}, el("tr", {}, ["Author", "Created", "Touched", "Superseded", "Evidence of created entries", "First", "Last"].map((h) => el("th", {}, h)))),
-    el("tbody", {}, rows.map((a) => el("tr", { class: `clickable ${filter.author === a.name ? "sel" : ""}`, onclick: () => { filter.author = filter.author === a.name ? "" : a.name; rerender(); } },
-      el("td", {}, authorLink(a.name, ...authorCommit(a.name))), el("td", {}, a.created), el("td", {}, a.touched), el("td", {}, a.superseded),
-      el("td", {}, el("div", { style: "min-width:160px" }, stack(a.evidence, EV_ORDER))), el("td", { class: "mono" }, fmtDate(a.first)), el("td", { class: "mono" }, fmtDate(a.last))))));
-  main.append(el("div", { class: "table-wrap" }, tbl), el("p", { class: "note", style: "margin-top:10px" }, "Click a name to open the author's profile on the host; click elsewhere in the row to filter every view to that author, again to clear."));
+  const projects = authorProjects();
+  const rows = mergeAuthors(projects.map((P) => ({ name: P.name, canonical: P.canonical, anonymized: P.anonymized, authors: P.state.authors || [] })));
+  const byName = Object.fromEntries(projects.map((P) => [P.name, P]));
+  const projPill = (per) => { const P = byName[per.project]; const t = `${per.project}: ${per.created} created · ${per.touched} touched · ${per.superseded} superseded${per.first ? ` · ${per.first} → ${per.last}` : ""}`; return P?.open ? el("a", { class: "pill proj-pill", href: P.open, title: t, onclick: (ev) => ev.stopPropagation() }, per.project) : el("span", { class: "pill proj-pill", title: t }, per.project); };
+  const head = (cols) => el("thead", {}, el("tr", {}, cols.map((h) => el("th", {}, h))));
+  const numCells = (a) => [el("td", {}, a.created), el("td", {}, a.touched), el("td", {}, a.superseded), el("td", {}, el("div", { style: "min-width:160px" }, stack(a.evidence, EV_ORDER))), el("td", { class: "mono" }, fmtDate(a.first)), el("td", { class: "mono" }, fmtDate(a.last))];
+  const rowOf = (a, nameCell) => el("tr", { class: `clickable ${filter.author === a.name ? "sel" : ""}`, onclick: () => { filter.author = filter.author === a.name ? "" : a.name; rerender(); } }, nameCell, ...numCells(a));
+  // what was counted, and the friends not loaded yet
+  const g = graph || buildGraph(); const waiting = (g.friends || []).filter((f) => !FRIENDS.loaded[fkey(f.canonical)]);
+  const byRole = (role) => projects.filter((P) => P.role === role).map((P) => P.name);
+  main.append(el("p", { class: "note" }, `Counted: this project`, byRole("family").length ? ` · family: ${byRole("family").join(", ")}` : "", byRole("friend").length ? ` · friends: ${byRole("friend").join(", ")}` : "", byRole("path").length ? ` · path: ${byRole("path").join(", ")}` : "",
+    waiting.length ? [" · ", el("button", { type: "button", class: "link-btn", disabled: FRIENDS.loading, onclick: () => { setFriendsAuto(true); loadFriends(waiting).then(() => { if (location.hash === "#authors") render(); }); } }, FRIENDS.loading ? "loading the friends…" : `load the ${plural(waiting.length, "friend")} not here yet`)] : null));
+  const many = projects.length > 1;
+  const all = el("table", { class: "t" }, head(["Author", ...(many ? ["Projects"] : []), "Created", "Touched", "Superseded", "Evidence of created entries", "First", "Last"]),
+    el("tbody", {}, rows.map((a) => { const P = byName[a.per[0].project]; const link = a.anonymized ? el("span", {}, a.label) : authorLink(a.name, authorCommitIn(a.name, P?.state), P?.state?.project); return rowOf(a, [el("td", {}, link), ...(many ? [el("td", { class: "proj-pills" }, a.per.map(projPill))] : [])]); })));
+  main.append(el("div", { class: "table-wrap" }, all), el("p", { class: "note", style: "margin-top:10px" }, "Click a name to open the author's profile on the host; click elsewhere in the row to filter every view to that author, again to clear.", many ? " A name that recurs across projects is one row with the sums; a name an export anonymized (author-1) says nothing across projects and stays a row per project." : ""));
+  if (many) {
+    main.append(el("h2", {}, "By project"));
+    for (const P of projects) {
+      const prow = mergeAuthors([{ name: P.name, canonical: P.canonical, anonymized: P.anonymized, authors: P.state.authors || [] }]);
+      const d = el("details", { class: "authors-project", open: P.role === "self" });
+      d.append(el("summary", {}, el("span", { class: "tt" }, P.name), el("span", { class: "pill" }, P.role === "self" ? "this project" : P.role), el("span", { class: "count" }, plural(prow.length, "author")), P.open && P.role !== "self" ? el("a", { class: "backlink", href: P.open, onclick: (ev) => ev.stopPropagation() }, "open ›") : null));
+      d.append(el("div", { class: "table-wrap" }, el("table", { class: "t" }, head(["Author", "Created", "Touched", "Superseded", "Evidence of created entries", "First", "Last"]),
+        el("tbody", {}, prow.map((a) => rowOf(a, el("td", {}, P.anonymized ? el("span", {}, a.name) : authorLink(a.name, authorCommitIn(a.name, P.state), P.state.project))))))));
+      main.append(d);
+    }
+  }
   if (filter.author) main.append(el("h2", {}, `Entries created by ${filter.author}`), el("div", { class: "entry-list" }, S.entries.filter((e) => authorOf(e) === filter.author).map(entryRow)));
 }
 

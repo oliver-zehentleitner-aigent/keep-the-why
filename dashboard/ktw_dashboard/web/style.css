@@ -635,3 +635,16 @@ a.author:hover { color: var(--accent2); }
   .stage-wrap .stage-foreign { top: 36px; left: 150px; }
   .playhead .playhead-counts { white-space: normal; }
 }
+
+/* ---- authors across the loaded projects */
+.proj-pills { display: flex; flex-wrap: wrap; gap: 4px; }
+.proj-pills .proj-pill { font-size: 10.5px; }
+a.proj-pill:hover { border-color: var(--accent); color: var(--accent2); text-decoration: none; }
+.authors-project { margin: 10px 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg2); }
+.authors-project > summary { display: flex; align-items: center; gap: 10px; padding: 8px 12px; cursor: pointer; list-style: none; font-weight: 600; }
+.authors-project > summary::-webkit-details-marker { display: none; }
+.authors-project > summary::before { content: "▸"; color: var(--fg3); font-size: 11px; }
+.authors-project[open] > summary::before { content: "▾"; }
+.authors-project > summary .count { color: var(--fg3); font-weight: 400; font-size: 12px; }
+.authors-project > summary .backlink { margin-left: auto; font-weight: 400; font-size: 12px; }
+.authors-project > .table-wrap { padding: 0 12px 10px; }
