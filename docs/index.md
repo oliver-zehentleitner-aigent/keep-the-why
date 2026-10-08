@@ -267,9 +267,17 @@ Two branches that add entries merge like code. The index has a fixed `0`–`9`, 
 
 ## Live Dashboard
 
-<div class="ktw-shot" markdown>
+<div class="ktw-shots ktw-shots--two" markdown>
 
+<figure markdown>
 [![keep-the-why-dashboard: the graph of a project's context/, an entry with its Git history, and the queues of what still needs a person](assets/dashboard-screenschot.png)](https://keepthewhy.com/dashboard/live/){ target=_blank rel=noopener }
+<figcaption>The graph, an entry with its Git history, the queues</figcaption>
+</figure>
+
+<figure markdown>
+[![The Timeline: a clock every graph follows, the entries on a stage in perspective, the thoughts and the small graph beside](assets/dashboard-timeline-screenschot.png)](https://keepthewhy.com/dashboard/live/#timeline){ target=_blank rel=noopener }
+<figcaption>The timeline — the project day by day, the entries in perspective</figcaption>
+</figure>
 
 </div>
 
