@@ -42,6 +42,15 @@ Three ways projects and entries connect, from close to loose — each one read f
 <figcaption>A thought, read whole — open the Thoughts view live</figcaption>
 </figure>
 
+## The timeline
+
+The project day by day. A slider sets the day the page shows and every graph on the page follows it — what existed on that day, with the status it had then, and the `See` and `Superseded by` lines written by then. Under the clock a stage shows the same entries in perspective: time runs into the depth, the day shown is the near plane, what came before recedes; a card per entry in the colour and shape of its Type, filled by Evidence, edged by Status, standing where its node stands in the graph beside. Play the days and the project builds itself up, entry by entry, chain by chain; point at a thought in the pane and its chain lights up here and in the graph.
+
+<figure class="ktw-shot-small" markdown>
+[![The Timeline: the playhead and the card above, the stage with the entries in perspective, the thoughts and the small graph beside](assets/dashboard-timeline-screenschot.png)](https://keepthewhy.com/dashboard/live/#timeline){ target=_blank rel=noopener }
+<figcaption>The stage on this repository's own entries — open the Timeline live</figcaption>
+</figure>
+
 ## Run it
 
 ```bash
