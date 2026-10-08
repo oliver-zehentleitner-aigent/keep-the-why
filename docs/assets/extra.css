@@ -145,6 +145,7 @@
 
 /* dashboard screenshots: a row of three under the big one, one per idea on the dashboard page */
 .ktw-shots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: .4rem 0 1.2rem; }
+.ktw-shots--two { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 1rem; }
 .md-typeset .ktw-shots figure, .md-typeset .ktw-shot-small { margin: 0; max-width: 100%; }
 .md-typeset .ktw-shot-small { margin: .8rem 0 1.4rem; max-width: 40rem; }
 .ktw-shots img, .ktw-shot-small img { display: block; width: 100%; border-radius: .4rem; border: 1px solid var(--md-default-fg-color--lightest); box-shadow: 0 6px 18px rgba(0, 0, 0, .15); }

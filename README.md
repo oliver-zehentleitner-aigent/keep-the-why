@@ -255,9 +255,8 @@ The structural half of this format is mechanically checkable — in CI, and loca
 Reading it back has a tool too: [keep-the-why-dashboard](https://pypi.org/project/keep-the-why-dashboard/) (developed in this repository under `dashboard/`) is a read-only viewer over `context/`, the config, the linter's findings and the Git history of all of it — who created each entry, who last touched it, when its status changed — with a graph of topics and references that reaches into the project's [*family*](https://oliver-zehentleitner.github.io/unicorn-binance-suite/keep-the-why-dashboard/#family) and its [*friends*](https://keepthewhy.com/dashboard/live/#friends) — other repositories its entries cite — and finds the [*thoughts*](https://keepthewhy.com/dashboard/live/#thoughts) in it: chains of linked entries, each citing the one before, and where they pass an unconfirmed or questioned entry. Queues of what still needs a person, a timeline that plays the project day by day — every graph following the day, the entries on a stage in perspective — and an author view come with it. `ktw-dashboard` serves it locally and keeps it current while you work; `--export` writes one static page. It writes nothing into any project and holds nothing the repository doesn't; see [Dashboard](https://keepthewhy.com/dashboard/).
 
 <p align="center">
-  <a href="https://keepthewhy.com/dashboard/live/"><img src="https://keepthewhy.com/assets/dashboard-screenschot.png"
-       alt="keep-the-why-dashboard on this repository's own context/: the graph of topics and references, an entry with its Git history in the side pane, and the strip of what still needs a person"
-       width="900"></a>
+  <a href="https://keepthewhy.com/dashboard/live/"><img src="https://keepthewhy.com/assets/dashboard-screenschot.png" alt="keep-the-why-dashboard on this repository's own context/: the graph of topics and references, an entry with its Git history in the side pane, and the strip of what still needs a person" width="49%"></a>
+  <a href="https://keepthewhy.com/dashboard/live/#timeline"><img src="https://keepthewhy.com/assets/dashboard-timeline-screenschot.png" alt="The Timeline: a clock every graph follows, the entries on a stage in perspective, the thoughts and the small graph beside" width="49%"></a>
 </p>
 
 <p align="center">
