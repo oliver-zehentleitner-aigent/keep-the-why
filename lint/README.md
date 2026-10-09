@@ -124,7 +124,7 @@ Every finding code, with its meaning and severity: [Finding codes](https://keept
 
 Versioned as `<schema>.<revision>` — e.g. `0.10.1.0`. The first three segments are the newest skill schema this release knows every structural gate of; the fourth is the linter's own revision, bumped for linter-only changes (`0.10.1.1`). Every skill release is preceded by a linter release that knows the new version, even when nothing structural changed, so a project that updates the skill never lints against a linter that doesn't know its `context-schema`; `W003` warns when that happens anyway (a project ahead of the newest published linter), and [migrations](https://keepthewhy.com/migrations/) says whether an update matters.
 
-PEP 440, not strict SemVer — PyPI rejects the build-metadata spelling SemVer would use for this. Releases are tagged `lint-v<version>` in the repository, and the moving `lint-latest` tag — the ref the GitHub Action snippet uses — follows the newest one; both are created by the publish workflow only after a successful upload, never by hand.
+PEP 440, not strict SemVer — PyPI rejects the build-metadata spelling SemVer would use for this. Releases are tagged `lint-v<version>` in the repository, and the moving `lint-latest` tag — the ref the GitHub Action snippet uses — follows the newest one; both are created by the publish workflow only after a successful upload, never by hand. The upload itself goes through [trusted publishing](https://keepthewhy.com/security/#how-this-repository-is-protected): PyPI trusts that workflow, no token exists that could publish the package from anywhere else.
 
 ## What this is not
 
