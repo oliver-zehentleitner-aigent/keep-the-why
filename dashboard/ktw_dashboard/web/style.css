@@ -333,6 +333,8 @@ kbd { font-family: var(--mono); font-size: 11px; background: var(--bg3); border:
   .graph-hint-touch { display: block; position: absolute; bottom: 16px; right: 12px; font-size: 11px; color: var(--fg3); pointer-events: none; }
   .statusbar { height: auto; flex-wrap: wrap; padding: 6px 10px; gap: 4px 12px; line-height: 1.4; }
   .statusbar .grow { margin-left: 0; flex-basis: 100%; }
+  /* the state monitor on a phone: a sheet across the screen above the status bar, not a box hanging off its link to the right, out of the screen */
+  .loaded-pop { position: fixed; left: 10px; right: 10px; bottom: 96px; min-width: 0; max-width: none; max-height: 55vh; }
   .reader h1 { font-size: 20px; }
   .reader .body p, .reader .body ul, .reader .body ol { font-size: 14.5px; }
   .reader .pager { flex-wrap: wrap; gap: 8px; }
