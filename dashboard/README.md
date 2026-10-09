@@ -112,7 +112,7 @@ What that page looks like for this repository's own `context/`: [keepthewhy.com/
 
 ## Version scheme
 
-Versioned on its own counter — `0.1.0`, `0.1.1`, … — independently of the skill and of the linter: the dashboard reads whatever `context-schema` the installed linter understands, so a skill release does not force a dashboard release. It depends on `keep-the-why-lint` at or above the version it was tested with. Releases are tagged `dashboard-v<version>` in the repository, created by the publish workflow only after a successful PyPI upload, never by hand.
+Versioned on its own counter — `0.1.0`, `0.1.1`, … — independently of the skill and of the linter: the dashboard reads whatever `context-schema` the installed linter understands, so a skill release does not force a dashboard release. It depends on `keep-the-why-lint` at or above the version it was tested with. Releases are tagged `dashboard-v<version>` in the repository, created by the publish workflow only after a successful PyPI upload, never by hand. The upload itself goes through [trusted publishing](https://keepthewhy.com/security/#how-this-repository-is-protected): PyPI trusts that workflow, no token exists that could publish the package from anywhere else.
 
 ## What this is not
 

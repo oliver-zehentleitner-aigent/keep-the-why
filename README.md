@@ -19,6 +19,8 @@
 [![Mastodon](https://img.shields.io/badge/mastodon-%40keep__the__why-6364FF?logo=mastodon&logoColor=white)](https://mastodon.social/@keep_the_why)
 [![Keep the Why · live](https://keepthewhy.com/dashboard/live/badge-entries.svg)](https://keepthewhy.com/dashboard/live/)
 
+The three packages — `keep-the-why` on npm, `keep-the-why-lint` and `keep-the-why-dashboard` on PyPI — go out through [trusted publishing](https://keepthewhy.com/security/#how-this-repository-is-protected) only: each registry trusts this repository's release workflow, no token exists that could publish from anywhere else.
+
 <a href="https://keepthewhy.com"><img src="https://keepthewhy.com/assets/logo.png" alt="Keep the Why — because &quot;ask Bob&quot; is not documentation."></a>
 
 # Keep the Why
