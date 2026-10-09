@@ -5,6 +5,12 @@ description: keep-the-why-dashboard — a read-only live view over a project's c
 
 # Dashboard
 
+**Your agent is the interface.** You don't have to read this page to get the dashboard: tell your coding agent one sentence, and it installs the skill if it is missing, then writes the Pages workflow or the `pages` job and names the settings that stay yours — the [installation page](installation.md) has the whole picture.
+
+``` { .text .ktw-prompt }
+Install the Keep the Why skill if it isn't installed yet — pick the best installation method for you from https://keepthewhy.com/installation/ — then publish the Keep the Why dashboard.
+```
+
 `keep-the-why-dashboard` is a read-only viewer over what a Keep the Why project already has: the entries in `context/`, the config in `.keep-the-why`, the linter's findings, and the Git history of all of it — who created each entry, who last touched it, when its `Status` changed and by whom. And it does not stop at one project: projects can be connected — the repositories of a suite as a family, any entry citing an entry in another repository — and the dashboard draws those links as a graph you can walk, from your own projects into the ones they cite and back. The [globe](https://keepthewhy.com/dashboard/live/#globe){ target=_blank rel=noopener } goes further: out into every published project, wave by wave, and through the [registry](registry/index.md).
 
 It connects data that is already lying around. It writes nothing into any project, runs no daemon beyond the terminal you start it in, and is never a source of truth: delete it and nothing is lost. The one file it keeps is `~/.keep-the-why/projects.json`: where the projects you opened live on this machine, shared with the skill's own setup check, so the project menu can offer them again (a `dashboard-history.json` from before 0.2.0 is folded in and removed). That is what keeps it inside this project's own rule — [no new platform, database, daemon, account, or workflow](philosophy.md) — a lens on Markdown and Git, not a place where anything lives.
