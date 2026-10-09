@@ -83,8 +83,8 @@ nav:
   - Linting: linting.md
   - Dashboard: dashboard.md
   - Registry: registry/index.md
-  - Security: security.md
   - Badge: badge.md
+  - Security: security.md
   - FAQ: faq.md
   - Evals:
       - Full suite: evals.md
