@@ -1,5 +1,11 @@
 # Badges
 
+**Your agent is the interface.** The static badge below is a snippet to paste; the live ones need the project's published dashboard, and one sentence gets both — the agent installs the skill if it is missing, publishes the dashboard and puts the badge in the README. The [installation page](installation.md) has the whole picture.
+
+``` { .text .ktw-prompt }
+Install the Keep the Why skill if it isn't installed yet — pick the best installation method for you from https://keepthewhy.com/installation/ — then publish the Keep the Why dashboard and add its live badge to the README.
+```
+
 Three badges, one static and two live — take the one that fits, or two; one is enough. Plain SVG files at fixed URLs, nothing fetched from a badge service when a README is viewed. The project wizard offers the static one when a project starts with Keep the Why, and the live one once the dashboard is published with the docs — in place of the static one or next to it, your call. The two live ones are rendered by [the dashboard export](dashboard.md) on every docs build with the project's own numbers — *entries* and *open*, where open counts every entry that still needs a person.
 
 ## The static badge

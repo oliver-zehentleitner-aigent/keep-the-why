@@ -4,6 +4,12 @@ description: "The Keep the Why registry: published dashboard exports, listed by 
 
 # Registry
 
+**Your agent is the interface.** You don't have to read this page to get listed: tell your coding agent one sentence, and it installs the skill if it is missing, then opens the one-line pull request — the [installation page](../installation.md) has the whole picture. A listing needs the [published dashboard](../dashboard.md).
+
+``` { .text .ktw-prompt }
+Install the Keep the Why skill if it isn't installed yet — pick the best installation method for you from https://keepthewhy.com/installation/ — then list this project in the Keep the Why registry.
+```
+
 <p class="ktw-globe-link"><a href="https://keepthewhy.com/dashboard/live/#globe" title="Open the globe: the dashboard's graph, loading the registry and the web of citations in waves">🌐</a> <a href="https://keepthewhy.com/dashboard/live/#globe">Open the globe</a></p>
 
 A list of repositories with a published Keep the Why dashboard export, kept in [`registry/projects.txt`](https://github.com/oliver-zehentleitner/keep-the-why/blob/main/registry/projects.txt) and built into [`index.json`](https://keepthewhy.com/registry/index.json) with every deploy of this site, which the dashboard's globe reads.
