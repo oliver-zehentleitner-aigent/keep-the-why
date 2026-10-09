@@ -1,5 +1,11 @@
 # Linting (CI and local)
 
+**Your agent is the interface.** You don't have to read this page to get the linter: tell your coding agent one sentence, and it installs the skill if it is missing, then writes the workflow or CI job and names the settings that stay yours — the [installation page](installation.md) has the whole picture.
+
+``` { .text .ktw-prompt }
+Install the Keep the Why skill if it isn't installed yet — pick the best installation method for you from https://keepthewhy.com/installation/ — then set up the Keep the Why linter in CI.
+```
+
 Nothing in Keep the Why is enforced the way a compiler enforces correctness — that's stated plainly in "What this skill is not." Part of that gap *is* mechanically closable, though: whether every entry carries its required fields, whether the values are from the documented sets, whether `index.md` is complete and sorted, whether `.keep-the-why` is internally consistent. That part has a linter:
 
 **keep-the-why-lint** — [on PyPI](https://pypi.org/project/keep-the-why-lint/) as a package, [on the GitHub Marketplace](https://github.com/marketplace/actions/keep-the-why-lint) as an action, developed in this repository under [`lint/`](https://github.com/oliver-zehentleitner/keep-the-why/tree/main/lint). Python 3.10+, no dependencies beyond the standard library.
