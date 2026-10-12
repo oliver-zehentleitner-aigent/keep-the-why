@@ -17,6 +17,7 @@
 # nothing of yours.
 https://github.com/oliver-zehentleitner-aigent/ordersync
 https://github.com/oliver-zehentleitner/keep-the-why
+https://github.com/oliver-zehentleitner/lasteverLM
 https://github.com/oliver-zehentleitner/repo-native-project-memory
 https://github.com/oliver-zehentleitner/ubdcc-dashboard
 https://github.com/oliver-zehentleitner/unicorn-binance-depth-cache-cluster
