@@ -171,6 +171,9 @@ await go("#overview");
   const ctx = byText.context?.getAttribute("href") || "";
   const want = `${S.project.canonical.replace(/\/$/, "")}/tree/${encodeURIComponent(S.project.git?.branch || "HEAD")}/${[S.project.root, S.project.context].filter(Boolean).join("/").replace(/\/$/, "")}`;
   if (ctx !== want) errors.push(`overview: the context link is ${ctx}, expected ${want}`);
+  const cf = window.document.querySelector("main h3 a.config-file")?.getAttribute("href") || "";
+  const wantCf = `${S.project.canonical.replace(/\/$/, "")}/blob/${encodeURIComponent(S.project.git?.branch || "HEAD")}/${S.project.root ? S.project.root + "/" : ""}.keep-the-why`;
+  if (cf !== wantCf) errors.push(`overview: the .keep-the-why link is ${cf}, expected ${wantCf}`);
 }
 report.defaultMiniGraph = window.document.querySelectorAll("#details .mini canvas").length;
 // unknown evidence is its own axis: the strip counts every entry in force with Evidence unknown, open questions included

@@ -468,6 +468,11 @@ function markActive() {
 }
 
 // ---------------------------------------------------------------- views
+// the .keep-the-why file itself on the host, beside the card's heading — under the root in a mono repository
+function configFileLink(p) {
+  const href = hostFileLink(canonicalOf(p), p.git?.branch, p.root ? `${p.root.replace(/\/$/, "")}/` : "", p.config_file || ".keep-the-why", null);
+  return href ? [" ", extLink(href, p.config_file || ".keep-the-why", "mono note config-file")] : null;
+}
 // a Config value: the three that are addresses open where they point — canonical and dashboard-state as
 // written, context as the directory on the host (under the root in a mono repository); the rest is text
 function configValue(p, key, v) {
@@ -490,7 +495,7 @@ function viewOverview(main) {
       el("div", { class: "card" }, el("h3", {}, "Type"), bars(typeCounts(list), ["decision", "constraint", "workaround", "incident", "undefined"])),
       el("div", { class: "card" }, el("h3", {}, "Status"), bars(count(list, "status"), STATUS_ORDER)),
       el("div", { class: "card" }, el("h3", {}, "Evidence"), bars(count(list, "evidence"), EV_ORDER)),
-      el("div", { class: "card" }, el("h3", {}, "Config"), el("div", { class: "kv" }, Object.entries(p.config).map(([k, v]) => [el("span", { class: "k" }, k), configValue(p, k, v)])),
+      el("div", { class: "card" }, el("h3", {}, "Config", configFileLink(p)), el("div", { class: "kv" }, Object.entries(p.config).map(([k, v]) => [el("span", { class: "k" }, k), configValue(p, k, v)])),
         Object.keys(p.personal_defaults || {}).length ? [el("h3", {}, "Personal defaults offered"), el("div", { class: "kv" }, Object.entries(p.personal_defaults).map(([k, v]) => [el("span", { class: "k" }, k), el("span", { class: "v mono" }, v)]))] : null),
     ),
     el("h2", {}, "Topics"),

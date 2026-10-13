@@ -56,7 +56,7 @@ export function hostFileLink(canonical, branch, contextDir, file, anchor) {
   if (!canonical) return null;
   const base = canonical.replace(/\/$/, "");
   const ref = encodeURIComponent(branch && branch !== "HEAD" ? branch : "HEAD");
-  const path = `${contextDir || "context/"}${file}`;
+  const path = `${contextDir ?? "context/"}${file}`; // "" is a file at the repository root, such as .keep-the-why
   let seg;
   if (/^https:\/\/gitlab\./.test(base) || /\/-\//.test(base)) seg = `/-/blob/${ref}/`;
   else if (/^https:\/\/(codeberg\.org|gitea\.|forgejo\.)/.test(base)) seg = `/src/branch/${ref}/`;

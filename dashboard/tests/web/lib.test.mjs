@@ -36,6 +36,8 @@ test("hostFileLink knows the four host grammars and defaults to GitHub's", () =>
   assert.equal(hostFileLink("https://codeberg.org/acme/widget", null, "context/", "sync.md", "a"), "https://codeberg.org/acme/widget/src/branch/HEAD/context/sync.md#a");
   assert.equal(hostFileLink("https://bitbucket.org/acme/widget", "dev", "context/", "sync.md", ""), "https://bitbucket.org/acme/widget/src/dev/context/sync.md");
   assert.equal(hostFileLink("https://git.example.org/acme/widget", "feature/x", "context/", "sync.md", ""), "https://git.example.org/acme/widget/blob/feature%2Fx/context/sync.md");
+  assert.equal(hostFileLink("https://github.com/acme/widget", "main", "", ".keep-the-why", null), "https://github.com/acme/widget/blob/main/.keep-the-why"); // "" = the repository root
+  assert.equal(hostFileLink("https://github.com/acme/widget", "main", undefined, "sync.md", null), "https://github.com/acme/widget/blob/main/context/sync.md"); // unset = the default directory
   assert.equal(hostFileLink("", "main", "context/", "sync.md", "a"), null);
 });
 
