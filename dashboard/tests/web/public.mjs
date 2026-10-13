@@ -831,6 +831,18 @@ const report = {};
   if (byProject.join() !== "acme---web,docs,github.com/acme/suite,plugin") errors.push("authors (family): wrong projects under By project: " + byProject.join());
   if (![...main.querySelectorAll("table.t tbody td")].some((td) => /Docs Author/.test(td.textContent))) errors.push("authors (family): the docs member's author is missing from the table");
 }
+{
+  // open source on a member of a mono repository: the file under the member's root (docs/context/design.md), at the heading
+  const window = await open(`http://localhost/?public=${encodeURIComponent(`${GH}/suite`)}&root=docs#entry/${encodeURIComponent("design.md#docs-are-built-in-ci")}`);
+  await tick(300);
+  const src = window.document.querySelector("main .crumbs a.source-link")?.getAttribute("href") || "";
+  report.monoSourceLink = src;
+  if (src !== `${GH}/suite/blob/HEAD/docs/context/design.md#docs-are-built-in-ci`) errors.push("entry in a mono repository member: open source is " + src);
+  window.location.hash = "#topic/design.md"; window.dispatchEvent(new window.Event("hashchange")); await tick(200);
+  const tsrc = window.document.querySelector("main .crumbs a.source-link")?.getAttribute("href") || "";
+  if (tsrc !== `${GH}/suite/blob/HEAD/docs/context/design.md`) errors.push("topic in a mono repository member: open source is " + tsrc);
+  if (!window.document.querySelector("main .crumbs button.share-btn")) errors.push("topic in a mono repository member: no copy-link button");
+}
 console.log(JSON.stringify(report, null, 1));
 console.log("ERRORS:", errors.length); for (const e of errors) console.log("  " + e);
 process.exit(errors.length ? 1 : 0);

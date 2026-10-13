@@ -51,7 +51,7 @@ await go(`#topic/${S.topics[0].file}`);
   const main = window.document.querySelector("main");
   const src = main.querySelector(".crumbs a.source-link")?.getAttribute("href") || "";
   if (!main.querySelector(".crumbs button.share-btn")) errors.push("topic: no copy-link button");
-  if (!src.endsWith(`/${S.project.context}${S.topics[0].file}`) || !main.querySelector(".crumbs a.source-link svg.ext-icon")) errors.push("topic: the open-source link is missing or wrong: " + src);
+  if (!src.endsWith(`/${S.project.root ? S.project.root + "/" : ""}${S.project.context}${S.topics[0].file}`) || !main.querySelector(".crumbs a.source-link svg.ext-icon")) errors.push("topic: the open-source link is missing or wrong: " + src);
 }
 {
   // an entry's crumbs: the same two, open source with the heading's anchor on the host
@@ -60,7 +60,7 @@ await go(`#topic/${S.topics[0].file}`);
   const src = main.querySelector(".crumbs a.source-link")?.getAttribute("href") || "";
   report.sourceLinks = { topic: true, entry: src };
   if (!main.querySelector(".crumbs button.share-btn")) errors.push("entry: no copy-link button");
-  if (!new RegExp(`/${S.project.context}${S.entries[0].file}#.+$`).test(src)) errors.push("entry: the open-source link is missing or has no anchor: " + src);
+  if (!new RegExp(`/${S.project.root ? S.project.root + "/" : ""}${S.project.context}${S.entries[0].file}#.+$`).test(src)) errors.push("entry: the open-source link is missing or has no anchor: " + src);
 }
 report.topicMiniGraph = window.document.querySelectorAll("#details .mini canvas").length;
 // content, not only "something rendered": the views built for project families

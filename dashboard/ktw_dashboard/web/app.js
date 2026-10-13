@@ -629,8 +629,10 @@ function shareUrlFor(hash, project) {
 const shareUrlOf = (e) => shareUrlFor(entryHref(e), e.project);
 // the entry's or topic's file on the host, in the repository it lives in (a merged member's in its own)
 const hostProjectOf = (x) => x.origin?.state?.project || S.project;
-const entryHostHref = (e) => { const P = hostProjectOf(e); return hostFileLink(canonicalOf(P), P.git?.branch, P.context, e.localFile || e.file, hostAnchor(e.title)); }; // GitHub's anchor, not the entry id
-const topicHostHref = (t) => { const P = hostProjectOf(t); return hostFileLink(canonicalOf(P), P.git?.branch, P.context, t.localFile || t.file, null); };
+// the context directory as a path in the repository: under the root in a mono repository (core/context/)
+const hostContextDir = (P) => `${P.root ? P.root.replace(/\/$/, "") + "/" : ""}${P.context || "context/"}`;
+const entryHostHref = (e) => { const P = hostProjectOf(e); return hostFileLink(canonicalOf(P), P.git?.branch, hostContextDir(P), e.localFile || e.file, hostAnchor(e.title)); }; // GitHub's anchor, not the entry id
+const topicHostHref = (t) => { const P = hostProjectOf(t); return hostFileLink(canonicalOf(P), P.git?.branch, hostContextDir(P), t.localFile || t.file, null); };
 // "open source": the Markdown file on the host, beside the copy-link button; nothing without a canonical
 const sourceLink = (href) => href ? extLink(href, "open source", "share-btn source-link") : null;
 async function copyText(text) {
