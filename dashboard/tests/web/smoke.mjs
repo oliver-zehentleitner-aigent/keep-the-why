@@ -161,6 +161,17 @@ await tick(50); window.dispatchEvent(new window.Event("hashchange")); await tick
 report.searchPage = { hash: window.location.hash, rows: main.querySelectorAll(".search-page .row").length };
 if (!/^#search\/(project|family)\//.test(window.location.hash) || !report.searchPage.rows) errors.push("search: Enter did not open a results page with rows: " + JSON.stringify(report.searchPage));
 await go("#overview");
+{
+  // the Config card: canonical, dashboard-state and context open where they point, each marked as leaving the page
+  const links = [...window.document.querySelectorAll("main .kv a.ext")];
+  const byText = Object.fromEntries(links.map((a) => [a.previousSibling?.textContent, a]));
+  report.configLinks = Object.fromEntries(links.map((a) => [a.previousSibling?.textContent, a.getAttribute("href")]));
+  for (const k of ["canonical", "context"]) if (!byText[k]) errors.push(`overview: the Config value ${k} is not a link`);
+  if (links.some((a) => !a.querySelector("svg.ext-icon") || a.target !== "_blank")) errors.push("overview: a Config link lacks the icon or opens in this tab");
+  const ctx = byText.context?.getAttribute("href") || "";
+  const want = `${S.project.canonical.replace(/\/$/, "")}/tree/${encodeURIComponent(S.project.git?.branch || "HEAD")}/${[S.project.root, S.project.context].filter(Boolean).join("/").replace(/\/$/, "")}`;
+  if (ctx !== want) errors.push(`overview: the context link is ${ctx}, expected ${want}`);
+}
 report.defaultMiniGraph = window.document.querySelectorAll("#details .mini canvas").length;
 // unknown evidence is its own axis: the strip counts every entry in force with Evidence unknown, open questions included
 {

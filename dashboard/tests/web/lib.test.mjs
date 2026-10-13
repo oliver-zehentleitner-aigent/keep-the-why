@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  esc, plural, isUuid, rawFileUrl, configLine, normalizeState, slug, hostFileLink, canonicalOf,
+  esc, plural, isUuid, rawFileUrl, configLine, normalizeState, slug, hostFileLink, hostTreeLink, canonicalOf,
   parseSupersededBy, kindLabel, typeName, groupByFamily, searchTerms, searchHit, registryMatches, compareHits, snippetAt, highlight,
   resolveLocation, bodyProse, linkFamily, authorLookup, mergeStates, friendsOf, thoughtsOf, thoughtInsights, HOSTS, hostOf, backlinksUrl, citingOf, hostAnchor,
 } from "../../ktw_dashboard/web/lib.js";
@@ -37,6 +37,15 @@ test("hostFileLink knows the four host grammars and defaults to GitHub's", () =>
   assert.equal(hostFileLink("https://bitbucket.org/acme/widget", "dev", "context/", "sync.md", ""), "https://bitbucket.org/acme/widget/src/dev/context/sync.md");
   assert.equal(hostFileLink("https://git.example.org/acme/widget", "feature/x", "context/", "sync.md", ""), "https://git.example.org/acme/widget/blob/feature%2Fx/context/sync.md");
   assert.equal(hostFileLink("", "main", "context/", "sync.md", "a"), null);
+});
+
+test("hostTreeLink lists a directory in the same four grammars, the root of a mono repository included", () => {
+  assert.equal(hostTreeLink("https://github.com/acme/widget", "main", "context/"), "https://github.com/acme/widget/tree/main/context");
+  assert.equal(hostTreeLink("https://github.com/acme/mono/", "main", "packages/widget/context/"), "https://github.com/acme/mono/tree/main/packages/widget/context");
+  assert.equal(hostTreeLink("https://gitlab.com/group/widget", null, "docs/why"), "https://gitlab.com/group/widget/-/tree/HEAD/docs/why");
+  assert.equal(hostTreeLink("https://codeberg.org/acme/widget", "dev", "context"), "https://codeberg.org/acme/widget/src/branch/dev/context");
+  assert.equal(hostTreeLink("https://bitbucket.org/acme/widget", "feature/x", "context"), "https://bitbucket.org/acme/widget/src/feature%2Fx/context");
+  assert.equal(hostTreeLink("", "main", "context"), null);
 });
 
 test("rawFileUrl fetches at HEAD on every host, root prefixed", () => {

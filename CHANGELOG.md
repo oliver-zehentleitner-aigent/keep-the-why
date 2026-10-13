@@ -6,6 +6,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Added
 
+- `keep-the-why-dashboard` 0.11.3: in the Overview's Config card, `canonical`, `dashboard-state` and `context` are links, each with an "opens elsewhere" mark (a box with an arrow out of it) — the first two as written, `context` as the directory on the host, under the project's root in a mono repository (`…/tree/main/core/context`), in the host grammars `hostFileLink` already knows (GitHub, GitLab, Codeberg/Gitea/Forgejo, Bitbucket). The values were plain text.
 - Evals: the 0.20.2 series — 103, 103 and 104 of 104 across three consecutive full runs on the `v0.20.2` tag (2026-10-12, CLI 2.1.296, agent `claude-sonnet-5-5`, judge `claude-opus-5-5`), 102 cases 3/3, measured after the release and published as `docs/evals/0.20.2.md`. Every line of the series rule met; the two single flips are `personal-file-migrates-from-agents-local` (run 1) and `context-cache-is-read-only` (run 2), `organic-activation-no-config-proposes-nothing` 3 of 3 after its description sentence. Documented as it came out; nothing is worked on from it.
 
 ### Changed
