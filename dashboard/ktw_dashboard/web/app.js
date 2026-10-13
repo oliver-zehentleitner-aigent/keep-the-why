@@ -517,7 +517,7 @@ function viewTopic(main, file) {
   if (!t) return main.append(el("p", { class: "center" }, `No topic ${file}`));
   const list = entriesOf(file);
   main.append(
-    el("div", { class: "crumbs" }, el("a", { href: "#overview" }, "Overview"), " / ", t.file),
+    el("div", { class: "crumbs" }, el("a", { href: "#overview" }, "Overview"), " / ", t.file, copyLinkButton(shareUrlFor(`#topic/${t.file}`, t.project), "topic"), sourceLink(topicHostHref(t))),
     el("h1", {}, t.title),
     el("p", { class: "sub" }, t.index_line || "—"),
     el("div", { class: "grid2" },
@@ -616,22 +616,31 @@ function refLine(ref, label) {
 // The address to share an entry by: on a published page (an export, public mode) the page's own address; on
 // the live server — a local address nobody else can open — the project's published dashboard, from its
 // dashboard-state line, when it has one; the local address only as a last resort, and then said so.
-function shareUrlOf(e) {
+// the address to share for a hash on this page — an entry's or a topic's: the page itself when it is published,
+// else the project's published dashboard (its own entries and topics only), else this machine
+function shareUrlFor(hash, project) {
   const local = /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|\[?::1\]?$)/.test(location.hostname) || location.protocol === "file:";
-  const here = location.href.split("#")[0] + entryHref(e);
+  const here = location.href.split("#")[0] + hash;
   if (PUBLISHED() && !local) return { url: here, where: "this page" };
-  const st = e.project ? null : (SELF?.project?.dashboard_state || S?.project?.dashboard_state || "");
-  if (st && /^https:\/\//.test(st)) return { url: st.replace(/state\.json$/, "") + entryHref(e), where: "the project's published dashboard" };
+  const st = project ? null : (SELF?.project?.dashboard_state || S?.project?.dashboard_state || "");
+  if (st && /^https:\/\//.test(st)) return { url: st.replace(/state\.json$/, "") + hash, where: "the project's published dashboard" };
   return { url: here, where: local ? "this machine only — the project publishes no dashboard" : "this page" };
 }
+const shareUrlOf = (e) => shareUrlFor(entryHref(e), e.project);
+// the entry's or topic's file on the host, in the repository it lives in (a merged member's in its own)
+const hostProjectOf = (x) => x.origin?.state?.project || S.project;
+const entryHostHref = (e) => { const P = hostProjectOf(e); return hostFileLink(canonicalOf(P), P.git?.branch, P.context, e.localFile || e.file, hostAnchor(e.title)); }; // GitHub's anchor, not the entry id
+const topicHostHref = (t) => { const P = hostProjectOf(t); return hostFileLink(canonicalOf(P), P.git?.branch, P.context, t.localFile || t.file, null); };
+// "open source": the Markdown file on the host, beside the copy-link button; nothing without a canonical
+const sourceLink = (href) => href ? extLink(href, "open source", "share-btn source-link") : null;
 async function copyText(text) {
   try { await navigator.clipboard.writeText(text); return true; } catch { /* no clipboard API: the old way */ }
   const ta = el("textarea", { style: "position:fixed;opacity:0" }); ta.value = text; document.body.append(ta); ta.select();
   let ok = false; try { ok = document.execCommand("copy"); } catch {} ta.remove(); return ok;
 }
-function shareButton(e) {
-  const s = shareUrlOf(e);
-  const b = el("button", { type: "button", class: "share-btn", title: `copy a link to this entry — ${s.where}:\n${s.url}`,
+function shareButton(e) { return copyLinkButton(shareUrlOf(e), "entry"); }
+function copyLinkButton(s, what) {
+  const b = el("button", { type: "button", class: "share-btn", title: `copy a link to this ${what} — ${s.where}:\n${s.url}`,
     onclick: async () => { const ok = await copyText(s.url); b.textContent = ok ? "✓ copied" : "copy failed"; b.classList.toggle("done", ok); setTimeout(() => { b.textContent = "⧉ copy link"; b.classList.remove("done"); }, 1800); } }, "⧉ copy link");
   return b;
 }
@@ -644,7 +653,7 @@ function viewEntry(main, id) {
   const t = topicOf(e.file);
   INLINE_PROJECT = e.project || null;
   const r = el("div", { class: `reader ${e.status}` },
-    el("div", { class: "crumbs" }, el("a", { href: "#overview" }, "Overview"), " / ", el("a", { href: `#topic/${e.file}` }, t?.title || e.file), ` / line ${e.line}`, shareButton(e)),
+    el("div", { class: "crumbs" }, el("a", { href: "#overview" }, "Overview"), " / ", el("a", { href: `#topic/${e.file}` }, t?.title || e.file), ` / line ${e.line}`, shareButton(e), sourceLink(entryHostHref(e))),
     el("h1", { html: inline(e.title) }),
     el("div", { class: "fields" }, ...entryPills(e), e.source ? el("span", { class: "pill", html: `Source: ${inline(e.source)}` }) : null, e.verification ? el("span", { class: "pill", html: `Verification: ${inline(e.verification.split(/\s[—-]\s/)[0])}` }) : null),
     el("div", { class: "body", html: renderMarkdown(e.body.text || "_(no body)_") }),
@@ -1067,8 +1076,8 @@ function renderDetailsTopic(t) {
 function renderDetailsEntry(e) {
   const d = $("#details"); d.replaceChildren();
   const g = e.git;
-  const P = e.origin?.state?.project || S.project; // a merged member's entry lives in its own repository
-  const hostHref = hostFileLink(canonicalOf(P), P.git?.branch, P.context, e.localFile || e.file, hostAnchor(e.title)); // GitHub's anchor, not the entry id
+  const P = hostProjectOf(e); // a merged member's entry lives in its own repository
+  const hostHref = entryHostHref(e);
   d.append(el("h3", {}, "Entry"), el("div", { class: "kv" },
     e.uuid ? [el("span", { class: "k" }, "Id"), el("span", { class: "v mono", title: "the entry's address — what See and Superseded by lines resolve to" }, e.uuid)] : null,
     e.project ? [el("span", { class: "k" }, "project"), el("span", { class: "v" }, e.origin?.href ? el("a", { href: memberLink(e.origin.member, "#overview") }, e.project) : e.project)] : null,
