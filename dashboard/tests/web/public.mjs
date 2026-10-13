@@ -34,9 +34,9 @@ const FILES = {
   "https://raw.githubusercontent.com/acme/suite/HEAD/.keep-the-why": config("acme---suite", ["- dashboard-state: https://acme.github.io/suite/state.json"]),
   "https://acme.github.io/suite/state.json": state("acme---suite", { canonical: `${GH}/suite`, children: [{ name: "web", location: `${GH}/web`, scope: "the web UI" }, { name: "docs", location: "docs", scope: "the manual" }, { name: "cli", location: `${GH}/cli`, scope: "the command line" }] }, [entry("Release together", "Every package ships with the same needle version.", { uuid: SUITE_ID })]),
   "https://raw.githubusercontent.com/acme/suite/HEAD/docs/.keep-the-why": config("acme---suite---docs", ["- dashboard-state: https://acme.github.io/suite/docs/state.json"]),
-  "https://acme.github.io/suite/docs/state.json": state("acme---suite---docs", { canonical: `${GH}/suite`, root: "docs", parent: ".." }, [entry("Docs are built in CI", "No needle in a local build.")]),
+  "https://acme.github.io/suite/docs/state.json": { ...state("acme---suite---docs", { canonical: `${GH}/suite`, root: "docs", parent: ".." }, [entry("Docs are built in CI", "No needle in a local build.")]), authors: [{ name: "Docs Author", created: 1, touched: 1, superseded: 0, first: "2026-09-20", last: "2026-09-20", evidence: { confirmed: 1 } }] },
   "https://raw.githubusercontent.com/acme/web/HEAD/.keep-the-why": config("acme---web", ["- dashboard-state: https://acme.github.io/web/state.json"]),
-  "https://acme.github.io/web/state.json": state("acme---web", { canonical: `${GH}/web`, parent: `${GH}/suite`, children: [{ name: "plugin", location: `${GH}/plugin`, scope: "the plugin" }] }, [entry("Server-rendered pages", "The needle is not a single-page app.")]),
+  "https://acme.github.io/web/state.json": state("acme---web", { canonical: `${GH}/web`, parent: `${GH}/suite`, git: { available: true }, children: [{ name: "plugin", location: `${GH}/plugin`, scope: "the plugin" }] }, [entry("Server-rendered pages", "The needle is not a single-page app.")]),
   "https://raw.githubusercontent.com/acme/plugin/HEAD/.keep-the-why": config("acme---plugin", ["- dashboard-state: https://acme.github.io/plugin/state.json"]),
   "https://acme.github.io/plugin/state.json": state("acme---plugin", { canonical: `${GH}/plugin`, parent: `${GH}/web` }, [entry("Plugins load lazily", "A needle in the plugin.", { uuid: "5a1e5a1e-0000-4000-8000-000000000002", see: [{ remote: `${GH}/suite`, uuid: SUITE_ID, date: "2026-09-28" }] })]),
   "https://raw.githubusercontent.com/acme/cli/HEAD/.keep-the-why": config("acme---cli", []),
@@ -817,6 +817,19 @@ const report = {};
   if (!/cited by \(0\)/.test(t) || !/nothing in the registry cites this project/.test(t)) errors.push("cited by: a 404 should read as nothing citing: " + t);
   if (/registry not reached/.test(t)) errors.push("cited by: a 404 shown as a failure");
   window.close();
+}
+{
+  // the Authors view in the family scope counts every member — a member that shares the root's repository
+  // (a directory of it, root: docs) included: members are told apart by project id, not by repository alone
+  const window = await open(`http://localhost/?public=${encodeURIComponent(`${GH}/web`)}#authors`, html, { "ktw-scope": "family" });
+  await tick(400);
+  const main = window.document.querySelector("main");
+  const counted = main.querySelector("p.note")?.textContent || "";
+  const byProject = [...main.querySelectorAll("details.authors-project summary .tt")].map((e) => e.textContent).sort();
+  report.authorsFamily = { counted, byProject };
+  if (!/family: .*\bdocs\b/.test(counted)) errors.push("authors (family): the docs member, a directory of the suite's repository, is not counted: " + counted);
+  if (byProject.join() !== "acme---web,docs,github.com/acme/suite,plugin") errors.push("authors (family): wrong projects under By project: " + byProject.join());
+  if (![...main.querySelectorAll("table.t tbody td")].some((td) => /Docs Author/.test(td.textContent))) errors.push("authors (family): the docs member's author is missing from the table");
 }
 console.log(JSON.stringify(report, null, 1));
 console.log("ERRORS:", errors.length); for (const e of errors) console.log("  " + e);

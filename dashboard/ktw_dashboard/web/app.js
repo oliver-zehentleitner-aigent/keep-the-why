@@ -843,10 +843,11 @@ function viewQueues(main) {
 }
 // The projects the page holds, each with its state and a link to its dashboard: this one, the family members
 // (the family scope's merge, or the family loaded beside the graph), the friends loaded into the graph with the
-// members their families brought, the projects of the path. One per canonical; this project first.
+// members their families brought, the projects of the path. One per project — its id beside its canonical, since
+// the isolated sub-projects of one repository share the canonical and differ by id; this project first.
 function authorProjects() {
   const out = []; const seen = new Set();
-  const add = (name, canonical, state, open, role) => { const k = fkey(canonical || name); if (!state || seen.has(k)) return; seen.add(k); out.push({ name, canonical: canonical || "", state, open, role, anonymized: !!state.anonymized }); };
+  const add = (name, canonical, state, open, role) => { const k = `${fkey(canonical || name)}\u0000${state?.project?.id || ""}`; if (!state || seen.has(k)) return; seen.add(k); out.push({ name, canonical: canonical || "", state, open, role, anonymized: !!state.anonymized }); };
   add(SELF?.project?.id || SELF?.project?.name || "this project", canonicalOf(SELF?.project), SELF, "#authors", "self");
   for (const G of (LAST_POOL?.groups || []).slice(1)) add(G.member?.name, G.member?.canonical || canonicalOf(G.state?.project), G.state, memberLink(G.member, "#authors"), "family");
   for (const m of familyMembers()) add(m.name, m.canonical, m.state, m.open?.replace("#graph", "#authors") || "#graph", "family");

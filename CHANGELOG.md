@@ -16,6 +16,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Fixed
 
+- `keep-the-why-dashboard` 0.11.2: the Authors view in the family scope counts every member of a family that lives in one repository — the isolated sub-projects of a mono repository, which share the root's `canonical` and differ by id. The view told the projects apart by repository URL alone, so such members collapsed into the root and only its authors were listed, while the header's count, which comes from the merged state, already said seven; the view now keys a project by its id beside its URL. The public-mode test gives the `docs` member of the suite an author and checks it is counted.
 - `keep-the-why-dashboard` 0.11.1: an entry's `Source`, `Verification` and `Revisit when` are rendered as inline Markdown in the reader's pills and in the side pane — a `[#192](https://…)` link is a link, code is code — as the body and the title already were; the side pane showed the raw `[text](url)`.
 
 ## [0.20.2] - 2026-10-12
