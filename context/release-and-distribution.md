@@ -289,7 +289,7 @@ The consumer snippet references the root composite action as `uses: oliver-zehen
 **Evidence:** inferred
 **Verification:** uncorroborated
 **Source:** HOL scanner run on PR #350, 2026-09-09 (info finding `CODEXIGNORE_MISSING`); local reproduction on a clean export with scanner 3.0.133
-**Revisit when:** Codex documents an ignore file for plugin packaging or agent reads — then the file's content matters and the "Lean Codex plugin" idea in `TODO.md` becomes actionable
+**Revisit when:** Codex documents an ignore file for plugin packaging or agent reads — then the file's content matters, and the docs, linter, evals and experiments could be kept out of the roughly 13 MB `codex plugin add` copies today
 
 A `.codexignore` at the repository root lists local state and build output, the same patterns as `.gitignore`. The scanner's check is existence only (`check_codexignore` in hol-guard's `best_practices.py`): three points in the Codex ecosystem's Best Practices row, the score moves from 92 to 94.
 
