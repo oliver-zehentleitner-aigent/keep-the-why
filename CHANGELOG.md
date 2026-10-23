@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added
+
+- `keep-the-why-dashboard` 0.11.14: a family badge. The export of a family root whose members all live in its own repository — a mono repository like a root with `hub/`, `web/` and `cli/` children — writes `badge-family.svg` and `badge-family-flat.svg` beside its own two, with the whole family's numbers: *120 entries · 4 open · 4 projects*. The badge page offers them next to the project's own. A member named by URL, outside the repository, missing or in a nested repository keeps them from being written, and the badge page names it and says why — its numbers are not there at export time, and a total without it would be wrong.
+
 ### Changed
 
 - `context/release-and-distribution.md`, the shell-fence entry: Snyk on skills.sh has warned (medium, W011) since 0.20.1; the entry still said Socket and Snyk pass.

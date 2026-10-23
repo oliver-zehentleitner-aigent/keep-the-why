@@ -3545,6 +3545,12 @@ function renderBadges() {
   const base = /^https:\/\//.test(st) ? st.replace(/state\.json$/, "") : "";
   const list = [{ name: "Keep the Why", img: "https://keepthewhy.com/assets/badge.svg", href: "https://keepthewhy.com", alt: "Keep the Why" }];
   if (base) list.push({ name: "live", img: `${base}badge-entries.svg`, href: base, alt: "Keep the Why · live" }, { name: "live, flat", img: `${base}badge-entries-flat.svg`, href: base, alt: "keep the why" });
+  // a family root whose members all live in this repository: the family's numbers, from the same export
+  const fam = (SELF || S).project?.family_badge;
+  if (base && fam && !fam.missing?.length) list.push({ name: "family", img: `${base}badge-family.svg`, href: base, alt: "Keep the Why · family" }, { name: "family, flat", img: `${base}badge-family-flat.svg`, href: base, alt: "keep the why · family" });
+  const famNote = fam?.missing?.length
+    ? el("p", { class: "note" }, `No family badge: ${fam.missing.map((m) => `${m.name} (${m.reason})`).join(", ")} — a member outside this repository has no numbers when this project is exported, and a total without it would be wrong.`)
+    : null;
   const field = (label, text) => {
     const b = el("button", { type: "button", class: "link-btn", onclick: async () => { const ok = await copyText(text); b.textContent = ok ? "✓" : "✗"; setTimeout(() => { b.textContent = "copy"; }, 1500); } }, "copy");
     return el("div", { class: "badge-field" }, el("span", { class: "note" }, label), el("input", { type: "text", readonly: true, value: text, onfocus: (ev) => ev.target.select() }), b);
@@ -3554,7 +3560,7 @@ function renderBadges() {
       el("a", { href: x.href, target: "_blank", rel: "noopener" }, el("img", { src: x.img, alt: x.alt })),
       field("MD", `[![${x.alt}](${x.img})](${x.href})`),
       field("HTML", `<a href="${x.href}"><img alt="${x.alt}" src="${x.img}"></a>`))),
-    base ? null : el("p", { class: "note" }, "The live badges come with a published export — a dashboard-state line in .keep-the-why."));
+    base ? null : el("p", { class: "note" }, "The live badges come with a published export — a dashboard-state line in .keep-the-why."), famNote);
 }
 function applyState(state) {
   SELF = state; S = state;

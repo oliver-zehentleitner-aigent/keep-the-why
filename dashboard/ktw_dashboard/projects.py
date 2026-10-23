@@ -27,6 +27,8 @@ import re
 import time
 from dataclasses import asdict, dataclass
 
+from . import gitinfo
+
 _ID_RE = re.compile(r"^-\s*id:\s*(\S+)\s*$", re.M)
 _CANONICAL_RE = re.compile(r"^-\s*canonical:\s*(\S+)\s*$", re.M)
 _ROOT_RE = re.compile(r"^-\s*root:\s*`?([^`\s]+)`?\s*$", re.M)
@@ -350,6 +352,60 @@ def _fetch_commands(canonical: str, pid: str, root: str = "") -> dict:
             f"git -C {cache} sparse-checkout add {prefix}context"
         ),
     }
+
+
+def same_repo_family(path: str) -> dict | None:
+    """The family below the project at `path`, when `path` is a family's
+    root (a children block, no parent): every member the children blocks
+    name, level by level, with what keeps one from counting here.
+
+    A member counts when it sits in the root's own Git repository — a path
+    location inside the same top level, with a `.keep-the-why` there and
+    no repository of its own (a submodule, a nested clone). A member named
+    by URL, or one outside the top level, lives in another repository: its
+    numbers are not on this disk, so `missing` names it with the reason.
+    {members: [{name, path}], missing: [{name, location, reason}]}, the
+    paths relative to `path`; None for a project that is no family root."""
+    cfg = read_project_config(path)
+    if not cfg or not cfg["children"] or cfg["parent"]:
+        return None
+    root = os.path.realpath(path)
+    top = gitinfo.toplevel(root)
+    members, missing = [], []
+    seen = {root}
+    queue = [(root, cfg["children"])]
+    while queue:
+        base, children = queue.pop(0)
+        for ch in children:
+            loc = ch["location"]
+            target = os.path.realpath(os.path.join(base, loc))
+            if "://" in loc:
+                reason = "named by URL — another repository"
+            elif not top:
+                reason = "the root is not in a Git repository"
+            elif os.path.commonpath([top, target]) != top:
+                reason = "outside this repository"
+            elif target in seen:
+                continue
+            elif (sub := read_project_config(target)) is None:
+                reason = "no .keep-the-why at that location"
+            elif gitinfo.toplevel(target) != top:
+                reason = "a Git repository of its own"
+            else:
+                reason = ""
+            if reason:
+                missing.append({"name": ch["name"], "location": loc, "reason": reason})
+                continue
+            seen.add(target)
+            members.append(
+                {
+                    "name": ch["name"],
+                    "path": os.path.relpath(target, root).replace(os.sep, "/"),
+                }
+            )
+            if sub["children"]:
+                queue.append((target, sub["children"]))
+    return {"members": members, "missing": missing}
 
 
 def _locate(location: str, base: str, projects: list["Project"]):

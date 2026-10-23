@@ -25,6 +25,7 @@ from ktw_lint.entries import KNOWN_FIELDS, parse_topic_text
 from ktw_lint.findings import ERROR
 
 from . import __version__, gitinfo
+from .projects import same_repo_family
 
 GUARD_FILES = {"index.md", "README.md", "AGENTS.md", "CLAUDE.md"}
 _H1_RE = re.compile(r"^#\s+(.*?)\s*$")
@@ -257,6 +258,9 @@ class StateBuilder:
                     "dashboard-state", ""
                 ),
                 "children": _children_list(parsed.children if parsed else None),
+                # a family root whose members all live in this repository gets
+                # a family badge at export; `missing` says who keeps it from one
+                "family_badge": same_repo_family(self.root),
                 "git": self._repo_dict(
                     repo,
                     _config_dict(parsed.config if parsed else None).get(

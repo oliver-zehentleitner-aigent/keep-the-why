@@ -1,8 +1,9 @@
 """Static export: one self-contained index.html with the state embedded,
 state.json next to it (without the entries' bodies, which go to
-state.body.json beside it — see split_bodies), and two badges with the project's numbers — a static SVG each, in the project's
-numbers, for a README to link to this export. No server, no external
-requests, no badge service in between."""
+state.body.json beside it — see split_bodies), and two badges with the
+project's numbers, a static SVG each, for a README to link to this export —
+four on a family root whose members all live in this repository (see
+family_state). No server, no external requests, no badge service in between."""
 
 from __future__ import annotations
 
@@ -185,12 +186,16 @@ _NEEDS_A_PERSON = ("open", "needs-review", "pending-confirmation")
 
 
 def badge_text(state: dict) -> str:
-    """`42 entries · 3 open` — what still needs a person counts as open."""
+    """`42 entries · 3 open` — what still needs a person counts as open; a
+    family's state (see family_state) adds `· 4 projects`."""
     entries = state.get("entries", [])
     total = len(entries)
     open_ = sum(1 for e in entries if e.get("status") in _NEEDS_A_PERSON)
     noun = "entry" if total == 1 else "entries"
-    return f"{total} {noun} · {open_} open"
+    text = f"{total} {noun} · {open_} open"
+    if "projects" in state:
+        text += f" · {state['projects']} projects"
+    return text
 
 
 def _svg_escape(text: str) -> str:
@@ -270,6 +275,29 @@ BADGES = {
     "badge-entries-flat.svg": render_badge_flat,
 }
 
+# the same two for a family whose members all live in this repository,
+# written by the family root's export only (see family_state)
+FAMILY_BADGES = {
+    "badge-family.svg": render_badge_ktw,
+    "badge-family-flat.svg": render_badge_flat,
+}
+
+
+def family_state(builder, state: dict) -> dict | None:
+    """The numbers of the whole family, for the family badges: the root's
+    entries and every member's, each member read from this checkout the way
+    its own export reads it. Only for a family root none of whose members
+    is missing — a member in another repository has no numbers on this
+    disk, and a total without it would be a wrong number, not a smaller one."""
+    fam = state["project"].get("family_badge")
+    if not fam or fam["missing"]:
+        return None
+    entries = list(state["entries"])
+    for m in fam["members"]:
+        member = type(builder)(os.path.join(builder.root, m["path"]))
+        entries += member.build()["entries"]
+    return {"entries": entries, "projects": 1 + len(fam["members"])}
+
 
 BODIES_FILE = "state.body.json"
 
@@ -311,7 +339,11 @@ def export(builder, out_dir: str) -> str:
         json.dump(lean, fh, ensure_ascii=False, indent=1)
     with open(os.path.join(out_dir, BODIES_FILE), "w", encoding="utf-8") as fh:
         json.dump(bodies, fh, ensure_ascii=False, indent=1)
-    for name, render in BADGES.items():
+    badges = {name: (render, state) for name, render in BADGES.items()}
+    fam = family_state(builder, state)
+    if fam is not None:
+        badges.update({name: (render, fam) for name, render in FAMILY_BADGES.items()})
+    for name, (render, numbers) in badges.items():
         with open(os.path.join(out_dir, name), "w", encoding="utf-8") as fh:
-            fh.write(render(state))
+            fh.write(render(numbers))
     return index

@@ -65,3 +65,21 @@ For a badge row in the flat style the badge services draw, where the styled one 
     ```
 
 Both live badges are static SVG written by the export: as current as the docs build, no request to any service when a README is viewed. Before dashboard 0.4.0 the export wrote one badge, `badge.svg`, in the flat style; it is gone — a README that still names it shows a broken image until the line names one of the two above.
+
+## A family's numbers: `badge-family.svg`
+
+A family that lives in one repository — a root `.keep-the-why` with children in subdirectories, like `hub/`, `web/` and `cli/`, exported in one docs build — gets a third and fourth badge from the root's export: `badge-family.svg` in Keep the Why's style and `badge-family-flat.svg` flat, with the entries and open entries of the root and every member added up, and the number of projects — *120 entries · 4 open · 4 projects*. They sit beside the root's own two badges and link to the root's dashboard.
+
+=== "Markdown"
+
+    ```markdown
+    [![Keep the Why · family](https://example.org/keep-the-why-dashboard/badge-family.svg)](https://example.org/keep-the-why-dashboard/)
+    ```
+
+=== "HTML"
+
+    ```html
+    <a href="https://example.org/keep-the-why-dashboard/"><img alt="Keep the Why · family" src="https://example.org/keep-the-why-dashboard/badge-family.svg"></a>
+    ```
+
+Only when every member is in the root's repository: a member named by URL, outside the repository, not checked in, or in a nested repository of its own has no numbers on the disk when the root is exported, so no family badge is written — a total without that member would be wrong. The dashboard's badge list names the member and the reason instead.

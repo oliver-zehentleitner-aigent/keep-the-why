@@ -795,6 +795,29 @@ const report = {};
   window.close();
 }
 {
+  // the family badges: offered on a family root whose members all live in its repository, a note naming who keeps them away otherwise
+  const suite = { ...FILES["https://acme.github.io/suite/state.json"], exported: true };
+  const embed = (s) => html.replace("<script>", `<script>window.__KTW_STATE__ = ${JSON.stringify(s).replace(/</g, "\\u003c")};</script><script>`);
+  const withFamily = (family_badge) => embed({ ...suite, project: { ...suite.project, dashboard_state: "https://acme.github.io/suite/keep-the-why-dashboard/state.json", family_badge } });
+  let window = await open("http://localhost:8765/#overview", withFamily({ members: [{ name: "docs", path: "docs" }], missing: [] }));
+  await tick(300);
+  let items = [...window.document.querySelectorAll("#badges-pop .badge-item")];
+  const md = items.map((x) => x.querySelector(".badge-field input")?.value);
+  report.familyBadges = md.slice(3);
+  if (items.length !== 5) errors.push("family badges: expected five badges on a same-repository family root, got " + items.length);
+  if (md[3] !== "[![Keep the Why · family](https://acme.github.io/suite/keep-the-why-dashboard/badge-family.svg)](https://acme.github.io/suite/keep-the-why-dashboard/)") errors.push("family badges: the family badge's Markdown is wrong: " + md[3]);
+  if (!/badge-family-flat\.svg/.test(md[4] || "")) errors.push("family badges: the flat family badge is missing");
+  window.close();
+  window = await open("http://localhost:8765/#overview", withFamily({ members: [{ name: "docs", path: "docs" }], missing: [{ name: "web", location: `${GH}/web`, reason: "named by URL — another repository" }] }));
+  await tick(300);
+  items = [...window.document.querySelectorAll("#badges-pop .badge-item")];
+  const note = [...window.document.querySelectorAll("#badges-pop p.note")].map((p) => p.textContent).join(" ");
+  report.familyBadgeNote = note;
+  if (items.length !== 3) errors.push("family badges: a member in another repository should leave the three own badges, got " + items.length);
+  if (!/No family badge: web \(named by URL — another repository\)/.test(note)) errors.push("family badges: the note should name the member and why: " + note);
+  window.close();
+}
+{
   // cited by: who in the registry cites this project — one backlink file, fetched on the click, never before
   const before = fetched.length;
   const window = await open(`http://localhost/?public=${encodeURIComponent(`${GH}/far`)}#graph`, html, { "ktw-friends": "off" });

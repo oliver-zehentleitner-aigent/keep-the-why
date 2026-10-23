@@ -685,6 +685,122 @@ class EntryIdentityTest(StateTest):
         self.assertNotIn("badge.svg", BADGES)
 
 
+class FamilyBadgeTest(StateTest):
+    """A family root whose members all live in its repository: the export
+    writes the family badges with everyone's numbers; a member elsewhere
+    keeps them from being written and is named in the state instead."""
+
+    def add_child(self, name, children="", entry_status="open"):
+        d = os.path.join(self.root, name)
+        os.makedirs(os.path.join(d, "context"))
+        with open(os.path.join(d, ".keep-the-why"), "w") as fh:
+            fh.write(
+                CONFIG.replace("acme---widget", f"acme---widget---{name}").replace(
+                    "- context:", "- parent: ..\n- context:"
+                )
+                + children
+            )
+        with open(os.path.join(d, "context", "index.md"), "w") as fh:
+            fh.write("# Context index\n\n" + INDEX_HEADS + "\n")
+        with open(os.path.join(d, "context", "api.md"), "w") as fh:
+            fh.write(
+                "# API\n\n## Versioned paths\n\n**Type:** decision\n"
+                f"**Status:** {entry_status}\n**Evidence:** inferred\n\nPaths carry /v1/.\n"
+            )
+        return d
+
+    def set_children(self, lines):
+        with open(os.path.join(self.root, ".keep-the-why"), "a") as fh:
+            fh.write(
+                "\n<!-- keep-the-why:children -->\n"
+                + "\n".join(lines)
+                + "\n<!-- /keep-the-why:children -->\n"
+            )
+
+    def commit(self):
+        git(self.root, "add", "--", ":!vendored")
+        git(self.root, "commit", "-q", "-m", "family")
+
+    def exported(self):
+        from ktw_dashboard.export import export
+
+        out = tempfile.TemporaryDirectory(prefix="ktw-dash-out-")
+        self.addCleanup(out.cleanup)
+        export(StateBuilder(self.root), out.name)
+        return out.name
+
+    def test_same_repo_family_gets_family_badges(self):
+        self.add_child(
+            "hub",
+            children="\n<!-- keep-the-why:children -->\n- db: db — storage\n<!-- /keep-the-why:children -->\n",
+        )
+        self.add_child("web", entry_status="active")
+        self.add_child(os.path.join("hub", "db"))
+        self.set_children(["- hub: hub — the server", "- web: web — the page"])
+        self.commit()
+        fam = StateBuilder(self.root).build()["project"]["family_badge"]
+        self.assertEqual([m["path"] for m in fam["members"]], ["hub", "web", "hub/db"])
+        self.assertEqual(fam["missing"], [])
+        out = self.exported()
+        # the root's 3 entries (1 open) and one per member (hub, hub/db open)
+        for name in ("badge-family.svg", "badge-family-flat.svg"):
+            with open(os.path.join(out, name), encoding="utf-8") as fh:
+                self.assertIn("6 entries · 3 open · 4 projects", fh.read())
+        with open(os.path.join(out, "badge-entries.svg"), encoding="utf-8") as fh:
+            self.assertIn("3 entries · 1 open<", fh.read())
+        # a member's own export is no family root: no family badge, no field
+        child = StateBuilder(os.path.join(self.root, "hub")).build()
+        self.assertIsNone(child["project"]["family_badge"])
+
+    def test_member_in_another_repository_blocks_the_family_badge(self):
+        self.add_child("hub")
+        nested = self.add_child("vendored")
+        git(nested, "init", "-q", "-b", "main")  # a repository of its own
+        git(
+            nested,
+            "-c",
+            "user.name=C",
+            "-c",
+            "user.email=c@example.com",
+            "commit",
+            "-q",
+            "--allow-empty",
+            "-m",
+            "own",
+        )
+        self.set_children(
+            [
+                "- hub: hub — the server",
+                "- vendored: vendored — a clone inside the tree",
+                "- ws: https://github.com/acme/ws — the websocket client",
+                "- gone: missing — not checked in",
+                "- far: ../elsewhere — outside the tree",
+            ]
+        )
+        self.commit()
+        fam = StateBuilder(self.root).build()["project"]["family_badge"]
+        self.assertEqual([m["name"] for m in fam["members"]], ["hub"])
+        self.assertEqual(
+            {m["name"]: m["reason"] for m in fam["missing"]},
+            {
+                "vendored": "a Git repository of its own",
+                "ws": "named by URL — another repository",
+                "gone": "no .keep-the-why at that location",
+                "far": "outside this repository",
+            },
+        )
+        out = self.exported()
+        self.assertFalse(os.path.exists(os.path.join(out, "badge-family.svg")))
+        self.assertFalse(os.path.exists(os.path.join(out, "badge-family-flat.svg")))
+        self.assertTrue(os.path.exists(os.path.join(out, "badge-entries.svg")))
+
+    def test_no_children_no_family_badge(self):
+        self.assertIsNone(StateBuilder(self.root).build()["project"]["family_badge"])
+        self.assertFalse(
+            os.path.exists(os.path.join(self.exported(), "badge-family.svg"))
+        )
+
+
 class FamilyTest(unittest.TestCase):
     """The family of a project — parent, children, siblings — resolved against
     what the machine knows, cache rows in the project list, and `forget`."""

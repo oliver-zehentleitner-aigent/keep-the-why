@@ -76,6 +76,11 @@ def normalize_remote(url: str) -> str:
     return url.rstrip("/")
 
 
+def toplevel(path: str) -> str:
+    """The Git top level `path` lies in, "" outside a repository."""
+    return (_run(["rev-parse", "--show-toplevel"], path) or "").strip()
+
+
 def open_repo(project_root: str) -> Repo | None:
     top = _run(["rev-parse", "--show-toplevel"], project_root)
     if not top:
