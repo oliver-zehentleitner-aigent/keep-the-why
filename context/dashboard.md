@@ -593,3 +593,18 @@ When a project publishes its dashboard, the last line of `context/README.md` rea
 **Reason:** the folder's README is what a reader landing in `context/` on the code host sees first, and the dashboard is the readable way into the same entries — the graph, the history, what is open. `dashboard-state` is the one place that already says where the export lives, so the link cannot drift from it and nothing is guessed from the host.
 
 **Rejected alternative:** a linter warning when `dashboard-state` is set and the README's link is missing or points elsewhere. Rejected: the README is free text the project may rewrite; the linter checks the structure of `context/` entries and `.keep-the-why`, and a warning would make the README a checked file for one line.
+
+## A family badge only when every member lives in the root's repository
+
+**Id:** ce8674d0-f680-487d-9af7-63c9b6a99c5c
+**Type:** decision
+**Status:** active
+**Evidence:** inferred
+**Source:** maintainer request, 2026-10-23 (a family badge where all members sit in one repository, and only there); which export writes it, its file names and the nested-repository check are the assisting agent's design, stated for review in the pull request
+**Revisit when:** an export can read a member's published `state.json` at build time, or a family root asks for a badge although a member lives elsewhere
+
+The export of a family root — a `.keep-the-why` with a children block and no `parent` — writes `badge-family.svg` and `badge-family-flat.svg` beside its own two badges, with the entries and open entries of the root and every member below it, read from the same checkout, and the number of projects. It does so only when every member the children blocks name, level by level, sits in the root's Git repository: a path location inside the same top level, with a `.keep-the-why` there and no repository of its own. A member named by URL, outside the top level, missing on disk or in a nested repository or submodule keeps the badges from being written; the state names it with the reason (`project.family_badge.missing`), and the badge page says so instead of offering a badge.
+
+**Reason:** the numbers of a member in another repository are not on the disk when the root is exported, so a total would be missing that member. A wrong number on a README badge reads as a fact; leaving the badge out does not. The root's export writes it because the root is the family's one export that every member reaches up to; a member further down would show only its own subtree under the family's name. A nested repository counts as another repository because its history and its own export are separate from the root's, even when its files are in the tree.
+
+**Rejected alternative:** add up the members' published `state.json` files at export time. Rejected for now: the export makes no network requests, and the members' pages may not be published yet when the root's build runs — in a mono repository every export usually comes out of the same Pages build.
