@@ -103,6 +103,17 @@ export function hostOf(url) {
 
 export const canonicalOf = (p) => p?.canonical || (p?.git?.remote ? `https://${p.git.remote}` : "");
 
+// The owner of a repository, from its canonical URL or remote: everything before the repository's own name —
+// `github.com/acme` for github.com/acme/widget, `gitlab.com/acme/tools` for a GitLab subgroup. {key, label, url},
+// the key compared without case; null when the address names no owner (a host alone, a single path segment).
+export function ownerOf(canonical) {
+  const r = String(canonical || "").trim().replace(/^[a-z+]+:\/\//i, "").replace(/^[^@/]+@/, "").replace(/^([^/:]+):(?!\d)/, "$1/").replace(/\.git$/, "").replace(/\/+$/, "");
+  const parts = r.split("/").filter(Boolean);
+  if (parts.length < 3) return null;
+  const owner = parts.slice(0, -1);
+  return { key: owner.join("/").toLowerCase(), label: owner.slice(1).join("/"), url: `https://${owner.join("/")}` };
+}
+
 // `owner/repo` from canonical, else the remote; without either, the id — `project_label` in export.py
 export function projectLabel(p) {
   const r = (p?.canonical || p?.git?.remote || "").trim().replace(/^[a-z+]+:\/\//, "").replace(/^[^@/]+@/, "").replace(/^([^/:]+):/, "$1/").replace(/\/+$/, "").replace(/\.git$/, "");

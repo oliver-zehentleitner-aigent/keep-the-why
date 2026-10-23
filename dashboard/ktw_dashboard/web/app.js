@@ -2,7 +2,7 @@
    The page knows only the state (see state.py): live from /api/events, or
    embedded as window.__KTW_STATE__ in an export. It renders; it never writes. */
 
-import { esc, plural, typeName, UUID_RE, isUuid, rawFileUrl, configLine, normalizeState, slug, hostFileLink, hostTreeLink, canonicalOf, parseSupersededBy, kindLabel, groupByFamily, familyRank, familyOrder, searchTerms, searchHit, registryMatches, shuffled, compareHits, snippetAt, highlight, resolveLocation, linkFamily, authorLookup, mergeStates, friendsOf, thoughtsOf, thoughtInsights, hostOf, projectLabel, backlinksUrl, citingOf, hostAnchor , todayISO, addDays, dayDiff, timeGrid, stampLabel, existsAt, statusAt, seeDay, supersededDay, linkExistsAt, daySpan, createdOn, TYPE_KINDS, TYPE_COLORS, typeKind, SHELF, stageCards, stageLinks, markLinked, stageLanes, logDepth, percentileBox, pushApart, stageHeight, mergeAuthors, sortAuthors, AUTHOR_SORTS } from "./lib.js";
+import { esc, plural, typeName, UUID_RE, isUuid, rawFileUrl, configLine, normalizeState, slug, hostFileLink, hostTreeLink, canonicalOf, parseSupersededBy, kindLabel, groupByFamily, familyRank, familyOrder, searchTerms, searchHit, registryMatches, shuffled, compareHits, snippetAt, highlight, resolveLocation, linkFamily, authorLookup, mergeStates, friendsOf, thoughtsOf, thoughtInsights, hostOf, projectLabel, backlinksUrl, citingOf, hostAnchor , todayISO, addDays, dayDiff, timeGrid, stampLabel, existsAt, statusAt, seeDay, supersededDay, linkExistsAt, daySpan, createdOn, TYPE_KINDS, TYPE_COLORS, typeKind, SHELF, stageCards, stageLinks, markLinked, stageLanes, logDepth, percentileBox, pushApart, stageHeight, mergeAuthors, sortAuthors, AUTHOR_SORTS, ownerOf } from "./lib.js";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const narrow = () => !!window.matchMedia?.("(max-width: 900px)").matches;
@@ -1246,6 +1246,7 @@ function buildGraph(project = null) {
   autoFriends(graph);
   if (!project) autoFamily();
   addFriendLayer(graph, prev);
+  addOwnerGroups(graph, prev);
   graph.alpha = Math.max(graph.alpha, 0.6);
   return graph;
 }
@@ -1338,6 +1339,7 @@ async function buildFamilyGraph() {
   fgraph.friends = friendCandidates(groups.flatMap((G) => G.state.entries || []), [...groups.map((G) => G.canonical), ...pool.missing.map(({ member: m }) => m.canonical)]);
   autoFriends(fgraph);
   addFriendLayer(fgraph, prev);
+  addOwnerGroups(fgraph, prev);
   fgraph.alpha = Math.max(fgraph.alpha, 0.6);
   return fgraph;
 }
@@ -1374,6 +1376,9 @@ let FAMILY_ENTRIES = readEntriesSetting("ktw-family-entries", true);
 function setFriendEntries(on) { FRIEND_ENTRIES = on; try { localStorage.setItem("ktw-friend-entries", on ? "all" : "linked"); } catch {} }
 function setPathEntries(on) { PATH_ENTRIES = on; try { localStorage.setItem("ktw-path-entries", on ? "all" : "linked"); } catch {} }
 function setFamilyEntries(on) { FAMILY_ENTRIES = on; try { localStorage.setItem("ktw-family-entries", on ? "all" : "linked"); } catch {} }
+// "owners": the projects of one owner bundled around a node for the owner — off by default, kept per browser
+let OWNER_GROUPS = (() => { try { return localStorage.getItem("ktw-owner-groups") === "on"; } catch { return false; } })();
+function setOwnerGroups(on) { OWNER_GROUPS = on; try { localStorage.setItem("ktw-owner-groups", on ? "on" : "off"); } catch {} }
 // "entries" of the main graph, kept per browser like every other switch in the bar — a move to another centre builds a new graph and must not reset it
 let SHOW_ENTRIES = (() => { try { return localStorage.getItem("ktw-entries") !== "off"; } catch { return true; } })();
 function setShowEntries(on) { SHOW_ENTRIES = on; try { localStorage.setItem("ktw-entries", on ? "on" : "off"); } catch {} }
@@ -1395,6 +1400,7 @@ function selectAll(g, on) {
   setFamilyNeighbours(on); setFamilyEntries(on);
   setFriendEntries(on); setFriendFamilies(on); setFriendFamEntries(on); setPathEntries(on);
   setTrailShow(on); // the path is hidden or shown, never discarded here
+  setOwnerGroups(on);
   if (on) { setFriendsAuto(true); setKeepPath(true); autoFamily(); autoFriends(g); } else { FRIENDS.on = false; setFriendsAuto(false); }
   if (fgraph) fgraph.at = 0;
   render();
@@ -1691,6 +1697,38 @@ function addLinkedLayer(g, prev, items) {
     // the walk's order: one step's hub to the next
     if (P.it.next) { const Q = placed.find((q) => q.it.k === P.it.next); if (Q) links.push({ s: P.firstHub, t: Q.firstHub, kind: "trail", len: 360 }); }
     else if (P.it.kind === "trail" && selfHub) links.push({ s: P.firstHub, t: index[selfHub.id], kind: "trail", len: 360 }); // the last step walked from leads here
+  }
+}
+// The owners: with "owners" on, the projects in the graph that share an owner — the account or group before the
+// repository's name in its address — are tied to one node for that owner, and pulled together around it. Only an
+// owner with more than one project here gets a node; a project alone stays as it is. The node opens the owner's
+// page on the host. Every hub counts as a project, so the members of a family in one repository count each. A family
+// keeps its shape: only its root hangs on the owner, the members below hang on their parent as they already do.
+function addOwnerGroups(g, prev) {
+  if (!OWNER_GROUPS) return;
+  const { nodes, links, index } = g;
+  const groups = new Map();
+  for (const n of nodes) {
+    if (n.kind !== "project") continue;
+    const o = ownerOf(n.canonical); if (!o) continue;
+    if (!groups.has(o.key)) groups.set(o.key, { o, hubs: [] });
+    groups.get(o.key).hubs.push(n);
+  }
+  const hasParent = new Set(); // a family's parent lines run child → parent
+  for (const l of links) if (l.kind === "family" && nodes[l.s]?.kind === "project" && nodes[l.t]?.kind === "project") hasParent.add(nodes[l.s]);
+  for (const { o, hubs } of groups.values()) {
+    if (hubs.length < 2) continue;
+    const id = `o:${o.key}`; const p = prev[id];
+    const cx = hubs.reduce((a, n) => a + n.x, 0) / hubs.length, cy = hubs.reduce((a, n) => a + n.y, 0) / hubs.length;
+    const owner = { id, kind: "owner", ext: true, unit: id, label: o.label, canonical: o.url, r: 17, x: p ? p.x : cx, y: p ? p.y : cy, vx: 0, vy: 0, fixed: p?.fixed, href: o.url, walk: () => window.open(o.url, "_blank", "noopener") };
+    index[id] = nodes.length; nodes.push(owner);
+    for (const n of hubs) {
+      n.owner = id;
+      if (!hasParent.has(n)) links.push({ s: index[id], t: index[n.id], kind: "owner", len: 190 });
+      // the owner's node names the owner; a hub on it keeps only the repository's part — `keep-the-why`, not `oliver-zehentleitner/keep-the-why` (or the id, `oliver-zehentleitner---keep-the-why`)
+      const lc = n.label.toLowerCase();
+      for (const pre of [`${o.key}/`, `${o.label.toLowerCase()}/`, `${o.label.toLowerCase().replace(/\//g, "---")}---`]) if (lc.startsWith(pre) && lc.length > pre.length) { n.label = n.label.slice(pre.length); break; }
+    }
   }
 }
 
@@ -2335,6 +2373,7 @@ function graphControlGroups(g, family, view = g) {
     famUi ? el("span", { class: "ui-group" }, famUi, FAMILY_NB_ON ? labelsUi(g, "family", "the family's projects") : null) : null,
     fui ? el("span", { class: "ui-group" }, fui) : null,
     citedUi(g),
+    el("span", { class: "ui-group" }, el("label", { title: "the projects of one owner around a node for the owner — only an owner with more than one project in the graph; the node opens the owner's page" }, el("input", { type: "checkbox", checked: OWNER_GROUPS, onchange: (ev) => { setOwnerGroups(ev.target.checked); if (fgraph) fgraph.at = 0; render(); } }), "owners")),
     el("span", { class: "ui-group" }, el("label", { title: "the path's projects in the graph — the projects you came through; unchecked they are hidden, not forgotten (the path bar discards)" }, el("input", { type: "checkbox", checked: keepPath() && TRAIL_SHOW, onchange: (ev) => { if (ev.target.checked && !keepPath()) setKeepPath(true); setTrailShow(ev.target.checked); if (fgraph) fgraph.at = 0; render(); } }), "path"),
       ...(pathShown() && TRAIL.some((t) => !sameCentreAsGraph(g, t)) ? [allEntriesUi("path", PATH_ENTRIES, setPathEntries, "every step of the path"), labelsUi(g, "path", "the path's projects")] : [])),
     el("span", { class: "ui-group" }, el("label", { title: "the graph turns very slowly; it stops while you point at it" }, el("input", { type: "checkbox", checked: driftOn(), onchange: (ev) => { setDrift(ev.target.checked); g.wake?.(); } }), "motion")),
@@ -2537,7 +2576,7 @@ function runGraph(canvas, g, opts = {}) {
       for (let i = 0; i < ns.length; i++) for (let j = i + 1; j < ns.length; j++) {
         const a = ns[i], b = ns[j]; let dx = b.x - a.x, dy = b.y - a.y; let d2 = dx * dx + dy * dy + 0.01;
         const hubs = a.kind === "project" && b.kind === "project";
-        const apart = (a.unit || "") !== (b.unit || ""); // this graph and a friend, or two friends: a family keeps together, strangers keep their distance
+        const apart = (a.unit || "") !== (b.unit || "") && !(a.owner && a.owner === b.owner); // this graph and a friend, or two friends: a family keeps together, strangers keep their distance — and so do projects bundled under one owner
         if (d2 > (hubs ? (apart ? 9000000 : 4000000) : apart ? 640000 : 250000)) continue;
         const base = hubs ? (apart ? 70000 : 22000) : a.kind === "entry" && b.kind === "entry" ? 260 : a.kind === "entry" || b.kind === "entry" ? 900 : 2600;
         const rep = (apart && !hubs ? base * 2.5 : base) / d2; const d = Math.sqrt(d2);
@@ -2545,7 +2584,7 @@ function runGraph(canvas, g, opts = {}) {
         if (!a.fixed) { a.vx -= fx; a.vy -= fy; } if (!b.fixed) { b.vx += fx; b.vy += fy; }
       }
       // springs
-      for (const l of g.links) { if (!linkOn(l)) continue; const a = g.nodes[l.s], b = g.nodes[l.t]; const dx = b.x - a.x, dy = b.y - a.y; const d = Math.hypot(dx, dy) || 0.01; const f = (d - l.len) * (l.kind === "member" || l.kind === "hub" ? 0.05 : l.kind === "family" ? 0.03 : 0.02) * k; const fx = (dx / d) * f, fy = (dy / d) * f; if (!a.fixed) { a.vx += fx; a.vy += fy; } if (!b.fixed) { b.vx -= fx; b.vy -= fy; } }
+      for (const l of g.links) { if (!linkOn(l)) continue; const a = g.nodes[l.s], b = g.nodes[l.t]; const dx = b.x - a.x, dy = b.y - a.y; const d = Math.hypot(dx, dy) || 0.01; const f = (d - l.len) * (l.kind === "member" || l.kind === "hub" || l.kind === "owner" ? 0.05 : l.kind === "family" ? 0.03 : 0.02) * k; const fx = (dx / d) * f, fy = (dy / d) * f; if (!a.fixed) { a.vx += fx; a.vy += fy; } if (!b.fixed) { b.vx -= fx; b.vy -= fy; } }
       // gravity + integrate
       for (const n of ns) { if (n.fixed) continue; const gr = n.ext ? 0.0015 : 0.004; n.vx -= n.x * gr * k; n.vy -= n.y * gr * k; n.vx *= 0.82; n.vy *= 0.82; n.x += n.vx; n.y += n.vy; }
       g.alpha *= 0.985;
@@ -2573,14 +2612,14 @@ function runGraph(canvas, g, opts = {}) {
     const stepNode = STEP_FOCUS ? ns.find((n) => n.kind === "entry" && (n.entry?.uuid === STEP_FOCUS || n.id === STEP_FOCUS)) : null;
     if (stepNode) neigh.add(stepNode);
     const onThought = (l) => !!th && (l.kind === "see" || l.kind === "superseded") && (th.pairs.has(`${g.nodes[l.s].id}|${g.nodes[l.t].id}`) || th.pairs.has(`${g.nodes[l.t].id}|${g.nodes[l.s].id}`));
-    const LW = { topic: 1.6, ref: 1, family: 2.6, see: 1.5, xtopic: 1.5, superseded: 1.3, trail: 1.4 };
-    const DASH = { member: [2, 3], hub: [2, 3], family: [9, 6], superseded: [5, 4], trail: [2, 6] };
+    const LW = { topic: 1.6, ref: 1, family: 2.6, see: 1.5, xtopic: 1.5, superseded: 1.3, trail: 1.4, owner: 1.6 };
+    const DASH = { member: [2, 3], hub: [2, 3], family: [9, 6], superseded: [5, 4], trail: [2, 6], owner: [1, 4] };
     for (const l of g.links) {
       if (!linkOn(l)) continue;
       const a = g.nodes[l.s], b = g.nodes[l.t]; const hi = (focus && (a === focus || b === focus)) || onThought(l) || (sp && sp.has(a) && sp.has(b));
       ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
       ctx.lineWidth = (LW[l.kind] || 0.6) / V.scale; ctx.setLineDash((DASH[l.kind] || []).map((v) => v / V.scale));
-      const base = l.kind === "see" || l.kind === "xtopic" ? (l.color || color("--accent2")) : l.kind === "superseded" || l.kind === "family" || l.kind === "trail" ? color("--fg3") : color("--line");
+      const base = l.kind === "see" || l.kind === "xtopic" ? (l.color || color("--accent2")) : l.kind === "superseded" || l.kind === "family" || l.kind === "trail" || l.kind === "owner" ? color("--fg3") : color("--line");
       ctx.strokeStyle = hi ? (l.kind === "see" || l.kind === "xtopic" ? color("--fg") : color("--accent2")) : base; ctx.globalAlpha = (focus || th || sp) && !hi ? (th ? 0.12 : 0.25) : l.kind === "see" || l.kind === "xtopic" ? 0.85 : 1; if (onThought(l)) ctx.lineWidth = 3 / V.scale; ctx.stroke();
       // the path is the way walked, not a citation: an arrow at its middle points the way it went, toward where the reader is now
       if (l.kind === "trail") {
@@ -2598,6 +2637,7 @@ function runGraph(canvas, g, opts = {}) {
       ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
       if (n.kind === "project") { ctx.fillStyle = color("--bg"); ctx.fill(); ctx.lineWidth = 3.5 / V.scale; ctx.strokeStyle = n.color; if (n.chain) ctx.setLineDash([8 / V.scale, 3 / V.scale, 2 / V.scale, 3 / V.scale]); else if (n.friend) ctx.setLineDash([5 / V.scale, 3 / V.scale]); else if (n.trail) ctx.setLineDash([1.5 / V.scale, 3 / V.scale]); ctx.stroke(); ctx.setLineDash([]); ctx.beginPath(); ctx.arc(n.x, n.y, n.r * 0.38, 0, Math.PI * 2); ctx.fillStyle = n.color; ctx.fill(); }
       else if (n.kind === "topic") { ctx.fillStyle = n.color || color("--accent"); ctx.fill(); }
+      else if (n.kind === "owner") { ctx.fillStyle = color("--bg"); ctx.fill(); ctx.lineWidth = 1.5 / V.scale; ctx.strokeStyle = color("--fg3"); ctx.stroke(); ctx.beginPath(); ctx.arc(n.x, n.y, n.r * 0.72, 0, Math.PI * 2); ctx.stroke(); } // the inner ring in the graph's units: a radius from the zoom went negative far out, and the canvas throws on that
       else { const st = statusNow(n.entry); const sup = st === "superseded"; ctx.fillStyle = sup ? color("--bg") : evColor[ev(n)] || color("--muted"); ctx.fill(); if (sup) { ctx.lineWidth = 1.2 / V.scale; ctx.strokeStyle = evColor[ev(n)] || color("--fg3"); ctx.stroke(); } if (st === "open" || st === "needs-review" || st === "pending-confirmation") { ctx.beginPath(); ctx.arc(n.x, n.y, n.r + 2.5 / V.scale, 0, Math.PI * 2); ctx.lineWidth = 1.2 / V.scale; ctx.strokeStyle = color(`--${st}`); ctx.stroke(); } }
       if (n === focus) { ctx.beginPath(); ctx.arc(n.x, n.y, n.r + 4 / V.scale, 0, Math.PI * 2); ctx.lineWidth = 1.5 / V.scale; ctx.strokeStyle = color("--fg"); ctx.stroke(); }
       if (n === stepNode) { ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(n.x, n.y, n.r + 7 / V.scale, 0, Math.PI * 2); ctx.lineWidth = 3 / V.scale; ctx.strokeStyle = color("--accent2"); ctx.stroke(); ctx.beginPath(); ctx.arc(n.x, n.y, n.r + 12 / V.scale, 0, Math.PI * 2); ctx.lineWidth = 1 / V.scale; ctx.stroke(); }
@@ -2612,7 +2652,7 @@ function runGraph(canvas, g, opts = {}) {
       // zooming in makes room and brings them back.
       const cand = [];
       for (const n of ns) {
-        const hubName = n.kind === "project";
+        const hubName = n.kind === "project" || n.kind === "owner";
         if (sp) { if (!sp.has(n)) continue; if (!hubName && n.kind !== "topic" && !(V.scale > 1.6)) continue; } // a spotted project: its names alone
         if (!hubName && !anyLabels && !sp) continue;
         const lab = sp ? true : g.showLabels && labelsOn(n);

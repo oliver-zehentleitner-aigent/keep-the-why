@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import {
   esc, plural, isUuid, rawFileUrl, configLine, normalizeState, slug, hostFileLink, hostTreeLink, canonicalOf, projectLabel,
   parseSupersededBy, kindLabel, typeName, groupByFamily, familyRank, familyOrder, searchTerms, searchHit, registryMatches, shuffled, compareHits, snippetAt, highlight,
-  resolveLocation, bodyProse, linkFamily, authorLookup, mergeStates, friendsOf, thoughtsOf, thoughtInsights, HOSTS, hostOf, backlinksUrl, citingOf, hostAnchor,
+  resolveLocation, bodyProse, linkFamily, authorLookup, mergeStates, friendsOf, thoughtsOf, thoughtInsights, HOSTS, hostOf, backlinksUrl, citingOf, hostAnchor, ownerOf,
 } from "../../ktw_dashboard/web/lib.js";
 
 test("esc escapes the five HTML characters and nothing else", () => {
@@ -625,4 +625,13 @@ test("shuffled: a permutation in a new array, the input untouched", () => {
   assert.deepEqual([...out].sort((a, b) => a - b), list);
   assert.notDeepEqual(out, list);
   assert.deepEqual(shuffled([], rnd), []);
+});
+
+test("ownerOf: the owner of a repository, subgroups included", () => {
+  assert.deepEqual(ownerOf("https://github.com/acme/widget"), { key: "github.com/acme", label: "acme", url: "https://github.com/acme" });
+  assert.deepEqual(ownerOf("https://gitlab.com/Acme/tools/cli/"), { key: "gitlab.com/acme/tools", label: "Acme/tools", url: "https://gitlab.com/Acme/tools" });
+  assert.equal(ownerOf("git@github.com:acme/widget.git").key, "github.com/acme");
+  assert.equal(ownerOf("github.com/acme/widget").label, "acme");
+  assert.equal(ownerOf("https://github.com/acme"), null);
+  assert.equal(ownerOf(""), null);
 });

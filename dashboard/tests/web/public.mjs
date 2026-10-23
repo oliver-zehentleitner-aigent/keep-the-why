@@ -84,12 +84,13 @@ const stubFetch = async (url) => {
 const errors = [];
 const navigations = []; // jsdom does not navigate: a location.href to another page is reported, not followed
 const tick = (ms) => new Promise((r) => setTimeout(r, ms));
+// the canvas stub throws where a real canvas does — an arc with a negative radius — so a drawing bug that stops the graph's loop in a browser fails here too
 async function open(url, page = html, store = {}) {
   const vc = new VirtualConsole();
   vc.on("jsdomError", (e) => /^Not implemented: navigation/.test(e.message || "") ? navigations.push(e.message) : errors.push("jsdom: " + (e.detail?.stack || e.message || e).toString().split("\n").slice(0, 2).join(" | ")));
   vc.on("error", (...a) => errors.push("console: " + a.join(" ")));
   const dom = new JSDOM(page, { url, runScripts: "dangerously", pretendToBeVisual: true, virtualConsole: vc,
-    beforeParse(w) { for (const [k, v] of Object.entries(store)) w.localStorage.setItem(k, v); w.fetch = stubFetch; w.ResizeObserver = class { observe() {} disconnect() {} }; w.HTMLCanvasElement.prototype.getContext = () => new Proxy({}, { get: (t, k) => (k === "measureText" ? () => ({ width: 10 }) : () => {}), set: () => true }); w.matchMedia = () => ({ matches: false }); w.CSS = { escape: (x) => x.replace(/([^\w-])/g, "\\$1") }; } });
+    beforeParse(w) { for (const [k, v] of Object.entries(store)) w.localStorage.setItem(k, v); w.fetch = stubFetch; w.ResizeObserver = class { observe() {} disconnect() {} }; w.HTMLCanvasElement.prototype.getContext = () => new Proxy({}, { get: (t, k) => (k === "measureText" ? () => ({ width: 10 }) : k === "arc" ? (x, y, r) => { if (!(r >= 0)) throw new w.DOMException(`arc: radius ${r} is negative`, "IndexSizeError"); } : () => {}), set: () => true }); w.matchMedia = () => ({ matches: false }); w.CSS = { escape: (x) => x.replace(/([^\w-])/g, "\\$1") }; } });
   await tick(300);
   return dom.window;
 }
@@ -1045,6 +1046,33 @@ const report = {};
   for (const [k, v] of Object.entries(want)) if (order[k]?.join() !== v) errors.push(`authors sort (${k}): ${order[k]?.join()} — want ${v}`);
   if (!/Created/.test(order.createdSort)) errors.push("authors sort: the sorted column is not marked: " + order.createdSort);
   if ([...d.querySelectorAll("main table.t th")].find((th) => /Evidence/.test(th.textContent))?.querySelector(".sort-btn")) errors.push("authors sort: the evidence column should not sort");
+  window.close();
+}
+{
+  // owners: off by default; on, the acme projects in the graph are tied to one node for acme, which opens acme's page
+  // (the family graph here: the family comes whole by default)
+  const shown = (w) => w.__fg?.() || w.__g();
+  let window = await open(`http://localhost/?public=${encodeURIComponent(`${GH}/web`)}#graph`);
+  await tick(600);
+  let g = shown(window);
+  if (g.nodes.some((n) => n.kind === "owner")) errors.push("owners: an owner node with the switch off (the default)");
+  const box = [...window.document.querySelectorAll(".graph-ui label")].find((l) => l.textContent === "owners")?.querySelector("input");
+  if (!box || box.checked) errors.push("owners: the switch is missing from the graph bar, or on by default");
+  window.close();
+  window = await open(`http://localhost/?public=${encodeURIComponent(`${GH}/web`)}#graph`, html, { "ktw-owner-groups": "on" });
+  await tick(600);
+  g = shown(window);
+  const owners = g.nodes.filter((n) => n.kind === "owner");
+  const hubs = g.nodes.filter((n) => n.kind === "project");
+  const tied = g.links.filter((l) => l.kind === "owner").map((l) => g.nodes[l.t].label).sort();
+  const onOwner = hubs.filter((n) => n.owner).map((n) => n.label).sort();
+  report.owners = { owners: owners.map((n) => `${n.label} ${n.href}`), tied, onOwner };
+  if (owners.length !== 1 || owners[0].label !== "acme" || owners[0].href !== "https://github.com/acme") errors.push("owners: want one node for acme, got " + JSON.stringify(report.owners.owners));
+  // the family keeps its shape: only its root, the suite, hangs on the owner; web, docs and plugin hang on their parents
+  if (onOwner.length !== hubs.length) errors.push(`owners: every acme hub should belong to the owner — ${onOwner.length} of ${hubs.length}`);
+  if (tied.join() !== "suite") errors.push("owners: only the family's root should hang on the owner, got " + tied.join());
+  // on the owner's node a hub drops the owner from its name: github.com/acme/suite reads suite, the id acme---web reads web
+  if (onOwner.some((l) => /acme(\/|---)/.test(l)) || !onOwner.includes("suite") || !onOwner.includes("web")) errors.push("owners: a hub on the owner's node still repeats the owner: " + onOwner.join());
   window.close();
 }
 console.log(JSON.stringify(report, null, 1));
