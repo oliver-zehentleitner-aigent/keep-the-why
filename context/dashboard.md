@@ -608,3 +608,18 @@ The export of a family root — a `.keep-the-why` with a children block and no `
 **Reason:** the numbers of a member in another repository are not on the disk when the root is exported, so a total would be missing that member. A wrong number on a README badge reads as a fact; leaving the badge out does not. The root's export writes it because the root is the family's one export that every member reaches up to; a member further down would show only its own subtree under the family's name. A nested repository counts as another repository because its history and its own export are separate from the root's, even when its files are in the tree.
 
 **Rejected alternative:** add up the members' published `state.json` files at export time. Rejected for now: the export makes no network requests, and the members' pages may not be published yet when the root's build runs — in a mono repository every export usually comes out of the same Pages build.
+
+## Owners in the graph: the address's owner, every project counted, a family hanging by its root
+
+**Id:** 69cc754e-5d85-4f19-8941-c11fab846483
+**Type:** decision
+**Status:** active
+**Evidence:** inferred
+**Source:** maintainer request and review of a running demo, 2026-10-23 (grouping around the owner as a switch; the family's shape and the names without the owner came from the review); the derivation of the owner and the counting were the assisting agent's proposal, accepted as demoed; the reasons given for those two are the agent's, the choices themselves are confirmed
+**Revisit when:** a host's addresses stop putting the owner before the repository's name, or readers ask for the owner nodes of a large GitLab group to merge
+
+*owners* in the graph's bar ties the projects that share an owner to one node for that owner. The owner is everything in the repository's address before its name: `github.com/acme` for `github.com/acme/widget`, and on GitLab the whole group path, `gitlab.com/acme/tools` for `gitlab.com/acme/tools/cli`. An owner gets a node only with more than one project in the graph, and every hub counts as a project. A family keeps its shape: only its root hangs on the owner; the members below it hang on their parents as before. While the switch is on, a project on its owner's node drops the owner from its name. Off by default, kept per browser like the other switches in the bar.
+
+**Reason:** the address is the one place every project in the graph names its owner, whether it is the centre, a family member, a friend or a globe wave, so nothing has to be fetched. A GitLab subgroup is an owner in its own right, with its own members and its own page. A hub stands for a project wherever else the graph counts, so the members of a family in one repository count here too. The owner follows the family's structure instead of running past it: the root alone carries the family to its owner, as the review of the demo asked.
+
+**Rejected alternative:** the top-level group only on GitLab — it merges subgroups that are organised apart on the host, and the node's page would not be the subgroup's. Counting distinct repositories instead of projects — a family in one repository would then be one project and get no owner node, though the graph draws it as several. Wiring the owner to every member of a family — what the first demo did; rejected in its review in favour of the family's own structure.
