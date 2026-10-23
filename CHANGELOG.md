@@ -6,8 +6,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Changed
 
-- Security page: the skills.sh results for 0.20.3 — Socket *Pass* and Snyk *Warn* (medium, W011) as audited 2026-10-21, Gen Agent Trust Hub *Pass* (safe) from its latest audit, of 0.20.2 (2026-10-12). Its categories are now remote code execution, dynamic execution, persistence, indirect prompt injection and external downloads; the page listed the four of the 0.20.1 audit, with command execution where persistence now is.
 - `context/release-and-distribution.md`, the shell-fence entry: Snyk on skills.sh has warned (medium, W011) since 0.20.1; the entry still said Socket and Snyk pass.
+- Security page: the skills.sh results for 0.20.3 — Socket *Pass* and Snyk *Warn* (medium, W011) as audited 2026-10-21, Gen Agent Trust Hub *Pass* (safe) from its latest audit, of 0.20.2 (2026-10-12). Its categories are now remote code execution, dynamic execution, persistence, indirect prompt injection and external downloads; the page listed the four of the 0.20.1 audit, with command execution where persistence now is.
 
 ## [0.20.3] - 2026-10-21
 

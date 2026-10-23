@@ -12,8 +12,6 @@ Last reviewed: 2026-10-05.
 
 ### Pending
 
--
-
 ## Ideas
 
 - **Antigravity: a verified autostart example.** A user runs the skill in
