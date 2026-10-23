@@ -2526,7 +2526,7 @@ function runGraph(canvas, g, opts = {}) {
   // hub is where the reader already is: a click on it does nothing.
   const walkTo = (n) => (n.self ? null : n.walk ? n.walk() : go(n.href));
   const screenOf = (n) => [W / 2 + g.ox + n.x * g.scale, H / 2 + g.oy + n.y * g.scale];
-  const open = (n) => (n.kind === "project" ? walkTo(n) : n.kind === "entry" && opts.onEntry ? opts.onEntry(n, ...screenOf(n)) : n.kind === "topic" && opts.onTopic ? opts.onTopic(n, ...screenOf(n)) : n.action ? n.action() : go(n.href));
+  const open = (n) => (n.kind === "project" || n.kind === "owner" ? walkTo(n) : n.kind === "entry" && opts.onEntry ? opts.onEntry(n, ...screenOf(n)) : n.kind === "topic" && opts.onTopic ? opts.onTopic(n, ...screenOf(n)) : n.action ? n.action() : go(n.href));
   window.addEventListener("mouseup", () => { if (nameDown) { const n = nameDown; nameDown = null; walkTo(n); return; } if (drag && !moved) open(drag); else if (pan && !moved) opts.onBlank?.(); drag = null; pan = null; canvas.classList.remove("grabbing"); });
   canvas.onmouseleave = () => { hover = null; hoverName = null; };
   canvas.onwheel = (ev) => { ev.preventDefault(); V.userMoved = true; const r = canvas.getBoundingClientRect(); zoomTo(V.scale * Math.exp(-ev.deltaY * 0.0012), ev.clientX - r.left - W / 2, ev.clientY - r.top - H / 2); };
