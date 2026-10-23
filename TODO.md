@@ -12,8 +12,7 @@ Last reviewed: 2026-10-05.
 
 ### Pending
 
-- [ ] **`docs/security.md` against the skills.sh audits** of 0.20.0, once the
-  three auditors have re-audited (release checklist step 12).
+-
 
 ## Ideas
 
