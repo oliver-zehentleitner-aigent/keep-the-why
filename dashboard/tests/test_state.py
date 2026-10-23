@@ -794,6 +794,38 @@ class FamilyBadgeTest(StateTest):
         self.assertFalse(os.path.exists(os.path.join(out, "badge-family-flat.svg")))
         self.assertTrue(os.path.exists(os.path.join(out, "badge-entries.svg")))
 
+    def test_a_family_that_stops_qualifying_loses_its_badges(self):
+        from ktw_dashboard.export import export
+
+        self.add_child("hub")
+        self.set_children(["- hub: hub — the server"])
+        self.commit()
+        out = self.exported()
+        self.assertTrue(os.path.exists(os.path.join(out, "badge-family.svg")))
+        # the child moves to a repository of its own: the next export into the
+        # same directory takes the old family badges away
+        with open(os.path.join(self.root, ".keep-the-why"), "w") as fh:
+            fh.write(
+                CONFIG
+                + "\n<!-- keep-the-why:children -->\n"
+                + "- hub: https://github.com/acme/hub — the server\n"
+                + "<!-- /keep-the-why:children -->\n"
+            )
+        export(StateBuilder(self.root), out)
+        for name in ("badge-family.svg", "badge-family-flat.svg"):
+            self.assertFalse(os.path.exists(os.path.join(out, name)), name)
+        self.assertTrue(os.path.exists(os.path.join(out, "badge-entries.svg")))
+        # and without any children block at all, the same
+        with open(os.path.join(self.root, ".keep-the-why"), "w") as fh:
+            fh.write(CONFIG)
+        self.set_children(["- hub: hub — the server"])
+        export(StateBuilder(self.root), out)
+        self.assertTrue(os.path.exists(os.path.join(out, "badge-family.svg")))
+        with open(os.path.join(self.root, ".keep-the-why"), "w") as fh:
+            fh.write(CONFIG)
+        export(StateBuilder(self.root), out)
+        self.assertFalse(os.path.exists(os.path.join(out, "badge-family.svg")))
+
     def test_no_children_no_family_badge(self):
         self.assertIsNone(StateBuilder(self.root).build()["project"]["family_badge"])
         self.assertFalse(

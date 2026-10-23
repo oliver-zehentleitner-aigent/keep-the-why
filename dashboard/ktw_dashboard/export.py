@@ -343,6 +343,14 @@ def export(builder, out_dir: str) -> str:
     fam = family_state(builder, state)
     if fam is not None:
         badges.update({name: (render, fam) for name, render in FAMILY_BADGES.items()})
+    else:
+        # an export into the same directory as before, after the family stopped
+        # qualifying: the last family badges would go on showing an old total
+        for name in FAMILY_BADGES:
+            try:
+                os.remove(os.path.join(out_dir, name))
+            except FileNotFoundError:
+                pass
     for name, (render, numbers) in badges.items():
         with open(os.path.join(out_dir, name), "w", encoding="utf-8") as fh:
             fh.write(render(numbers))
